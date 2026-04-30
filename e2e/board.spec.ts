@@ -25,6 +25,7 @@ test("loads the seeded kanban board", async ({ page }) => {
 });
 
 test("filters tickets by priority, label, and search text", async ({ page }) => {
+  await page.getByRole("button", { name: "Expand filters panel" }).click();
   await page.getByTestId("priority-filter-highest").click({ force: true });
   await page.getByTestId("label-filter-backend").click({ force: true });
   await page.getByTestId("filters-search").fill("route");

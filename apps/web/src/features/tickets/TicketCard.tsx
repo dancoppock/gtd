@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 
 import type { TicketViewMode } from "../board/TicketViewToggle";
 
+type TicketCardTone = "default" | "done";
+
 type TicketCardProps = {
   isDragging?: boolean;
   ticket: Ticket;
+  tone?: TicketCardTone;
   onEdit: () => void;
   onTitleUpdate?: (nextTitle: string) => Promise<void>;
   viewMode?: TicketViewMode;
@@ -15,6 +18,7 @@ type TicketCardProps = {
 export function TicketCard({
   isDragging = false,
   ticket,
+  tone = "default",
   onEdit,
   onTitleUpdate,
   viewMode = "full",
@@ -90,7 +94,7 @@ export function TicketCard({
 
   return (
     <article
-      className={`ticket-card ${isDragging ? "ticket-card--dragging" : ""} ${isCompact ? "ticket-card--compact" : ""}`}
+      className={`ticket-card ${isDragging ? "ticket-card--dragging" : ""} ${isCompact ? "ticket-card--compact" : ""} ${tone === "done" ? "ticket-card--done" : ""}`}
       data-testid={`ticket-${ticket.id}`}
     >
       <div className="ticket-card__header">

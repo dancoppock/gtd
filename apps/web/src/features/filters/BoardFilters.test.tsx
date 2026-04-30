@@ -26,6 +26,10 @@ const availableLabels: Label[] = [
 ];
 
 describe("BoardFilters", () => {
+  function expandFilters() {
+    fireEvent.click(screen.getByRole("button", { name: "Expand filters panel" }));
+  }
+
   it("calls onChange with the updated search text", () => {
     const onChange = vi.fn();
 
@@ -38,6 +42,7 @@ describe("BoardFilters", () => {
       />,
     );
 
+    expandFilters();
     fireEvent.change(screen.getByRole("searchbox", { name: "Search" }), {
       target: { value: "drag" },
     });
@@ -61,6 +66,7 @@ describe("BoardFilters", () => {
       />,
     );
 
+    expandFilters();
     fireEvent.click(screen.getByLabelText(/^high$/));
     fireEvent.click(screen.getByLabelText(/^frontend$/));
 
@@ -88,6 +94,7 @@ describe("BoardFilters", () => {
       />,
     );
 
+    expandFilters();
     fireEvent.click(screen.getByRole("button", { name: "Clear Filters" }));
 
     expect(onClear).toHaveBeenCalledTimes(1);
@@ -103,8 +110,6 @@ describe("BoardFilters", () => {
         onClear={vi.fn()}
       />,
     );
-
-    fireEvent.click(screen.getByRole("button", { name: "Collapse filters panel" }));
 
     expect(screen.queryByRole("searchbox", { name: "Search" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Expand filters panel" })).toHaveAttribute(

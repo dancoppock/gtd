@@ -75,6 +75,14 @@ function writeFilters(nextFilters: BoardFilters) {
   return params;
 }
 
+function resolveTicketTone(
+  ticket: Ticket,
+  columns: { id: string; key: "todo" | "in_progress" | "done" }[],
+) {
+  const column = columns.find((candidate) => candidate.id === ticket.columnId);
+  return column?.key === "done" ? "done" : "default";
+}
+
 export function BoardPage() {
   const { boardSlug = "default" } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -106,6 +114,7 @@ export function BoardPage() {
   const boardQuery = useQuery({
     queryKey: ["board", boardSlug, filters],
     queryFn: () => fetchBoardTickets(boardSlug, filters),
+    placeholderData: (previousData) => previousData,
   });
 
   const createTicketMutation = useMutation({
@@ -383,6 +392,7 @@ export function BoardPage() {
               {activeTicket ? (
                 <TicketCard
                   ticket={activeTicket}
+                  tone={resolveTicketTone(activeTicket, data.board.columns)}
                   onEdit={() => undefined}
                   onTitleUpdate={async () => undefined}
                   viewMode={ticketViewMode}

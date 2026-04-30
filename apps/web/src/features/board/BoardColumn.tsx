@@ -65,6 +65,7 @@ export function BoardColumn({
               <SortableTicketCard
                 key={ticket.id}
                 ticket={ticket}
+                tone={column.key === "done" ? "done" : "default"}
                 onEdit={() => onEditTicket(ticket)}
                 onTitleUpdate={(nextTitle) => onInlineTitleUpdate(ticket, nextTitle)}
                 viewMode={viewMode}

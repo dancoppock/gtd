@@ -9,7 +9,7 @@ export const themeOptions = [
 
 export type BoardTheme = (typeof themeOptions)[number]["value"];
 
-export const defaultTheme: BoardTheme = "sand";
+export const defaultTheme: BoardTheme = "macchiato";
 export const themeStorageKey = "gtd-board-theme";
 
 export function isBoardTheme(value: string): value is BoardTheme {

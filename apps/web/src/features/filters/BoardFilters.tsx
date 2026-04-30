@@ -23,7 +23,7 @@ export function BoardFilters({
   onClear,
 }: BoardFiltersProps) {
   const { priorities, labels, q } = filters;
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   return (
     <section

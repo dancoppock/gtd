@@ -51,6 +51,12 @@ describe("TicketCard", () => {
     expect(screen.queryByText("ux")).not.toBeInTheDocument();
   });
 
+  it("applies the done tone styling class when rendered in the done column", () => {
+    render(<TicketCard ticket={ticket} tone="done" onEdit={vi.fn()} viewMode="full" />);
+
+    expect(screen.getByTestId("ticket-ticket_1")).toHaveClass("ticket-card--done");
+  });
+
   it("starts inline title editing on double click and saves on Enter", async () => {
     const onTitleUpdate = vi.fn().mockResolvedValue(undefined);
 

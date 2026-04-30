@@ -5,14 +5,23 @@ import { CSS } from "@dnd-kit/utilities";
 import type { TicketViewMode } from "../board/TicketViewToggle";
 import { TicketCard } from "./TicketCard";
 
+type TicketCardTone = "default" | "done";
+
 type SortableTicketCardProps = {
   ticket: Ticket;
+  tone: TicketCardTone;
   onEdit: () => void;
   onTitleUpdate: (nextTitle: string) => Promise<void>;
   viewMode: TicketViewMode;
 };
 
-export function SortableTicketCard({ ticket, onEdit, onTitleUpdate, viewMode }: SortableTicketCardProps) {
+export function SortableTicketCard({
+  ticket,
+  tone,
+  onEdit,
+  onTitleUpdate,
+  viewMode,
+}: SortableTicketCardProps) {
   const {
     attributes,
     isDragging,
@@ -37,6 +46,7 @@ export function SortableTicketCard({ ticket, onEdit, onTitleUpdate, viewMode }: 
     >
       <TicketCard
         ticket={ticket}
+        tone={tone}
         onEdit={onEdit}
         onTitleUpdate={onTitleUpdate}
         isDragging={isDragging}
