@@ -1,0 +1,14 @@
+{
+  "name": "gtd",
+  "private": true,
+  "description": "Kanban todos app starter blueprint",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace @gtd/api",
+    "dev:web": "npm run dev --workspace @gtd/web",
+    "typecheck": "npm run typecheck --workspaces"
+  }
+}
