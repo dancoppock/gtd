@@ -1,4 +1,3 @@
-import type { FastifyInstance } from "fastify";
 import {
   boardFiltersSchema,
   boardSchema,

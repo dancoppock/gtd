@@ -40,6 +40,7 @@ The app is implemented as a small monorepo with a browser frontend and a local A
 
 - React
 - TypeScript
+- ESLint
 - Vite `6.4.1`
 - React Router
 - TanStack Query
@@ -51,6 +52,7 @@ The app is implemented as a small monorepo with a browser frontend and a local A
 - Node.js
 - Fastify
 - TypeScript
+- ESLint
 - Drizzle ORM
 - SQLite via `better-sqlite3`
 - Zod

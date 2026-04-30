@@ -80,11 +80,23 @@ Typecheck:
 pnpm typecheck
 ```
 
+Lint:
+
+```bash
+pnpm lint
+```
+
 What this does:
 
 - runs the root `typecheck` script across all workspaces
 - runs `tsc --noEmit -p tsconfig.json` in `@gtd/api`, `@gtd/web`, and `@gtd/contracts`
 - checks TypeScript correctness without generating build output files
+
+What `pnpm lint` does:
+
+- runs ESLint from the repo root
+- checks TypeScript files across the workspace
+- enforces a small initial ruleset focused on TypeScript hygiene and React hook safety
 
 Unit tests:
 

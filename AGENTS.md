@@ -16,6 +16,7 @@ Main packages:
 
 - React
 - TypeScript
+- ESLint
 - Vite `6.4.1`
 - React Router
 - TanStack Query
@@ -26,6 +27,7 @@ Main packages:
 
 - Node `20.20.0`
 - Fastify
+- ESLint
 - Drizzle ORM
 - SQLite via `better-sqlite3`
 - Zod
@@ -77,6 +79,7 @@ From the repo root:
 ```bash
 npm run dev:api
 npm run dev:web
+pnpm lint
 pnpm typecheck
 pnpm test
 pnpm test:e2e
@@ -87,6 +90,12 @@ pnpm test:e2e
 - runs the root `typecheck` script
 - runs `tsc --noEmit -p tsconfig.json` in all workspaces
 - checks TypeScript correctness without generating build output
+
+`pnpm lint`:
+
+- runs ESLint from the repo root
+- checks TypeScript and config files across the workspace
+- enforces a minimal first-pass ruleset for TypeScript hygiene and React hook safety
 
 `pnpm test`:
 

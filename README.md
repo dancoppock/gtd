@@ -122,6 +122,7 @@ Unit tests use `Vitest`, and browser automation uses `Playwright`.
 From the repo root:
 
 ```bash
+pnpm lint
 pnpm test
 pnpm test:watch
 pnpm test:coverage
