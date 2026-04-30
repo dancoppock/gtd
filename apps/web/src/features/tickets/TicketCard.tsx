@@ -1,11 +1,10 @@
 import type { Ticket } from "@gtd/contracts";
-import type { ButtonHTMLAttributes, KeyboardEvent } from "react";
+import type { KeyboardEvent } from "react";
 import { useEffect, useState } from "react";
 
 import type { TicketViewMode } from "../board/TicketViewToggle";
 
 type TicketCardProps = {
-  dragHandleProps?: ButtonHTMLAttributes<HTMLButtonElement>;
   isDragging?: boolean;
   ticket: Ticket;
   onEdit: () => void;
@@ -14,7 +13,6 @@ type TicketCardProps = {
 };
 
 export function TicketCard({
-  dragHandleProps,
   isDragging = false,
   ticket,
   onEdit,
@@ -96,22 +94,6 @@ export function TicketCard({
       data-testid={`ticket-${ticket.id}`}
     >
       <div className="ticket-card__header">
-        <button
-          aria-label={`Drag ${ticket.title}`}
-          className="ticket-card__drag-handle"
-          data-testid={`ticket-drag-${ticket.id}`}
-          type="button"
-          {...dragHandleProps}
-        >
-          <svg aria-hidden="true" viewBox="0 0 20 20">
-            <circle cx="6" cy="5" r="1.4" />
-            <circle cx="6" cy="10" r="1.4" />
-            <circle cx="6" cy="15" r="1.4" />
-            <circle cx="14" cy="5" r="1.4" />
-            <circle cx="14" cy="10" r="1.4" />
-            <circle cx="14" cy="15" r="1.4" />
-          </svg>
-        </button>
         <div className="ticket-card__heading">
           <div className="ticket-card__heading-row">
             {isEditingTitle ? (

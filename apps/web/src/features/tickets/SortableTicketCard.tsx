@@ -32,6 +32,8 @@ export function SortableTicketCard({ ticket, onEdit, onTitleUpdate, viewMode }: 
         transform: CSS.Transform.toString(transform),
         transition,
       }}
+      {...attributes}
+      {...listeners}
     >
       <TicketCard
         ticket={ticket}
@@ -39,10 +41,6 @@ export function SortableTicketCard({ ticket, onEdit, onTitleUpdate, viewMode }: 
         onTitleUpdate={onTitleUpdate}
         isDragging={isDragging}
         viewMode={viewMode}
-        dragHandleProps={{
-          ...attributes,
-          ...listeners,
-        }}
       />
     </div>
   );

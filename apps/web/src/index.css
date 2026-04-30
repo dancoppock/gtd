@@ -370,6 +370,7 @@ button {
 
 .ticket-card-shell {
   touch-action: none;
+  cursor: grab;
 }
 
 .ticket-card-shell--dragging {
@@ -391,7 +392,6 @@ button {
 }
 
 .ticket-card__header {
-  padding-left: 13px;
 }
 
 .ticket-card__heading {
@@ -446,7 +446,7 @@ button {
 }
 
 .ticket-card > p {
-  margin: 12px 0 14px 13px;
+  margin: 12px 0 14px;
   color: var(--text-muted);
 }
 
@@ -462,7 +462,6 @@ button {
 }
 
 .ticket-card__footer {
-  margin-left: 13px;
   margin-top: 4px;
   align-items: flex-start;
   justify-content: flex-start;
@@ -481,32 +480,6 @@ button {
   align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
-}
-
-.ticket-card__drag-handle {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: rgba(53, 80, 95, 0.82);
-  cursor: grab;
-}
-
-.ticket-card__drag-handle svg {
-  width: 16px;
-  height: 16px;
-  fill: currentColor;
-}
-
-.ticket-card__drag-handle:active {
-  cursor: grabbing;
 }
 
 .priority-badge {
