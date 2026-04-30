@@ -2,14 +2,16 @@ import type { Ticket } from "@gtd/contracts";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import type { TicketViewMode } from "../board/TicketViewToggle";
 import { TicketCard } from "./TicketCard";
 
 type SortableTicketCardProps = {
   ticket: Ticket;
   onEdit: () => void;
+  viewMode: TicketViewMode;
 };
 
-export function SortableTicketCard({ ticket, onEdit }: SortableTicketCardProps) {
+export function SortableTicketCard({ ticket, onEdit, viewMode }: SortableTicketCardProps) {
   const {
     attributes,
     isDragging,
@@ -34,6 +36,7 @@ export function SortableTicketCard({ ticket, onEdit }: SortableTicketCardProps) 
         ticket={ticket}
         onEdit={onEdit}
         isDragging={isDragging}
+        viewMode={viewMode}
         dragHandleProps={{
           ...attributes,
           ...listeners,

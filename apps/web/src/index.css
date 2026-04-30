@@ -101,11 +101,14 @@ button {
 .hero-panel__actions {
   display: flex;
   align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .primary-button,
 .ghost-button,
-.link-button {
+.link-button,
+.icon-toggle-button {
   border-radius: 999px;
   border: 1px solid transparent;
   transition:
@@ -138,6 +141,38 @@ button {
   background: transparent;
   color: var(--accent-strong);
   padding: 0;
+}
+
+.view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.icon-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  background: transparent;
+  color: #35505f;
+}
+
+.icon-toggle-button svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.icon-toggle-button--active {
+  background: linear-gradient(135deg, #0d7c86, #165971);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(13, 124, 134, 0.18);
 }
 
 .filters-panel {
@@ -320,6 +355,10 @@ button {
 
 .ticket-card h3 {
   margin: 10px 0 8px;
+}
+
+.ticket-card--compact h3 {
+  margin-bottom: 0;
 }
 
 .ticket-card p {

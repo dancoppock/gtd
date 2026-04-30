@@ -35,7 +35,7 @@ Main packages:
 ### Testing
 
 - Vitest
-- `jsdom` for frontend unit tests
+- `happy-dom` for frontend unit tests
 - disposable SQLite databases for backend repository tests
 - Playwright for browser automation smoke tests
 

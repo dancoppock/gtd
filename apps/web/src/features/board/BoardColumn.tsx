@@ -2,15 +2,17 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import type { Column, Ticket } from "@gtd/contracts";
 import { useDroppable } from "@dnd-kit/core";
 
+import type { TicketViewMode } from "./TicketViewToggle";
 import { SortableTicketCard } from "../tickets/SortableTicketCard";
 
 type BoardColumnProps = {
   column: Column;
   tickets: Ticket[];
   onEditTicket: (ticket: Ticket) => void;
+  viewMode: TicketViewMode;
 };
 
-export function BoardColumn({ column, tickets, onEditTicket }: BoardColumnProps) {
+export function BoardColumn({ column, tickets, onEditTicket, viewMode }: BoardColumnProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: column.id,
   });
@@ -42,6 +44,7 @@ export function BoardColumn({ column, tickets, onEditTicket }: BoardColumnProps)
                 key={ticket.id}
                 ticket={ticket}
                 onEdit={() => onEditTicket(ticket)}
+                viewMode={viewMode}
               />
             ))
           ) : (

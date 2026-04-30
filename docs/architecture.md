@@ -72,7 +72,7 @@ The app is implemented as a small monorepo with a browser frontend and a local A
 ### Testing
 
 - Vitest for unit tests across the workspace
-- `jsdom` for frontend tests
+- `happy-dom` for frontend tests
 - disposable SQLite databases for backend repository tests
 - Fastify route tests via `app.inject()` with an injected board store
 - React component tests for filter interactions and ticket modal flows

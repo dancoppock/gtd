@@ -1,17 +1,28 @@
 import type { Ticket } from "@gtd/contracts";
 import type { ButtonHTMLAttributes } from "react";
 
+import type { TicketViewMode } from "../board/TicketViewToggle";
+
 type TicketCardProps = {
   dragHandleProps?: ButtonHTMLAttributes<HTMLButtonElement>;
   isDragging?: boolean;
   ticket: Ticket;
   onEdit: () => void;
+  viewMode?: TicketViewMode;
 };
 
-export function TicketCard({ dragHandleProps, isDragging = false, ticket, onEdit }: TicketCardProps) {
+export function TicketCard({
+  dragHandleProps,
+  isDragging = false,
+  ticket,
+  onEdit,
+  viewMode = "full",
+}: TicketCardProps) {
+  const isCompact = viewMode === "compact";
+
   return (
     <article
-      className={`ticket-card ${isDragging ? "ticket-card--dragging" : ""}`}
+      className={`ticket-card ${isDragging ? "ticket-card--dragging" : ""} ${isCompact ? "ticket-card--compact" : ""}`}
       data-testid={`ticket-${ticket.id}`}
     >
       <div className="ticket-card__meta">
@@ -41,9 +52,9 @@ export function TicketCard({ dragHandleProps, isDragging = false, ticket, onEdit
       </div>
 
       <h3>{ticket.title}</h3>
-      <p>{ticket.description}</p>
+      {!isCompact ? <p>{ticket.description}</p> : null}
 
-      {ticket.labels.length > 0 ? (
+      {!isCompact && ticket.labels.length > 0 ? (
         <div className="ticket-card__labels">
           {ticket.labels.map((label) => (
             <span key={label.id} className="ticket-label">

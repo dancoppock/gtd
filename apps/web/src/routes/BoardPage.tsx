@@ -27,6 +27,7 @@ import {
   haveSameTicketLayout,
   moveTicket,
 } from "../features/board/drag";
+import { TicketViewToggle, type TicketViewMode } from "../features/board/TicketViewToggle";
 import { BoardFilters as BoardFiltersPanel } from "../features/filters/BoardFilters";
 import { TicketCard } from "../features/tickets/TicketCard";
 import { TicketModal } from "../features/tickets/TicketModal";
@@ -68,6 +69,7 @@ export function BoardPage() {
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+  const [ticketViewMode, setTicketViewMode] = useState<TicketViewMode>("full");
   const [visibleTickets, setVisibleTickets] = useState<Ticket[]>([]);
   const queryClient = useQueryClient();
   const sensors = useSensors(
@@ -216,6 +218,7 @@ export function BoardPage() {
         </div>
 
         <div className="hero-panel__actions">
+          <TicketViewToggle value={ticketViewMode} onChange={setTicketViewMode} />
           <button className="primary-button" type="button" onClick={() => setCreateOpen(true)}>
             New Ticket
           </button>
@@ -264,13 +267,20 @@ export function BoardPage() {
                     column={column}
                     tickets={tickets}
                     onEditTicket={setEditingTicket}
+                    viewMode={ticketViewMode}
                   />
                 );
               })}
             </section>
 
             <DragOverlay>
-              {activeTicket ? <TicketCard ticket={activeTicket} onEdit={() => undefined} /> : null}
+              {activeTicket ? (
+                <TicketCard
+                  ticket={activeTicket}
+                  onEdit={() => undefined}
+                  viewMode={ticketViewMode}
+                />
+              ) : null}
             </DragOverlay>
           </DndContext>
         </>
