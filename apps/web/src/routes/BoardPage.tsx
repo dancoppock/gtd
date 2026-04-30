@@ -34,6 +34,13 @@ import {
 } from "../features/board/drag";
 import { TicketViewToggle, type TicketViewMode } from "../features/board/TicketViewToggle";
 import { BoardFilters as BoardFiltersPanel } from "../features/filters/BoardFilters";
+import {
+  defaultTheme,
+  isBoardTheme,
+  themeOptions,
+  themeStorageKey,
+  type BoardTheme,
+} from "../features/theme/themes";
 import { TicketCard } from "../features/tickets/TicketCard";
 import { TicketModal } from "../features/tickets/TicketModal";
 
@@ -76,6 +83,14 @@ export function BoardPage() {
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [ticketViewMode, setTicketViewMode] = useState<TicketViewMode>("compact");
+  const [theme, setTheme] = useState<BoardTheme>(() => {
+    if (typeof window === "undefined") {
+      return defaultTheme;
+    }
+
+    const storedTheme = window.localStorage.getItem(themeStorageKey);
+    return storedTheme && isBoardTheme(storedTheme) ? storedTheme : defaultTheme;
+  });
   const [visibleTickets, setVisibleTickets] = useState<Ticket[]>([]);
   const queryClient = useQueryClient();
   const sensors = useSensors(
@@ -142,6 +157,11 @@ export function BoardPage() {
       setVisibleTickets(data.tickets);
     }
   }, [data]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem(themeStorageKey, theme);
+  }, [theme]);
 
   function handleDragStart(event: DragStartEvent) {
     setActiveTicketId(String(event.active.id));
@@ -274,6 +294,27 @@ export function BoardPage() {
             </p>
 
             <div className="hero-panel__actions">
+              <label className="theme-select">
+                <span>Theme</span>
+                <select
+                  aria-label="Theme"
+                  data-testid="theme-select"
+                  value={theme}
+                  onChange={(event) => {
+                    const nextTheme = event.target.value;
+
+                    if (isBoardTheme(nextTheme)) {
+                      setTheme(nextTheme);
+                    }
+                  }}
+                >
+                  {themeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <TicketViewToggle value={ticketViewMode} onChange={setTicketViewMode} />
               <button
                 className="primary-button"
