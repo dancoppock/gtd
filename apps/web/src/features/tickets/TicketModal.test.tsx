@@ -91,6 +91,22 @@ describe("TicketModal", () => {
     );
   });
 
+  it("uses the provided default column in create mode", () => {
+    render(
+      <TicketModal
+        mode="create"
+        ticket={null}
+        columns={columns}
+        availableLabels={availableLabels}
+        defaultColumnId="col_done"
+        onClose={vi.fn()}
+        onSubmit={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    expect(screen.getByLabelText("Column")).toHaveValue("col_done");
+  });
+
   it("prefills edit mode fields and submits the updated values", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 

@@ -9,6 +9,7 @@ type BoardColumnProps = {
   column: Column;
   tickets: Ticket[];
   onEditTicket: (ticket: Ticket) => void;
+  onCreateTicket: (columnId: string) => void;
   onInlineTitleUpdate: (ticket: Ticket, nextTitle: string) => Promise<void>;
   viewMode: TicketViewMode;
 };
@@ -17,6 +18,7 @@ export function BoardColumn({
   column,
   tickets,
   onEditTicket,
+  onCreateTicket,
   onInlineTitleUpdate,
   viewMode,
 }: BoardColumnProps) {
@@ -30,9 +32,22 @@ export function BoardColumn({
       data-testid={`column-${column.key}`}
     >
       <header className="board-column__header">
-        <div>
-          <h2>{column.name}</h2>
-          <p>{tickets.length} tickets</p>
+        <div className="board-column__header-row">
+          <div>
+            <h2>{column.name}</h2>
+            <p>{tickets.length} tickets</p>
+          </div>
+          <button
+            aria-label={`Add ticket in ${column.name}`}
+            className="board-column__add-button"
+            data-testid={`column-add-${column.key}`}
+            type="button"
+            onClick={() => onCreateTicket(column.id)}
+          >
+            <svg aria-hidden="true" viewBox="0 0 20 20">
+              <path d="M9 4a1 1 0 1 1 2 0v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H4a1 1 0 1 1 0-2h5V4Z" />
+            </svg>
+          </button>
         </div>
       </header>
 

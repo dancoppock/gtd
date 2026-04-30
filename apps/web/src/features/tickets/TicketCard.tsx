@@ -95,74 +95,91 @@ export function TicketCard({
       className={`ticket-card ${isDragging ? "ticket-card--dragging" : ""} ${isCompact ? "ticket-card--compact" : ""}`}
       data-testid={`ticket-${ticket.id}`}
     >
-      <div className="ticket-card__meta">
-        <span className={`priority-badge priority-badge--${ticket.priority}`}>
-          {ticket.priority}
-        </span>
-        <div className="ticket-card__actions">
-          <button
-            aria-label={`Drag ${ticket.title}`}
-            className="ticket-card__drag-handle"
-            data-testid={`ticket-drag-${ticket.id}`}
-            type="button"
-            {...dragHandleProps}
-          >
-            Drag
-          </button>
-          <button
-            aria-label={`Edit ${ticket.title}`}
-            className="link-button"
-            data-testid={`ticket-edit-${ticket.id}`}
-            type="button"
-            disabled={isEditingTitle}
-            onClick={onEdit}
-          >
-            Edit
-          </button>
+      <div className="ticket-card__header">
+        <button
+          aria-label={`Drag ${ticket.title}`}
+          className="ticket-card__drag-handle"
+          data-testid={`ticket-drag-${ticket.id}`}
+          type="button"
+          {...dragHandleProps}
+        >
+          <svg aria-hidden="true" viewBox="0 0 20 20">
+            <circle cx="6" cy="5" r="1.4" />
+            <circle cx="6" cy="10" r="1.4" />
+            <circle cx="6" cy="15" r="1.4" />
+            <circle cx="14" cy="5" r="1.4" />
+            <circle cx="14" cy="10" r="1.4" />
+            <circle cx="14" cy="15" r="1.4" />
+          </svg>
+        </button>
+        <div className="ticket-card__heading">
+          <div className="ticket-card__heading-row">
+            {isEditingTitle ? (
+              <div className="ticket-card__title-editor">
+                <input
+                  aria-label={`Edit title for ${ticket.title}`}
+                  className="ticket-card__title-input"
+                  data-testid={`ticket-title-input-${ticket.id}`}
+                  disabled={isSavingTitle}
+                  maxLength={200}
+                  value={draftTitle}
+                  onBlur={() => {
+                    void commitTitleEdit();
+                  }}
+                  onChange={(event) => setDraftTitle(event.target.value)}
+                  onKeyDown={handleTitleKeyDown}
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <h3>
+                <button
+                  aria-label={`Title ${ticket.title}. Double click to edit`}
+                  className="ticket-card__title-button"
+                  data-testid={`ticket-title-${ticket.id}`}
+                  type="button"
+                  onDoubleClick={beginTitleEdit}
+                >
+                  {ticket.title}
+                </button>
+              </h3>
+            )}
+
+            <div className="ticket-card__actions">
+              <button
+                aria-label={`Edit ${ticket.title}`}
+                className="link-button"
+                data-testid={`ticket-edit-${ticket.id}`}
+                type="button"
+                disabled={isEditingTitle}
+                onClick={onEdit}
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+
+          {titleError ? <p className="ticket-card__title-error">{titleError}</p> : null}
         </div>
       </div>
 
-      {isEditingTitle ? (
-        <div className="ticket-card__title-editor">
-          <input
-            aria-label={`Edit title for ${ticket.title}`}
-            className="ticket-card__title-input"
-            data-testid={`ticket-title-input-${ticket.id}`}
-            disabled={isSavingTitle}
-            maxLength={200}
-            value={draftTitle}
-            onBlur={() => {
-              void commitTitleEdit();
-            }}
-            onChange={(event) => setDraftTitle(event.target.value)}
-            onKeyDown={handleTitleKeyDown}
-            autoFocus
-          />
-          {titleError ? <p className="ticket-card__title-error">{titleError}</p> : null}
-        </div>
-      ) : (
-        <h3>
-          <button
-            aria-label={`Title ${ticket.title}. Double click to edit`}
-            className="ticket-card__title-button"
-            data-testid={`ticket-title-${ticket.id}`}
-            type="button"
-            onDoubleClick={beginTitleEdit}
-          >
-            {ticket.title}
-          </button>
-        </h3>
-      )}
-
       {!isCompact ? <p>{ticket.description}</p> : null}
 
-      {!isCompact && ticket.labels.length > 0 ? (
-        <div className="ticket-card__labels">
-          {ticket.labels.map((label) => (
-            <span key={label.id} className="ticket-label">
-              {label.name}
-            </span>
-          ))}
+      {!isCompact ? (
+        <div className="ticket-card__footer">
+          <span className={`priority-badge priority-badge--${ticket.priority}`}>
+            {ticket.priority}
+          </span>
+
+          {ticket.labels.length > 0 ? (
+            <div className="ticket-card__labels">
+              {ticket.labels.map((label) => (
+                <span key={label.id} className="ticket-label">
+                  {label.name}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </article>

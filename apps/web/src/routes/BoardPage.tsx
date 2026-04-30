@@ -72,9 +72,9 @@ export function BoardPage() {
   const { boardSlug = "default" } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createColumnId, setCreateColumnId] = useState<string | null>(null);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
-  const [ticketViewMode, setTicketViewMode] = useState<TicketViewMode>("full");
+  const [ticketViewMode, setTicketViewMode] = useState<TicketViewMode>("compact");
   const [visibleTickets, setVisibleTickets] = useState<Ticket[]>([]);
   const queryClient = useQueryClient();
   const sensors = useSensors(
@@ -107,7 +107,7 @@ export function BoardPage() {
       return createTicket(boardQuery.data.board.id, input);
     },
     onSuccess: async () => {
-      setCreateOpen(false);
+      setCreateColumnId(null);
       await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
     },
   });
@@ -254,7 +254,12 @@ export function BoardPage() {
 
         <div className="hero-panel__actions">
           <TicketViewToggle value={ticketViewMode} onChange={setTicketViewMode} />
-          <button className="primary-button" type="button" onClick={() => setCreateOpen(true)}>
+          <button
+            className="primary-button"
+            disabled={!data}
+            type="button"
+            onClick={() => setCreateColumnId(data?.board.columns[0]?.id ?? null)}
+          >
             New Ticket
           </button>
         </div>
@@ -302,6 +307,7 @@ export function BoardPage() {
                     column={column}
                     tickets={tickets}
                     onEditTicket={setEditingTicket}
+                    onCreateTicket={setCreateColumnId}
                     onInlineTitleUpdate={handleInlineTitleUpdate}
                     viewMode={ticketViewMode}
                   />
@@ -328,13 +334,14 @@ export function BoardPage() {
         </section>
       )}
 
-      {createOpen && data ? (
+      {createColumnId && data ? (
         <TicketModal
           mode="create"
           ticket={null}
           columns={data.board.columns}
           availableLabels={data.board.labels}
-          onClose={() => setCreateOpen(false)}
+          defaultColumnId={createColumnId}
+          onClose={() => setCreateColumnId(null)}
           onSubmit={async (input) => {
             await createTicketMutation.mutateAsync(input);
           }}

@@ -221,9 +221,10 @@ button {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 7px 12px;
+  padding: 6px 10px;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--border);
+  font-size: 0.85rem;
 }
 
 .chip-toggle input:checked + span {
@@ -298,6 +299,13 @@ button {
   background: rgba(255, 255, 255, 0.45);
 }
 
+.board-column__header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .board-column__header h2 {
   margin: 0 0 4px;
 }
@@ -305,6 +313,24 @@ button {
 .board-column__header p {
   margin: 0;
   color: var(--text-muted);
+}
+
+.board-column__add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--accent-strong);
+}
+
+.board-column__add-button svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
 }
 
 .board-column__body {
@@ -334,6 +360,7 @@ button {
 }
 
 .ticket-card {
+  position: relative;
   background: var(--panel-strong);
   border-radius: 20px;
   border: 1px solid rgba(58, 71, 82, 0.1);
@@ -354,11 +381,34 @@ button {
 }
 
 .ticket-card h3 {
-  margin: 10px 0 8px;
+  margin: 0;
+  font-size: medium;
+  font-weight: 500;
 }
 
 .ticket-card--compact h3 {
   margin-bottom: 0;
+}
+
+.ticket-card__header {
+  padding-left: 13px;
+}
+
+.ticket-card__heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.ticket-card__heading-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ticket-card__heading-row > h3,
+.ticket-card__heading-row > .ticket-card__title-editor {
+  flex: 1;
+  min-width: 0;
 }
 
 .ticket-card__title-button {
@@ -369,14 +419,11 @@ button {
   background: transparent;
   text-align: left;
   color: inherit;
-}
-
-.ticket-card__title-button h3 {
   cursor: text;
 }
 
 .ticket-card__title-editor {
-  margin: 10px 0 8px;
+  flex: 1;
 }
 
 .ticket-card__title-input {
@@ -398,12 +445,12 @@ button {
   color: #8a2615;
 }
 
-.ticket-card p {
-  margin: 0 0 14px;
+.ticket-card > p {
+  margin: 12px 0 14px 13px;
   color: var(--text-muted);
 }
 
-.ticket-card__meta,
+.ticket-card__footer,
 .ticket-card__labels,
 .modal-card__header,
 .modal-card__actions,
@@ -414,24 +461,48 @@ button {
   justify-content: space-between;
 }
 
+.ticket-card__footer {
+  margin-left: 13px;
+  margin-top: 4px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
 .ticket-card__labels {
   justify-content: flex-start;
   flex-wrap: wrap;
+  margin-left: 0;
 }
 
 .ticket-card__actions {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .ticket-card__drag-handle {
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #35505f;
-  padding: 7px 10px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(53, 80, 95, 0.82);
   cursor: grab;
+}
+
+.ticket-card__drag-handle svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
 }
 
 .ticket-card__drag-handle:active {

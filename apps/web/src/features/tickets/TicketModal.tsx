@@ -7,6 +7,7 @@ type TicketModalProps = {
   ticket: Ticket | null;
   columns: Column[];
   availableLabels: Label[];
+  defaultColumnId?: string;
   onClose: () => void;
   onSubmit: (input: {
     columnId: string;
@@ -47,12 +48,13 @@ export function TicketModal({
   ticket,
   columns,
   availableLabels,
+  defaultColumnId,
   onClose,
   onSubmit,
 }: TicketModalProps) {
   const { formState, handleSubmit, register, reset } = useForm<TicketFormValues>({
     defaultValues: {
-      columnId: columns[0]?.id ?? "",
+      columnId: defaultColumnId ?? columns[0]?.id ?? "",
       title: "",
       description: "",
       priority: "medium",
@@ -62,13 +64,13 @@ export function TicketModal({
 
   useEffect(() => {
     reset({
-      columnId: ticket?.columnId ?? columns[0]?.id ?? "",
+      columnId: ticket?.columnId ?? defaultColumnId ?? columns[0]?.id ?? "",
       title: ticket?.title ?? "",
       description: ticket?.description ?? "",
       priority: ticket?.priority ?? "medium",
       labelsText: ticket ? labelsToText(ticket.labels) : "",
     });
-  }, [columns, reset, ticket]);
+  }, [columns, defaultColumnId, reset, ticket]);
 
   const submitLabel = mode === "create" ? "Create Ticket" : "Save Changes";
   const title = mode === "create" ? "Create Ticket" : "Edit Ticket";
