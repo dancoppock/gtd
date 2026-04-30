@@ -10,16 +10,31 @@ type TicketCardProps = {
 
 export function TicketCard({ dragHandleProps, isDragging = false, ticket, onEdit }: TicketCardProps) {
   return (
-    <article className={`ticket-card ${isDragging ? "ticket-card--dragging" : ""}`}>
+    <article
+      className={`ticket-card ${isDragging ? "ticket-card--dragging" : ""}`}
+      data-testid={`ticket-${ticket.id}`}
+    >
       <div className="ticket-card__meta">
         <span className={`priority-badge priority-badge--${ticket.priority}`}>
           {ticket.priority}
         </span>
         <div className="ticket-card__actions">
-          <button className="ticket-card__drag-handle" type="button" {...dragHandleProps}>
+          <button
+            aria-label={`Drag ${ticket.title}`}
+            className="ticket-card__drag-handle"
+            data-testid={`ticket-drag-${ticket.id}`}
+            type="button"
+            {...dragHandleProps}
+          >
             Drag
           </button>
-          <button className="link-button" type="button" onClick={onEdit}>
+          <button
+            aria-label={`Edit ${ticket.title}`}
+            className="link-button"
+            data-testid={`ticket-edit-${ticket.id}`}
+            type="button"
+            onClick={onEdit}
+          >
             Edit
           </button>
         </div>

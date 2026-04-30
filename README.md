@@ -115,11 +115,36 @@ Notes:
 - Vite defaults to `http://localhost:3000`
 - if `3000` is occupied, Vite will choose the next available port
 
+## Testing
+
+Unit tests use `Vitest`, and browser automation uses `Playwright`.
+
+From the repo root:
+
+```bash
+pnpm test
+pnpm test:watch
+pnpm test:coverage
+pnpm test:e2e
+```
+
+`pnpm test:e2e` uses the locally installed Google Chrome browser on this machine.
+
+Current first-pass coverage targets include:
+
+- frontend drag/reorder helpers
+- React component behavior for filters and ticket modals
+- SQLite-backed board store behavior
+- Fastify route behavior via `app.inject()`
+- Playwright smoke coverage for load, filter, create, edit, and drag flows
+
 ## Verification Status
 
 The current implementation has been verified to:
 
 - pass `pnpm typecheck`
+- pass `pnpm test`
+- pass `pnpm test:e2e`
 - serve the SQLite-backed API
 - create tickets through the API
 - reposition tickets through the API

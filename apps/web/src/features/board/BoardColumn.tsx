@@ -16,7 +16,10 @@ export function BoardColumn({ column, tickets, onEditTicket }: BoardColumnProps)
   });
 
   return (
-    <section className={`board-column ${isOver ? "board-column--over" : ""}`}>
+    <section
+      className={`board-column ${isOver ? "board-column--over" : ""}`}
+      data-testid={`column-${column.key}`}
+    >
       <header className="board-column__header">
         <div>
           <h2>{column.name}</h2>
@@ -27,6 +30,7 @@ export function BoardColumn({ column, tickets, onEditTicket }: BoardColumnProps)
       <div
         ref={setNodeRef}
         className={`board-column__body ${isOver ? "board-column__body--over" : ""}`}
+        data-testid={`column-body-${column.key}`}
       >
         <SortableContext
           items={tickets.map((ticket) => ticket.id)}

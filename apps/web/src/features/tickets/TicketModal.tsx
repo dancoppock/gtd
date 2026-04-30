@@ -77,6 +77,7 @@ export function TicketModal({
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <div
         className="modal-card"
+        data-testid="ticket-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="ticket-modal-title"
@@ -108,6 +109,7 @@ export function TicketModal({
             <span>Title</span>
             <input
               {...register("title", { required: true, maxLength: 200 })}
+              data-testid="ticket-modal-title-input"
               placeholder="Write concise ticket title"
             />
           </label>
@@ -116,6 +118,7 @@ export function TicketModal({
             <span>Description</span>
             <textarea
               {...register("description")}
+              data-testid="ticket-modal-description-input"
               rows={5}
               placeholder="Add context, notes, or acceptance details"
             />
@@ -149,6 +152,7 @@ export function TicketModal({
             <span>Labels</span>
             <input
               {...register("labelsText")}
+              data-testid="ticket-modal-labels-input"
               placeholder="frontend, backend, product"
             />
             {availableLabels.length > 0 ? (
@@ -159,10 +163,15 @@ export function TicketModal({
           </label>
 
           <div className="modal-card__actions">
-            <button className="ghost-button" type="button" onClick={onClose}>
+            <button className="ghost-button" data-testid="ticket-modal-cancel" type="button" onClick={onClose}>
               Cancel
             </button>
-            <button className="primary-button" type="submit" disabled={formState.isSubmitting}>
+            <button
+              className="primary-button"
+              data-testid="ticket-modal-submit"
+              type="submit"
+              disabled={formState.isSubmitting}
+            >
               {formState.isSubmitting ? "Saving..." : submitLabel}
             </button>
           </div>

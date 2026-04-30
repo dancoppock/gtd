@@ -67,6 +67,15 @@ The app is implemented as a small monorepo with a browser frontend and a local A
 - create/update ticket input
 - reposition input
 
+### Testing
+
+- Vitest for unit tests across the workspace
+- `jsdom` for frontend tests
+- disposable SQLite databases for backend repository tests
+- Fastify route tests via `app.inject()` with an injected board store
+- React component tests for filter interactions and ticket modal flows
+- Playwright end-to-end tests for the main browser flows
+
 ## Data Model
 
 ### Board
@@ -97,6 +106,10 @@ The app is implemented as a small monorepo with a browser frontend and a local A
 
 The API stores data in `apps/api/data/gtd.sqlite`.
 
+Automation tests use a separate isolated file:
+
+- `apps/api/data/gtd.e2e.sqlite`
+
 The schema is defined in:
 
 - `apps/api/src/db/schema.ts`
@@ -122,6 +135,12 @@ On first startup, the API initializes the SQLite schema if needed and seeds:
 - `POST /api/boards/:boardId/tickets`
 - `PATCH /api/tickets/:ticketId`
 - `POST /api/tickets/:ticketId/reposition`
+
+When `GTD_ENABLE_TEST_ROUTES=true`, the API also exposes:
+
+- `POST /api/test/reset`
+
+That route is used only by Playwright to reset the isolated E2E database between tests.
 
 ### Filters
 
@@ -219,7 +238,7 @@ The frontend is pinned to Vite `6.4.1`, which matches the current local Node env
 
 The main remaining gaps are:
 
-- automated tests
+- Playwright CI wiring and artifact retention
 - smoother first-time native dependency setup
 - stronger drag-and-drop error recovery and UX polish
 - additional board features such as delete/archive and label management UI

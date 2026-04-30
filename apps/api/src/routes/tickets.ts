@@ -4,9 +4,10 @@ import {
   repositionTicketInputSchema,
   updateTicketInputSchema,
 } from "@gtd/contracts";
+import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
-import { boardStore } from "../repositories/board-store.js";
+import { boardStore as defaultBoardStore, type BoardStore } from "../repositories/board-store.js";
 
 const boardIdParamsSchema = z.object({
   boardId: z.string().min(1),
@@ -22,7 +23,13 @@ function notFound(message: string) {
   };
 }
 
-export async function registerTicketRoutes(app: FastifyInstance) {
+type TicketRouteOptions = {
+  boardStore?: BoardStore;
+};
+
+export const registerTicketRoutes: FastifyPluginAsync<TicketRouteOptions> = async (app, options) => {
+  const boardStore = options.boardStore ?? defaultBoardStore;
+
   app.post("/boards/:boardId/tickets", async (request, reply) => {
     const { boardId } = boardIdParamsSchema.parse(request.params);
     const input = createTicketInputSchema.parse(request.body);
@@ -58,4 +65,4 @@ export async function registerTicketRoutes(app: FastifyInstance) {
 
     return ticket;
   });
-}
+};

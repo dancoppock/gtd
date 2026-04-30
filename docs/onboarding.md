@@ -86,6 +86,42 @@ What this does:
 - runs `tsc --noEmit -p tsconfig.json` in `@gtd/api`, `@gtd/web`, and `@gtd/contracts`
 - checks TypeScript correctness without generating build output files
 
+Unit tests:
+
+```bash
+pnpm test
+```
+
+Watch mode:
+
+```bash
+pnpm test:watch
+```
+
+Coverage:
+
+```bash
+pnpm test:coverage
+```
+
+End-to-end tests:
+
+```bash
+pnpm test:e2e
+```
+
+Optional Playwright browser install:
+
+```bash
+pnpm test:e2e:install
+```
+
+Notes:
+
+- the E2E suite uses local Google Chrome by default on this machine
+- it boots isolated API and Vite servers automatically
+- it uses a separate SQLite database file so your normal local data is not touched
+
 API health:
 
 ```bash
@@ -134,4 +170,5 @@ As of now:
 - the API is SQLite-backed
 - the frontend supports create/edit/filter/drag/reposition
 - shared request and response schemas live in `packages/contracts`
-- automated tests are not added yet
+- unit tests are wired with Vitest for the API and web packages
+- Playwright smoke tests cover the main browser flows

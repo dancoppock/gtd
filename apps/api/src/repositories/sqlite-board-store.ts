@@ -359,6 +359,10 @@ export class SqliteBoardStore {
     });
   }
 
+  dispose() {
+    this.client.sqlite.close();
+  }
+
   private seedDemoDataIfNeeded() {
     const existingTicketCount =
       this.db

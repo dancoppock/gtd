@@ -30,12 +30,20 @@ Main packages:
 - SQLite via `better-sqlite3`
 - Zod
 
+### Testing
+
+- Vitest
+- `jsdom` for frontend unit tests
+- disposable SQLite databases for backend repository tests
+- Playwright for browser automation smoke tests
+
 ## Key Runtime Facts
 
 - API default URL: `http://127.0.0.1:3001`
 - Frontend default URL: `http://localhost:3000`
 - Vite may move to the next free port if `3000` is occupied
 - SQLite database file: `apps/api/data/gtd.sqlite`
+- E2E SQLite database file: `apps/api/data/gtd.e2e.sqlite`
 
 ## Install Notes
 
@@ -70,6 +78,8 @@ From the repo root:
 npm run dev:api
 npm run dev:web
 pnpm typecheck
+pnpm test
+pnpm test:e2e
 ```
 
 `pnpm typecheck`:
@@ -77,6 +87,20 @@ pnpm typecheck
 - runs the root `typecheck` script
 - runs `tsc --noEmit -p tsconfig.json` in all workspaces
 - checks TypeScript correctness without generating build output
+
+`pnpm test`:
+
+- runs workspace unit tests in `@gtd/api` and `@gtd/web`
+- covers drag/reorder helper logic on the frontend
+- covers filter and ticket modal component behavior on the frontend
+- covers SQLite-backed repository behavior on the backend
+- covers Fastify route behavior with `app.inject()`
+
+`pnpm test:e2e`:
+
+- runs Playwright smoke tests against real local API and Vite servers
+- resets an isolated SQLite database between tests through a test-only API route
+- covers board load, filtering, create, edit, and drag flows
 
 ## Current Product Behavior
 
@@ -113,6 +137,6 @@ pnpm typecheck
 
 ## Current Gaps
 
-- automated tests are not in place yet
+- Playwright CI wiring and artifact retention are not in place yet
 - native dependency setup is still somewhat manual
 - drag-and-drop UX could use more polish and failure recovery

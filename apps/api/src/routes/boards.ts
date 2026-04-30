@@ -4,9 +4,10 @@ import {
   boardSchema,
   listTicketsResponseSchema,
 } from "@gtd/contracts";
+import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
-import { boardStore } from "../repositories/board-store.js";
+import { boardStore as defaultBoardStore, type BoardStore } from "../repositories/board-store.js";
 
 const boardIdParamsSchema = z.object({
   boardId: z.string().min(1),
@@ -46,7 +47,13 @@ function notFound(message: string) {
   };
 }
 
-export async function registerBoardRoutes(app: FastifyInstance) {
+type BoardRouteOptions = {
+  boardStore?: BoardStore;
+};
+
+export const registerBoardRoutes: FastifyPluginAsync<BoardRouteOptions> = async (app, options) => {
+  const boardStore = options.boardStore ?? defaultBoardStore;
+
   app.get("/boards", async () => {
     return boardSchema.array().parse(boardStore.listBoards());
   });
@@ -113,4 +120,4 @@ export async function registerBoardRoutes(app: FastifyInstance) {
       tickets,
     });
   });
-}
+};

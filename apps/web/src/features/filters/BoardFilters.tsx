@@ -24,11 +24,12 @@ export function BoardFilters({
   const { priorities, labels, q } = filters;
 
   return (
-    <section className="filters-panel">
+    <section className="filters-panel" data-testid="filters-panel">
       <div className="filters-panel__top">
         <label className="field">
           <span>Search</span>
           <input
+            data-testid="filters-search"
             type="search"
             value={q}
             placeholder="Search titles and descriptions"
@@ -42,7 +43,7 @@ export function BoardFilters({
           />
         </label>
 
-        <button className="ghost-button" type="button" onClick={onClear}>
+        <button className="ghost-button" data-testid="clear-filters" type="button" onClick={onClear}>
           Clear Filters
         </button>
       </div>
@@ -54,6 +55,7 @@ export function BoardFilters({
             {ALL_PRIORITIES.map((priority) => (
               <label key={priority} className="chip-toggle">
                 <input
+                  data-testid={`priority-filter-${priority}`}
                   type="checkbox"
                   checked={priorities.includes(priority)}
                   onChange={() =>
@@ -77,6 +79,7 @@ export function BoardFilters({
               availableLabels.map((label) => (
                 <label key={label.id} className="chip-toggle">
                   <input
+                    data-testid={`label-filter-${label.normalizedName}`}
                     type="checkbox"
                     checked={labels.includes(label.normalizedName)}
                     onChange={() =>

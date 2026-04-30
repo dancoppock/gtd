@@ -7,7 +7,7 @@ import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3"
 
 import * as schema from "./schema.js";
 
-const defaultDatabaseFilename = fileURLToPath(new URL("../../data/gtd.sqlite", import.meta.url));
+export const defaultDatabaseFilename = fileURLToPath(new URL("../../data/gtd.sqlite", import.meta.url));
 const initialMigrationFilename = fileURLToPath(new URL("../../drizzle/0000_init.sql", import.meta.url));
 
 export type DatabaseClient = {

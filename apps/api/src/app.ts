@@ -1,12 +1,43 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
+import { ZodError } from "zod";
 
+import { createDefaultBoardStore, type BoardStore } from "./repositories/board-store.js";
 import { registerBoardRoutes } from "./routes/boards.js";
 import { registerTicketRoutes } from "./routes/tickets.js";
 
-export function buildApp() {
+type BuildAppOptions = {
+  boardStore?: BoardStore;
+  boardStoreFactory?: () => BoardStore;
+  logger?: boolean;
+  resetState?: () => void;
+  testMode?: boolean;
+};
+
+function disposeBoardStore(store: BoardStore) {
+  store.dispose?.();
+}
+
+function createBoardStoreProxy(getBoardStore: () => BoardStore): BoardStore {
+  return {
+    listBoards: () => getBoardStore().listBoards(),
+    getBoardById: (boardId) => getBoardStore().getBoardById(boardId),
+    getBoardBySlug: (slug) => getBoardStore().getBoardBySlug(slug),
+    getBoardDetail: (boardId) => getBoardStore().getBoardDetail(boardId),
+    listTickets: (boardId, filters) => getBoardStore().listTickets(boardId, filters),
+    createTicket: (boardId, input) => getBoardStore().createTicket(boardId, input),
+    updateTicket: (ticketId, input) => getBoardStore().updateTicket(ticketId, input),
+    repositionTicket: (ticketId, input) => getBoardStore().repositionTicket(ticketId, input),
+  };
+}
+
+export function buildApp(options: BuildAppOptions = {}) {
+  let activeBoardStore =
+    options.boardStore ?? options.boardStoreFactory?.() ?? createDefaultBoardStore();
+  const boardStore = createBoardStoreProxy(() => activeBoardStore);
+
   const app = Fastify({
-    logger: true,
+    logger: options.logger ?? true,
   });
 
   app.register(cors, {
@@ -17,8 +48,41 @@ export function buildApp() {
     ok: true,
   }));
 
-  app.register(registerBoardRoutes, { prefix: "/api" });
-  app.register(registerTicketRoutes, { prefix: "/api" });
+  app.setErrorHandler((error, _request, reply) => {
+    if (error instanceof ZodError) {
+      return reply.status(400).send({
+        message: "Validation failed",
+        issues: error.issues,
+      });
+    }
+
+    return reply.send(error);
+  });
+
+  if (options.testMode && options.boardStoreFactory && options.resetState) {
+    app.post("/api/test/reset", async () => {
+      disposeBoardStore(activeBoardStore);
+      options.resetState?.();
+      activeBoardStore = options.boardStoreFactory?.() ?? activeBoardStore;
+
+      return {
+        ok: true,
+      };
+    });
+  }
+
+  app.addHook("onClose", async () => {
+    disposeBoardStore(activeBoardStore);
+  });
+
+  app.register(registerBoardRoutes, {
+    prefix: "/api",
+    boardStore,
+  });
+  app.register(registerTicketRoutes, {
+    prefix: "/api",
+    boardStore,
+  });
 
   return app;
 }

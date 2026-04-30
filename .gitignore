@@ -4,4 +4,9 @@ dist
 .turbo
 .vite
 coverage
+playwright-report
+test-results
+apps/api/data/gtd.e2e.sqlite
+apps/api/data/gtd.e2e.sqlite-shm
+apps/api/data/gtd.e2e.sqlite-wal
 *.tsbuildinfo
