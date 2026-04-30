@@ -361,6 +361,43 @@ button {
   margin-bottom: 0;
 }
 
+.ticket-card__title-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+}
+
+.ticket-card__title-button h3 {
+  cursor: text;
+}
+
+.ticket-card__title-editor {
+  margin: 10px 0 8px;
+}
+
+.ticket-card__title-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px 12px;
+  outline: none;
+}
+
+.ticket-card__title-input:focus {
+  border-color: rgba(13, 124, 134, 0.5);
+  box-shadow: 0 0 0 4px rgba(13, 124, 134, 0.08);
+}
+
+.ticket-card__title-error {
+  margin: 8px 0 0;
+  color: #8a2615;
+}
+
 .ticket-card p {
   margin: 0 0 14px;
   color: var(--text-muted);

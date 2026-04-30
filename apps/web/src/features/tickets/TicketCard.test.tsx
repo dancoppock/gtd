@@ -1,5 +1,5 @@
 import type { Ticket } from "@gtd/contracts";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { TicketCard } from "./TicketCard";
@@ -49,5 +49,54 @@ describe("TicketCard", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText("frontend")).not.toBeInTheDocument();
     expect(screen.queryByText("ux")).not.toBeInTheDocument();
+  });
+
+  it("starts inline title editing on double click and saves on Enter", async () => {
+    const onTitleUpdate = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <TicketCard
+        ticket={ticket}
+        onEdit={vi.fn()}
+        onTitleUpdate={onTitleUpdate}
+        viewMode="full"
+      />,
+    );
+
+    fireEvent.doubleClick(screen.getByTestId("ticket-title-ticket_1"));
+    fireEvent.change(screen.getByTestId("ticket-title-input-ticket_1"), {
+      target: { value: "Rename ticket inline" },
+    });
+    fireEvent.keyDown(screen.getByTestId("ticket-title-input-ticket_1"), {
+      key: "Enter",
+    });
+
+    await waitFor(() => {
+      expect(onTitleUpdate).toHaveBeenCalledWith("Rename ticket inline");
+    });
+  });
+
+  it("cancels inline title editing on Escape", () => {
+    const onTitleUpdate = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <TicketCard
+        ticket={ticket}
+        onEdit={vi.fn()}
+        onTitleUpdate={onTitleUpdate}
+        viewMode="full"
+      />,
+    );
+
+    fireEvent.doubleClick(screen.getByTestId("ticket-title-ticket_1"));
+    fireEvent.change(screen.getByTestId("ticket-title-input-ticket_1"), {
+      target: { value: "Do not save this" },
+    });
+    fireEvent.keyDown(screen.getByTestId("ticket-title-input-ticket_1"), {
+      key: "Escape",
+    });
+
+    expect(onTitleUpdate).not.toHaveBeenCalled();
+    expect(screen.getByText("Refine compact ticket card")).toBeInTheDocument();
   });
 });

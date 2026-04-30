@@ -1,4 +1,9 @@
-import { boardFiltersSchema, type BoardFilters, type Ticket } from "@gtd/contracts";
+import {
+  boardFiltersSchema,
+  type BoardFilters,
+  type Ticket,
+  type UpdateTicketInput,
+} from "@gtd/contracts";
 import {
   closestCorners,
   DndContext,
@@ -110,13 +115,7 @@ export function BoardPage() {
   const updateTicketMutation = useMutation({
     mutationFn: (args: {
       ticketId: string;
-      input: {
-        columnId: string;
-        title: string;
-        description: string;
-        priority: "highest" | "high" | "medium" | "low";
-        labels: string[];
-      };
+      input: UpdateTicketInput;
     }) => updateTicket(args.ticketId, args.input),
     onSuccess: async () => {
       setEditingTicket(null);
@@ -205,6 +204,42 @@ export function BoardPage() {
     }
   }
 
+  async function handleInlineTitleUpdate(ticket: Ticket, nextTitle: string) {
+    const previousTitle = ticket.title;
+
+    setVisibleTickets((currentTickets) =>
+      currentTickets.map((currentTicket) =>
+        currentTicket.id === ticket.id
+          ? {
+              ...currentTicket,
+              title: nextTitle,
+            }
+          : currentTicket,
+      ),
+    );
+
+    try {
+      await updateTicketMutation.mutateAsync({
+        ticketId: ticket.id,
+        input: {
+          title: nextTitle,
+        },
+      });
+    } catch (error) {
+      setVisibleTickets((currentTickets) =>
+        currentTickets.map((currentTicket) =>
+          currentTicket.id === ticket.id
+            ? {
+                ...currentTicket,
+                title: previousTitle,
+              }
+            : currentTicket,
+        ),
+      );
+      throw error;
+    }
+  }
+
   return (
     <main className="page-shell">
       <section className="hero-panel">
@@ -267,6 +302,7 @@ export function BoardPage() {
                     column={column}
                     tickets={tickets}
                     onEditTicket={setEditingTicket}
+                    onInlineTitleUpdate={handleInlineTitleUpdate}
                     viewMode={ticketViewMode}
                   />
                 );
@@ -278,6 +314,7 @@ export function BoardPage() {
                 <TicketCard
                   ticket={activeTicket}
                   onEdit={() => undefined}
+                  onTitleUpdate={async () => undefined}
                   viewMode={ticketViewMode}
                 />
               ) : null}

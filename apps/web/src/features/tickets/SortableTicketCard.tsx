@@ -8,10 +8,11 @@ import { TicketCard } from "./TicketCard";
 type SortableTicketCardProps = {
   ticket: Ticket;
   onEdit: () => void;
+  onTitleUpdate: (nextTitle: string) => Promise<void>;
   viewMode: TicketViewMode;
 };
 
-export function SortableTicketCard({ ticket, onEdit, viewMode }: SortableTicketCardProps) {
+export function SortableTicketCard({ ticket, onEdit, onTitleUpdate, viewMode }: SortableTicketCardProps) {
   const {
     attributes,
     isDragging,
@@ -35,6 +36,7 @@ export function SortableTicketCard({ ticket, onEdit, viewMode }: SortableTicketC
       <TicketCard
         ticket={ticket}
         onEdit={onEdit}
+        onTitleUpdate={onTitleUpdate}
         isDragging={isDragging}
         viewMode={viewMode}
         dragHandleProps={{

@@ -9,10 +9,17 @@ type BoardColumnProps = {
   column: Column;
   tickets: Ticket[];
   onEditTicket: (ticket: Ticket) => void;
+  onInlineTitleUpdate: (ticket: Ticket, nextTitle: string) => Promise<void>;
   viewMode: TicketViewMode;
 };
 
-export function BoardColumn({ column, tickets, onEditTicket, viewMode }: BoardColumnProps) {
+export function BoardColumn({
+  column,
+  tickets,
+  onEditTicket,
+  onInlineTitleUpdate,
+  viewMode,
+}: BoardColumnProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: column.id,
   });
@@ -44,6 +51,7 @@ export function BoardColumn({ column, tickets, onEditTicket, viewMode }: BoardCo
                 key={ticket.id}
                 ticket={ticket}
                 onEdit={() => onEditTicket(ticket)}
+                onTitleUpdate={(nextTitle) => onInlineTitleUpdate(ticket, nextTitle)}
                 viewMode={viewMode}
               />
             ))
