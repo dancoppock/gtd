@@ -74,6 +74,7 @@ export function BoardPage() {
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [createColumnId, setCreateColumnId] = useState<string | null>(null);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [ticketViewMode, setTicketViewMode] = useState<TicketViewMode>("compact");
   const [visibleTickets, setVisibleTickets] = useState<Ticket[]>([]);
   const queryClient = useQueryClient();
@@ -242,27 +243,49 @@ export function BoardPage() {
 
   return (
     <main className="page-shell">
-      <section className="hero-panel">
-        <div>
-          <p className="eyebrow">Single-board kanban starter</p>
-          <h1>{data?.board.name ?? "Loading board..."}</h1>
-          <p>
-            The board model already supports multiple boards and board-owned columns, while v1 stays
-            fixed to Todo, In Progress, and Done.
-          </p>
-        </div>
-
-        <div className="hero-panel__actions">
-          <TicketViewToggle value={ticketViewMode} onChange={setTicketViewMode} />
+      <section className={`hero-panel ${isHeaderCollapsed ? "hero-panel--collapsed" : ""}`}>
+        <div className="hero-panel__header">
+          <div>
+            <h1>{data?.board.name ?? "Loading board..."}</h1>
+          </div>
           <button
-            className="primary-button"
-            disabled={!data}
+            aria-label={isHeaderCollapsed ? "Expand header panel" : "Collapse header panel"}
+            aria-expanded={!isHeaderCollapsed}
+            className="hero-panel__toggle"
+            data-testid="hero-toggle"
             type="button"
-            onClick={() => setCreateColumnId(data?.board.columns[0]?.id ?? null)}
+            onClick={() => setIsHeaderCollapsed((currentValue) => !currentValue)}
           >
-            New Ticket
+            <svg
+              aria-hidden="true"
+              className={isHeaderCollapsed ? "hero-panel__toggle-icon hero-panel__toggle-icon--collapsed" : "hero-panel__toggle-icon"}
+              viewBox="0 0 20 20"
+            >
+              <path d="M5.22 12.28a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 1 1-1.06 1.06L10 8.56l-3.72 3.72a.75.75 0 0 1-1.06 0Z" />
+            </svg>
           </button>
         </div>
+
+        {!isHeaderCollapsed ? (
+          <div className="hero-panel__body">
+            <p>
+              The board model already supports multiple boards and board-owned columns, while v1 stays
+              fixed to Todo, In Progress, and Done.
+            </p>
+
+            <div className="hero-panel__actions">
+              <TicketViewToggle value={ticketViewMode} onChange={setTicketViewMode} />
+              <button
+                className="primary-button"
+                disabled={!data}
+                type="button"
+                onClick={() => setCreateColumnId(data?.board.columns[0]?.id ?? null)}
+              >
+                New Ticket
+              </button>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       {boardQuery.isError ? (

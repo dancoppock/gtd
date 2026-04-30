@@ -66,12 +66,26 @@ button {
 }
 
 .hero-panel {
+  padding: 28px;
+  margin-bottom: 22px;
+}
+
+.hero-panel--collapsed {
+  padding-bottom: 20px;
+}
+
+.hero-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.hero-panel__body {
   display: flex;
   justify-content: space-between;
   gap: 24px;
   align-items: flex-end;
-  padding: 28px;
-  margin-bottom: 22px;
 }
 
 .hero-panel h1 {
@@ -79,7 +93,7 @@ button {
     "Iowan Old Style",
     "Palatino Linotype",
     serif;
-  font-size: clamp(2.2rem, 4vw, 3.8rem);
+  font-size: 2.2rem;
   line-height: 0.95;
   letter-spacing: -0.03em;
   margin: 8px 0 12px;
@@ -91,18 +105,34 @@ button {
   color: var(--text-muted);
 }
 
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-size: 0.78rem;
-  color: var(--accent-strong);
-}
-
 .hero-panel__actions {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.hero-panel__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #233846;
+}
+
+.hero-panel__toggle-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  transition: transform 140ms ease;
+}
+
+.hero-panel__toggle-icon--collapsed {
+  transform: rotate(180deg);
 }
 
 .primary-button,
@@ -178,6 +208,40 @@ button {
 .filters-panel {
   padding: 22px;
   margin-bottom: 22px;
+}
+
+.filters-panel--collapsed {
+  padding-bottom: 16px;
+}
+
+.filters-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.filters-panel__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #233846;
+}
+
+.filters-panel__toggle-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  transition: transform 140ms ease;
+}
+
+.filters-panel__toggle-icon--collapsed {
+  transform: rotate(180deg);
 }
 
 .filters-panel__top {
@@ -573,6 +637,11 @@ button {
   .hero-panel,
   .filters-panel__top,
   .modal-form__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-panel__body {
     flex-direction: column;
     align-items: stretch;
   }

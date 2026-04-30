@@ -93,4 +93,31 @@ describe("BoardFilters", () => {
     expect(onClear).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Labels appear here as they are created.")).toBeInTheDocument();
   });
+
+  it("collapses and expands the filter controls", () => {
+    render(
+      <BoardFilters
+        filters={filters}
+        availableLabels={availableLabels}
+        onChange={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse filters panel" }));
+
+    expect(screen.queryByRole("searchbox", { name: "Search" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Expand filters panel" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand filters panel" }));
+
+    expect(screen.getByRole("searchbox", { name: "Search" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Collapse filters panel" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
 });
