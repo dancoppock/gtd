@@ -68,9 +68,20 @@ pnpm dev:web
 ## 5. Expected URLs
 
 - API: `http://127.0.0.1:3001`
-- Frontend: usually `http://localhost:3000`
+- Frontend: `http://localhost:3000`
 
-If port `3000` is already in use, Vite will move to `3001`, `3002`, or the next available port.
+Root dev commands now enforce fixed ports:
+
+- `pnpm dev:api` stops any existing process on `3001`, then starts the API on `3001`
+- `pnpm dev:web` stops any existing process on `3000`, then starts Vite on `3000`
+- if another local app is using one of those ports, the matching command will stop it first
+
+Optional manual stop commands:
+
+```bash
+pnpm stop:api
+pnpm stop:web
+```
 
 ## 6. Useful Checks
 
@@ -168,12 +179,13 @@ Rebuild `better-sqlite3` using the command in section 3.
 
 ### Vite starts on the wrong port
 
-That usually just means another process is already using `3000`.
+`pnpm dev:web` should now prevent this by clearing port `3000` first.
+If you still see a port issue, the previous process may not have exited cleanly yet.
 
 ### Server code changes do not seem to apply
 
 There may still be an older API or Vite process running.
-Stop the old process and restart the command in a fresh terminal.
+Run `pnpm stop:api` or `pnpm stop:web`, then restart the relevant dev command.
 
 ## 8. Current Repo Reality
 

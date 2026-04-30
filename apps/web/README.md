@@ -45,4 +45,5 @@ Or:
 pnpm dev:web
 ```
 
-Vite will usually serve on `http://localhost:3000`, but it may move to the next free port if that one is already occupied.
+`pnpm dev:web` always frees port `3000` first, then starts Vite on `http://localhost:3000`.
+If something else was already bound to that port, it will be stopped before Vite starts.

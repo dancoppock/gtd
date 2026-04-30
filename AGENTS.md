@@ -43,7 +43,8 @@ Main packages:
 
 - API default URL: `http://127.0.0.1:3001`
 - Frontend default URL: `http://localhost:3000`
-- Vite may move to the next free port if `3000` is occupied
+- `pnpm dev:api` frees port `3001` before starting Fastify
+- `pnpm dev:web` frees port `3000` before starting Vite
 - SQLite database file: `apps/api/data/gtd.sqlite`
 - E2E SQLite database file: `apps/api/data/gtd.e2e.sqlite`
 
@@ -79,6 +80,8 @@ From the repo root:
 ```bash
 npm run dev:api
 npm run dev:web
+pnpm stop:api
+pnpm stop:web
 pnpm lint
 pnpm typecheck
 pnpm test

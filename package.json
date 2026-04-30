@@ -7,8 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:api": "npm run dev --workspace @gtd/api",
-    "dev:web": "npm run dev --workspace @gtd/web",
+    "dev:api": "node ./scripts/dev-api.mjs",
+    "dev:web": "node ./scripts/dev-web.mjs",
+    "stop:api": "node ./scripts/stop-api.mjs",
+    "stop:web": "node ./scripts/stop-web.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "npm run typecheck --workspaces",

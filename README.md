@@ -112,8 +112,18 @@ pnpm dev:web
 Notes:
 
 - the API listens on `http://127.0.0.1:3001`
-- Vite defaults to `http://localhost:3000`
-- if `3000` is occupied, Vite will choose the next available port
+- the frontend listens on `http://localhost:3000`
+- `pnpm dev:api` stops any existing process on port `3001` before starting Fastify
+- `pnpm dev:web` stops any existing process on port `3000` before starting Vite
+- Vite now uses a strict port, so it will not silently move to `3001`, `3002`, or another port
+- if another app is already using one of those ports, the matching `dev:*` command will stop it first
+
+Optional manual stops:
+
+```bash
+pnpm stop:api
+pnpm stop:web
+```
 
 ## Testing
 
