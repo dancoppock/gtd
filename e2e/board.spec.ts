@@ -69,9 +69,9 @@ test("edits a ticket and persists the change after reload", async ({ page }) => 
 });
 
 test("drags a ticket into another column and keeps it there after reload", async ({ page }) => {
-  const dragHandle = page.getByTestId("ticket-drag-ticket_1");
+  const ticketCard = page.getByTestId("ticket-ticket_1");
   const targetColumn = page.getByTestId("column-body-done");
-  const handleBox = await dragHandle.boundingBox();
+  const handleBox = await ticketCard.boundingBox();
   const targetBox = await targetColumn.boundingBox();
 
   if (!handleBox || !targetBox) {
