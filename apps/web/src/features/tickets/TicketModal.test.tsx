@@ -65,6 +65,7 @@ describe("TicketModal", () => {
     );
 
     expect(screen.getByRole("dialog", { name: "Create Ticket" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Title")).toHaveFocus();
     expect(screen.getByLabelText("Column")).toHaveValue("col_todo");
     expect(screen.getByLabelText("Priority")).toHaveValue("medium");
     expect(screen.getByText("Existing labels: frontend, backend")).toBeInTheDocument();
@@ -166,5 +167,24 @@ describe("TicketModal", () => {
     fireEvent.click(screen.getByRole("presentation"));
 
     expect(onClose).toHaveBeenCalledTimes(3);
+  });
+
+  it("closes when Escape is pressed", () => {
+    const onClose = vi.fn();
+
+    render(
+      <TicketModal
+        mode="edit"
+        ticket={existingTicket}
+        columns={columns}
+        availableLabels={availableLabels}
+        onClose={onClose}
+        onSubmit={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

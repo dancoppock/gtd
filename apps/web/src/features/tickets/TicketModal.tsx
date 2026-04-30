@@ -72,6 +72,20 @@ export function TicketModal({
     });
   }, [columns, defaultColumnId, reset, ticket]);
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
   const submitLabel = mode === "create" ? "Create Ticket" : "Save Changes";
   const title = mode === "create" ? "Create Ticket" : "Edit Ticket";
 
@@ -111,6 +125,7 @@ export function TicketModal({
             <span>Title</span>
             <input
               {...register("title", { required: true, maxLength: 200 })}
+              autoFocus
               data-testid="ticket-modal-title-input"
               placeholder="Write concise ticket title"
             />
