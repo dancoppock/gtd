@@ -66,6 +66,7 @@ CREATE TABLE `tickets` (
   `description` TEXT NOT NULL DEFAULT '',
   `priority` TEXT NOT NULL DEFAULT 'medium',
   `ui_order` INTEGER NOT NULL,
+  `completed_at` INTEGER,
   `archived_at` INTEGER,
   `created_at` INTEGER NOT NULL,
   `updated_at` INTEGER NOT NULL,
@@ -80,6 +81,9 @@ CREATE INDEX `tickets_status_ui_order_idx`
 
 CREATE INDEX `tickets_priority_idx`
   ON `tickets` (`priority`);
+
+CREATE INDEX `tickets_completed_at_idx`
+  ON `tickets` (`completed_at`);
 
 CREATE INDEX `tickets_archived_ui_order_idx`
   ON `tickets` (`archived_at`, `ui_order`);

@@ -54,6 +54,7 @@ const existingTicket: Ticket = {
   priority: "high",
   uiOrder: 1_000_000,
   labels: availableLabels,
+  completedAt: null,
   archivedAt: null,
   createdAt: "2026-04-30T00:00:00.000Z",
   updatedAt: "2026-04-30T00:00:00.000Z",

@@ -175,6 +175,7 @@ function createTicketsTable(sqlite: Database.Database) {
       description text not null default '',
       priority text not null default 'medium',
       ui_order integer not null,
+      completed_at integer,
       archived_at integer,
       created_at integer not null,
       updated_at integer not null,
@@ -183,7 +184,36 @@ function createTicketsTable(sqlite: Database.Database) {
     create index tickets_ui_order_idx on tickets (ui_order);
     create index tickets_status_ui_order_idx on tickets (status_key, ui_order);
     create index tickets_priority_idx on tickets (priority);
+    create index tickets_completed_at_idx on tickets (completed_at);
     create index tickets_archived_ui_order_idx on tickets (archived_at, ui_order);
+  `);
+}
+
+function ensureTicketCompletionFields(sqlite: Database.Database) {
+  if (!hasColumn(sqlite, "tickets", "completed_at")) {
+    sqlite.exec("alter table tickets add column completed_at integer");
+  }
+
+  sqlite.exec(`
+    update tickets
+    set completed_at = updated_at
+    where completed_at is null
+      and status_key in (
+        select key
+        from statuses
+        where category = 'completed'
+      )
+  `);
+
+  sqlite.exec(`
+    update tickets
+    set completed_at = null
+    where completed_at is not null
+      and status_key not in (
+        select key
+        from statuses
+        where category = 'completed'
+      )
   `);
 }
 
@@ -234,7 +264,7 @@ function migrateLegacyDataModel(sqlite: Database.Database) {
       sqlite.exec("alter table tickets rename to tickets_legacy");
       createTicketsTable(sqlite);
       sqlite.exec(`
-        insert into tickets (id, status_key, title, description, priority, ui_order, archived_at, created_at, updated_at)
+        insert into tickets (id, status_key, title, description, priority, ui_order, completed_at, archived_at, created_at, updated_at)
         select
           tickets_legacy.id,
           coalesce(columns.key, 'todo'),
@@ -242,6 +272,7 @@ function migrateLegacyDataModel(sqlite: Database.Database) {
           tickets_legacy.description,
           tickets_legacy.priority,
           tickets_legacy.ui_order,
+          null,
           ${legacyTicketsHaveArchivedAt ? "tickets_legacy.archived_at" : "null"},
           tickets_legacy.created_at,
           tickets_legacy.updated_at
@@ -301,6 +332,7 @@ function ensureCurrentIndexes(sqlite: Database.Database) {
     create index if not exists tickets_ui_order_idx on tickets (ui_order);
     create index if not exists tickets_status_ui_order_idx on tickets (status_key, ui_order);
     create index if not exists tickets_priority_idx on tickets (priority);
+    create index if not exists tickets_completed_at_idx on tickets (completed_at);
     create index if not exists tickets_archived_ui_order_idx on tickets (archived_at, ui_order);
     create index if not exists ticket_labels_label_idx on ticket_labels (label_id);
   `);
@@ -310,12 +342,12 @@ function ensureDatabaseSchema(sqlite: Database.Database) {
   if (!hasTable(sqlite, "boards")) {
     const migrationSql = readFileSync(initialMigrationFilename, "utf8");
     sqlite.exec(migrationSql);
-    return;
   }
 
   ensureBoardFields(sqlite);
   migrateLegacyDataModel(sqlite);
   ensureStatusesData(sqlite);
+  ensureTicketCompletionFields(sqlite);
   createBoardLabelFilters(sqlite);
   ensureCurrentIndexes(sqlite);
 }

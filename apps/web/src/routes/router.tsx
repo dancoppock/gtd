@@ -4,6 +4,7 @@ import { BoardEditPage } from "./BoardEditPage";
 import { BoardPage } from "./BoardPage";
 import { BoardsPage } from "./BoardsPage";
 import { HomePage } from "./HomePage";
+import { InsightsPage } from "./InsightsPage";
 import { LabelsPage } from "./LabelsPage";
 
 export const router = createBrowserRouter([
@@ -30,5 +31,9 @@ export const router = createBrowserRouter([
   {
     path: "/labels",
     element: <LabelsPage />,
+  },
+  {
+    path: "/insights",
+    element: <InsightsPage />,
   },
 ]);

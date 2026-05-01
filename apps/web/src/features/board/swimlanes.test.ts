@@ -45,6 +45,7 @@ function makeTicket(
     priority: "medium",
     uiOrder: 1_000_000,
     labels,
+    completedAt: statusKey === "done" ? timestamp : null,
     archivedAt: null,
     createdAt: timestamp,
     updatedAt: timestamp,

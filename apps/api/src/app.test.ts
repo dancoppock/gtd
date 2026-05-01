@@ -123,6 +123,36 @@ describe("API routes", () => {
     ]);
   });
 
+  it("returns insights for recently completed tickets", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/insights",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      summary: {
+        doneToday: 1,
+        doneThisWeek: 1,
+        doneLastWeek: 0,
+      },
+      tickets: {
+        doneToday: [
+          expect.objectContaining({
+            id: "ticket_3",
+            statusKey: "done",
+          }),
+        ],
+        doneThisWeek: [
+          expect.objectContaining({
+            id: "ticket_3",
+            statusKey: "done",
+          }),
+        ],
+      },
+    });
+  });
+
   it("returns board tickets filtered by query params", async () => {
     const response = await app.inject({
       method: "GET",

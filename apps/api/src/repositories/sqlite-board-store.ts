@@ -8,6 +8,7 @@ import type {
   CreateStatusInput,
   CreateBoardInput,
   CreateTicketInput,
+  InsightsResponse,
   Label,
   RepositionTicketInput,
   Status,
@@ -63,6 +64,7 @@ type TicketRow = {
   description: string;
   priority: Ticket["priority"];
   ui_order: number;
+  completed_at: number | null;
   archived_at: number | null;
   created_at: number;
   updated_at: number;
@@ -124,6 +126,24 @@ function placeholders(values: readonly unknown[]) {
 
 function escapeLike(value: string) {
   return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function startOfWeekMonday(date: Date) {
+  const day = date.getDay();
+  const offset = day === 0 ? -6 : 1 - day;
+  const next = new Date(date);
+  next.setDate(next.getDate() + offset);
+  return startOfDay(next);
+}
+
+function addDays(date: Date, amount: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + amount);
+  return next;
 }
 
 const emptyFilters: BoardFilters = {
@@ -308,6 +328,46 @@ export class SqliteBoardStore {
     }));
   }
 
+  getInsights(): InsightsResponse {
+    const now = new Date();
+    const todayStart = startOfDay(now);
+    const weekStart = startOfWeekMonday(now);
+    const lastWeekStart = addDays(weekStart, -7);
+    const completedTickets = this.hydrateTickets(
+      this.sqlite.prepare(`
+        select *
+        from tickets
+        where completed_at is not null
+        order by completed_at desc
+      `).all() as TicketRow[],
+    );
+
+    const doneToday = completedTickets.filter((ticket) => {
+      const completedAt = ticket.completedAt ? new Date(ticket.completedAt) : null;
+      return completedAt !== null && completedAt >= todayStart;
+    });
+    const doneThisWeek = completedTickets.filter((ticket) => {
+      const completedAt = ticket.completedAt ? new Date(ticket.completedAt) : null;
+      return completedAt !== null && completedAt >= weekStart;
+    });
+    const doneLastWeek = completedTickets.filter((ticket) => {
+      const completedAt = ticket.completedAt ? new Date(ticket.completedAt) : null;
+      return completedAt !== null && completedAt >= lastWeekStart && completedAt < weekStart;
+    });
+
+    return {
+      summary: {
+        doneToday: doneToday.length,
+        doneThisWeek: doneThisWeek.length,
+        doneLastWeek: doneLastWeek.length,
+      },
+      tickets: {
+        doneToday,
+        doneThisWeek,
+      },
+    };
+  }
+
   listTickets(boardId: string, filters: BoardFilters) {
     return this.hydrateTickets(this.selectVisibleTicketRows(boardId, filters));
   }
@@ -333,8 +393,8 @@ export class SqliteBoardStore {
 
       this.sqlite
         .prepare(`
-          insert into tickets (id, status_key, title, description, priority, ui_order, archived_at, created_at, updated_at)
-          values (?, ?, ?, ?, ?, ?, null, ?, ?)
+          insert into tickets (id, status_key, title, description, priority, ui_order, completed_at, archived_at, created_at, updated_at)
+          values (?, ?, ?, ?, ?, ?, ?, null, ?, ?)
         `)
         .run(
           ticketId,
@@ -343,6 +403,7 @@ export class SqliteBoardStore {
           input.description,
           input.priority,
           nextOrder,
+          this.getStatusCategory(input.statusKey) === "completed" ? now : null,
           now,
           now,
         );
@@ -404,6 +465,14 @@ export class SqliteBoardStore {
     }
 
     const updatedAt = Date.now();
+    const nextStatusKey = input.statusKey ?? existingTicket.status_key;
+    const wasCompleted = this.getStatusCategory(existingTicket.status_key) === "completed";
+    const isCompleted = this.getStatusCategory(nextStatusKey) === "completed";
+    const nextCompletedAt = !wasCompleted && isCompleted
+      ? updatedAt
+      : wasCompleted && !isCompleted
+        ? null
+        : existingTicket.completed_at;
 
     this.sqlite.transaction(() => {
       this.sqlite
@@ -414,14 +483,16 @@ export class SqliteBoardStore {
             title = ?,
             description = ?,
             priority = ?,
+            completed_at = ?,
             updated_at = ?
           where id = ?
         `)
         .run(
-          input.statusKey ?? existingTicket.status_key,
+          nextStatusKey,
           input.title ?? existingTicket.title,
           input.description ?? existingTicket.description,
           input.priority ?? existingTicket.priority,
+          nextCompletedAt,
           updatedAt,
           ticketId,
         );
@@ -540,13 +611,21 @@ export class SqliteBoardStore {
       }
 
       const updatedAt = Date.now();
+      const nextCompletedAt =
+        this.getStatusCategory(existingTicket.status_key) !== "completed"
+          && this.getStatusCategory(input.statusKey) === "completed"
+          ? updatedAt
+          : this.getStatusCategory(existingTicket.status_key) === "completed"
+              && this.getStatusCategory(input.statusKey) !== "completed"
+            ? null
+            : existingTicket.completed_at;
       this.sqlite
         .prepare(`
           update tickets
-          set status_key = ?, ui_order = ?, updated_at = ?
+          set status_key = ?, ui_order = ?, completed_at = ?, updated_at = ?
           where id = ?
         `)
-        .run(input.statusKey, nextOrder, updatedAt, ticketId);
+        .run(input.statusKey, nextOrder, nextCompletedAt, updatedAt, ticketId);
 
       this.touchAllBoards(updatedAt);
     })();
@@ -597,8 +676,8 @@ export class SqliteBoardStore {
         values (?, ?)
       `);
       const insertTicket = this.sqlite.prepare(`
-        insert or ignore into tickets (id, status_key, title, description, priority, ui_order, archived_at, created_at, updated_at)
-        values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        insert or ignore into tickets (id, status_key, title, description, priority, ui_order, completed_at, archived_at, created_at, updated_at)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       const insertTicketLabel = this.sqlite.prepare(`
         insert or ignore into ticket_labels (ticket_id, label_id)
@@ -653,6 +732,7 @@ export class SqliteBoardStore {
           ticket.description,
           ticket.priority,
           ticket.uiOrder,
+          ticket.completedAt ? Date.parse(ticket.completedAt) : null,
           ticket.archivedAt ? Date.parse(ticket.archivedAt) : null,
           Date.parse(ticket.createdAt),
           Date.parse(ticket.updatedAt),
@@ -827,6 +907,7 @@ export class SqliteBoardStore {
       statusKey: row.status_key,
       uiOrder: row.ui_order,
       labels: labelsByTicketId.get(row.id) ?? [],
+      completedAt: toIsoString(row.completed_at),
       archivedAt: toIsoString(row.archived_at),
       createdAt: toIsoString(row.created_at)!,
       updatedAt: toIsoString(row.updated_at)!,
@@ -990,6 +1071,14 @@ export class SqliteBoardStore {
 
   private touchAllBoards(updatedAt = Date.now()) {
     this.sqlite.prepare("update boards set updated_at = ?").run(updatedAt);
+  }
+
+  private getStatusCategory(statusKey: string) {
+    const row = this.sqlite
+      .prepare("select category from statuses where key = ?")
+      .get(statusKey) as { category: Status["category"] } | undefined;
+
+    return row?.category ?? "active";
   }
 
   private clearDefaultBoard(nextDefaultBoardId: string) {

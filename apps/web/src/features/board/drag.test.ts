@@ -50,6 +50,7 @@ function makeTicket(id: string, statusKey: Ticket["statusKey"], uiOrder: number)
     priority: "medium",
     uiOrder,
     labels: [],
+    completedAt: null,
     archivedAt: null,
     createdAt: timestamp,
     updatedAt: timestamp,

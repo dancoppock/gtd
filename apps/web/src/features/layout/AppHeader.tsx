@@ -70,9 +70,9 @@ export function AppHeader({
               <Link className={navClass(activeNav, "labels")} to="/labels">
                 Labels
               </Link>
-              <span aria-disabled="true" className="app-nav__placeholder">
+              <Link className={navClass(activeNav, "insights")} to="/insights">
                 Insights
-              </span>
+              </Link>
             </nav>
           </div>
 

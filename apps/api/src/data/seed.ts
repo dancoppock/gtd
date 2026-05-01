@@ -37,6 +37,7 @@ function makeTicket(args: {
 
   return {
     ...args,
+    completedAt: args.statusKey === "done" ? timestamp : null,
     archivedAt: null,
     createdAt: timestamp,
     updatedAt: timestamp,

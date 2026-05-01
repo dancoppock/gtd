@@ -51,6 +51,7 @@ export const ticketSchema = z.object({
   statusKey: ticketStatusSchema,
   uiOrder: z.number().int(),
   labels: z.array(labelSchema),
+  completedAt: z.string().nullable(),
   archivedAt: z.string().nullable(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
@@ -81,6 +82,20 @@ export const listLabelsResponseSchema = z.object({
 
 export const listStatusesResponseSchema = z.object({
   statuses: z.array(statusSchema),
+});
+
+export const insightsSummarySchema = z.object({
+  doneToday: z.number().int().nonnegative(),
+  doneThisWeek: z.number().int().nonnegative(),
+  doneLastWeek: z.number().int().nonnegative(),
+});
+
+export const insightsResponseSchema = z.object({
+  summary: insightsSummarySchema,
+  tickets: z.object({
+    doneToday: z.array(ticketSchema),
+    doneThisWeek: z.array(ticketSchema),
+  }),
 });
 
 export const createStatusInputSchema = z.object({
@@ -147,6 +162,8 @@ export type BoardDetail = z.infer<typeof boardDetailSchema>;
 export type ListTicketsResponse = z.infer<typeof listTicketsResponseSchema>;
 export type ListLabelsResponse = z.infer<typeof listLabelsResponseSchema>;
 export type ListStatusesResponse = z.infer<typeof listStatusesResponseSchema>;
+export type InsightsSummary = z.infer<typeof insightsSummarySchema>;
+export type InsightsResponse = z.infer<typeof insightsResponseSchema>;
 export type CreateStatusInput = z.infer<typeof createStatusInputSchema>;
 export type BoardColumnInput = z.infer<typeof boardColumnInputSchema>;
 export type CreateBoardInput = z.infer<typeof createBoardInputSchema>;

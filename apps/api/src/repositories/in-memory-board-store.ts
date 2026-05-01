@@ -7,6 +7,7 @@ import type {
   Column,
   CreateBoardInput,
   CreateTicketInput,
+  InsightsResponse,
   Label,
   LabelUsage,
   RepositionTicketInput,
@@ -69,6 +70,24 @@ function matchesText(ticket: SeedTicketRecord, query: string) {
 
   const haystack = `${ticket.title} ${ticket.description}`.toLowerCase();
   return haystack.includes(query.trim().toLowerCase());
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function startOfWeekMonday(date: Date) {
+  const day = date.getDay();
+  const offset = day === 0 ? -6 : 1 - day;
+  const next = new Date(date);
+  next.setDate(next.getDate() + offset);
+  return startOfDay(next);
+}
+
+function addDays(date: Date, amount: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + amount);
+  return next;
 }
 
 export class InMemoryBoardStore {
@@ -249,6 +268,42 @@ export class InMemoryBoardStore {
     });
   }
 
+  getInsights(): InsightsResponse {
+    const now = new Date();
+    const todayStart = startOfDay(now);
+    const weekStart = startOfWeekMonday(now);
+    const lastWeekStart = addDays(weekStart, -7);
+    const completedTickets = Array.from(this.tickets.values())
+      .filter((ticket) => ticket.completedAt !== null)
+      .map((ticket) => this.toTicket(ticket))
+      .sort((left, right) => (right.completedAt ?? "").localeCompare(left.completedAt ?? ""));
+
+    const doneToday = completedTickets.filter((ticket) => {
+      const completedAt = ticket.completedAt ? new Date(ticket.completedAt) : null;
+      return completedAt !== null && completedAt >= todayStart;
+    });
+    const doneThisWeek = completedTickets.filter((ticket) => {
+      const completedAt = ticket.completedAt ? new Date(ticket.completedAt) : null;
+      return completedAt !== null && completedAt >= weekStart;
+    });
+    const doneLastWeek = completedTickets.filter((ticket) => {
+      const completedAt = ticket.completedAt ? new Date(ticket.completedAt) : null;
+      return completedAt !== null && completedAt >= lastWeekStart && completedAt < weekStart;
+    });
+
+    return {
+      summary: {
+        doneToday: doneToday.length,
+        doneThisWeek: doneThisWeek.length,
+        doneLastWeek: doneLastWeek.length,
+      },
+      tickets: {
+        doneToday,
+        doneThisWeek,
+      },
+    };
+  }
+
   listTickets(boardId: string, filters: BoardFilters) {
     const board = this.getBoardById(boardId);
     if (!board) {
@@ -307,6 +362,7 @@ export class InMemoryBoardStore {
       priority: input.priority,
       uiOrder: nextOrder,
       labelIds,
+      completedAt: this.statuses.get(input.statusKey)?.category === "completed" ? now : null,
       archivedAt: null,
       createdAt: now,
       updatedAt: now,
@@ -376,15 +432,25 @@ export class InMemoryBoardStore {
     const nextLabels = input.labels
       ? this.getOrCreateLabels(input.labels).map((label) => label.id)
       : record.labelIds;
+    const nextStatusKey = input.statusKey ?? record.statusKey;
+    const updatedAt = new Date().toISOString();
+    const wasCompleted = this.statuses.get(record.statusKey)?.category === "completed";
+    const isCompleted = this.statuses.get(nextStatusKey)?.category === "completed";
 
     const updatedRecord: SeedTicketRecord = {
       ...record,
-      statusKey: input.statusKey ?? record.statusKey,
+      statusKey: nextStatusKey,
       title: input.title ?? record.title,
       description: input.description ?? record.description,
       priority: input.priority ?? record.priority,
       labelIds: nextLabels,
-      updatedAt: new Date().toISOString(),
+      completedAt:
+        !wasCompleted && isCompleted
+          ? updatedAt
+          : wasCompleted && !isCompleted
+            ? null
+            : record.completedAt,
+      updatedAt,
     };
 
     this.tickets.set(ticketId, updatedRecord);
@@ -472,6 +538,14 @@ export class InMemoryBoardStore {
       ...record,
       statusKey: input.statusKey,
       uiOrder: nextOrder,
+      completedAt:
+        this.statuses.get(record.statusKey)?.category !== "completed"
+          && this.statuses.get(input.statusKey)?.category === "completed"
+          ? new Date().toISOString()
+          : this.statuses.get(record.statusKey)?.category === "completed"
+              && this.statuses.get(input.statusKey)?.category !== "completed"
+            ? null
+            : record.completedAt,
       updatedAt: new Date().toISOString(),
     };
 

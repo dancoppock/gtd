@@ -5,6 +5,7 @@ import type {
   CreateStatusInput,
   CreateBoardInput,
   CreateTicketInput,
+  InsightsResponse,
   Label,
   ListLabelsResponse,
   ListStatusesResponse,
@@ -101,6 +102,10 @@ export async function fetchLabels() {
 
 export async function fetchStatuses() {
   return fetch("/api/statuses").then((response) => readJson<ListStatusesResponse>(response));
+}
+
+export async function fetchInsights() {
+  return fetch("/api/insights").then((response) => readJson<InsightsResponse>(response));
 }
 
 export async function createStatus(input: CreateStatusInput) {

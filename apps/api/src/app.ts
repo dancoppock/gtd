@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 
 import { createDefaultBoardStore, type BoardStore } from "./repositories/board-store.js";
 import { registerBoardRoutes } from "./routes/boards.js";
+import { registerInsightsRoutes } from "./routes/insights.js";
 import { registerLabelRoutes } from "./routes/labels.js";
 import { registerStatusRoutes } from "./routes/statuses.js";
 import { registerTicketRoutes } from "./routes/tickets.js";
@@ -34,6 +35,7 @@ function createBoardStoreProxy(getBoardStore: () => BoardStore): BoardStore {
     deleteBoard: (boardId) => getBoardStore().deleteBoard(boardId),
     getLabelById: (labelId) => getBoardStore().getLabelById(labelId),
     listAllLabels: () => getBoardStore().listAllLabels(),
+    getInsights: () => getBoardStore().getInsights(),
     listTickets: (boardId, filters) => getBoardStore().listTickets(boardId, filters),
     createTicket: (boardId, input) => getBoardStore().createTicket(boardId, input),
     updateLabel: (labelId, input) => getBoardStore().updateLabel(labelId, input),
@@ -94,6 +96,10 @@ export function buildApp(options: BuildAppOptions = {}) {
     boardStore,
   });
   app.register(registerLabelRoutes, {
+    prefix: "/api",
+    boardStore,
+  });
+  app.register(registerInsightsRoutes, {
     prefix: "/api",
     boardStore,
   });

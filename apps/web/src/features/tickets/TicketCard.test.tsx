@@ -24,6 +24,7 @@ const ticket: Ticket = {
       normalizedName: "ux",
     },
   ],
+  completedAt: null,
   archivedAt: null,
   createdAt: "2026-04-30T00:00:00.000Z",
   updatedAt: "2026-04-30T00:00:00.000Z",

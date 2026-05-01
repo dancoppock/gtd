@@ -6,6 +6,7 @@ import type {
   CreateStatusInput,
   CreateBoardInput,
   CreateTicketInput,
+  InsightsResponse,
   Label,
   LabelUsage,
   RepositionTicketInput,
@@ -31,6 +32,7 @@ export type BoardStore = {
   deleteBoard(boardId: string): boolean;
   getLabelById(labelId: string): Label | null;
   listAllLabels(): LabelUsage[];
+  getInsights(): InsightsResponse;
   listTickets(boardId: string, filters: BoardFilters): Ticket[];
   createTicket(boardId: string, input: CreateTicketInput): Ticket | null;
   updateLabel(labelId: string, input: UpdateLabelInput): Label | null;

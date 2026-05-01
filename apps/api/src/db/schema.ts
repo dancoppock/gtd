@@ -77,6 +77,7 @@ export const tickets = sqliteTable("tickets", {
   description: text("description").notNull().default(""),
   priority: text("priority").notNull().default("medium"),
   uiOrder: integer("ui_order").notNull(),
+  completedAt: integer("completed_at", { mode: "timestamp_ms" }),
   archivedAt: integer("archived_at", { mode: "timestamp_ms" }),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
@@ -84,6 +85,7 @@ export const tickets = sqliteTable("tickets", {
   orderIndex: index("tickets_ui_order_idx").on(table.uiOrder),
   statusOrderIndex: index("tickets_status_ui_order_idx").on(table.statusKey, table.uiOrder),
   priorityIndex: index("tickets_priority_idx").on(table.priority),
+  completedIndex: index("tickets_completed_at_idx").on(table.completedAt),
   archivedOrderIndex: index("tickets_archived_ui_order_idx").on(table.archivedAt, table.uiOrder),
 }));
 
