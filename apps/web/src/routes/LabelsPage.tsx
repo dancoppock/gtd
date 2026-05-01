@@ -64,7 +64,7 @@ export function LabelsPage() {
   }
 
   function formatLabelUsage(label: LabelUsage) {
-    const activeLabel = label.activeTicketCount === 1 ? "ticket" : "tickets";
+    const activeLabel = label.activeTicketCount === 1 ? "active ticket" : "active tickets";
     return `(${label.activeTicketCount} ${activeLabel}, ${label.archivedTicketCount} archived)`;
   }
 
