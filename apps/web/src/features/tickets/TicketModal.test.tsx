@@ -102,6 +102,36 @@ describe("TicketModal", () => {
     );
   });
 
+  it("adds labels from title hashtags and strips them from the saved title", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <TicketModal
+        mode="create"
+        ticket={null}
+        columns={columns}
+        availableLabels={availableLabels}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Test task #backend #qa" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Ticket" }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({
+        statusKey: "todo",
+        title: "Test task",
+        description: "",
+        priority: "medium",
+        labels: ["backend", "qa"],
+      }),
+    );
+  });
+
   it("shows implicit board labels in create mode and includes them on submit", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
@@ -192,6 +222,36 @@ describe("TicketModal", () => {
         description: "Update the edit flow wording.",
         priority: "low",
         labels: ["backend", "product"],
+      }),
+    );
+  });
+
+  it("preserves existing labels when editing and adds any new title hashtags", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <TicketModal
+        mode="edit"
+        ticket={existingTicket}
+        columns={columns}
+        availableLabels={availableLabels}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Refine modal copy #qa" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({
+        statusKey: "done",
+        title: "Refine modal copy",
+        description: "Update the edit flow wording.",
+        priority: "high",
+        labels: ["frontend", "backend", "qa"],
       }),
     );
   });

@@ -40,6 +40,7 @@ import { AppHeader } from "../features/layout/AppHeader";
 import { useBoardTheme } from "../features/theme/useBoardTheme";
 import { TicketCard } from "../features/tickets/TicketCard";
 import { TicketModal } from "../features/tickets/TicketModal";
+import { extractHashtagLabels, stripHashtagsFromTitle } from "../features/tickets/titleTags";
 
 function readFilters(searchParams: URLSearchParams): BoardFilters {
   const candidateFilters = {
@@ -248,13 +249,42 @@ export function BoardPage() {
 
   async function handleInlineTitleUpdate(ticket: Ticket, nextTitle: string) {
     const previousTitle = ticket.title;
+    const previousLabels = ticket.labels;
+    const hashtagLabels = extractHashtagLabels(nextTitle);
+    const sanitizedTitle = stripHashtagsFromTitle(nextTitle);
+
+    if (!sanitizedTitle) {
+      throw new Error("Title cannot be empty");
+    }
+
+    const mergedLabels = Array.from(
+      new Set([
+        ...ticket.labels.map((label) => label.name),
+        ...hashtagLabels,
+      ]),
+    );
 
     setVisibleTickets((currentTickets) =>
       currentTickets.map((currentTicket) =>
         currentTicket.id === ticket.id
           ? {
               ...currentTicket,
-              title: nextTitle,
+              title: sanitizedTitle,
+              labels: Array.from(
+                new Map(
+                  [
+                    ...currentTicket.labels.map((label) => [label.normalizedName, label] as const),
+                    ...hashtagLabels.map((label) => [
+                      label,
+                      {
+                        id: `inline-label-${label}`,
+                        name: label,
+                        normalizedName: label,
+                      },
+                    ] as const),
+                  ],
+                ).values(),
+              ),
             }
           : currentTicket,
       ),
@@ -264,7 +294,8 @@ export function BoardPage() {
       await updateTicketMutation.mutateAsync({
         ticketId: ticket.id,
         input: {
-          title: nextTitle,
+          title: sanitizedTitle,
+          labels: mergedLabels,
         },
       });
     } catch (error) {
@@ -274,6 +305,7 @@ export function BoardPage() {
             ? {
                 ...currentTicket,
                 title: previousTitle,
+                labels: previousLabels,
               }
             : currentTicket,
         ),

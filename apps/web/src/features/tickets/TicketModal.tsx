@@ -2,6 +2,8 @@ import type { Column, Label, Ticket, TicketPriority } from "@gtd/contracts";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { extractHashtagLabels, stripHashtagsFromTitle } from "./titleTags";
+
 type TicketModalProps = {
   mode: "create" | "edit";
   ticket: Ticket | null;
@@ -120,14 +122,17 @@ export function TicketModal({
         <form
           className="modal-form"
           onSubmit={handleSubmit(async (values) => {
+            const hashtagLabels = extractHashtagLabels(values.title);
+
             await onSubmit({
               statusKey: values.statusKey,
-              title: values.title.trim(),
+              title: stripHashtagsFromTitle(values.title),
               description: values.description.trim(),
               priority: values.priority,
               labels: Array.from(
                 new Set([
                   ...parseLabels(values.labelsText),
+                  ...hashtagLabels,
                   ...implicitLabelNames,
                 ]),
               ),
@@ -140,7 +145,7 @@ export function TicketModal({
               {...register("title", { required: true, maxLength: 200 })}
               autoFocus
               data-testid="ticket-modal-title-input"
-              placeholder="Write concise ticket title"
+              placeholder="Write concise ticket title, e.g. Test task #backend"
             />
           </label>
 
