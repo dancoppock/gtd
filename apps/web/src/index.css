@@ -499,6 +499,25 @@ button {
   box-shadow: 0 8px 18px rgba(13, 124, 134, 0.18);
 }
 
+.swimlane-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swimlane-toggle svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.swimlane-toggle--active {
+  background: linear-gradient(135deg, #0d7c86, #165971);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(13, 124, 134, 0.18);
+}
+
 .filters-panel {
   padding: 22px;
   margin-bottom: 22px;
@@ -657,6 +676,60 @@ button {
   scrollbar-gutter: stable both-edges;
 }
 
+.board-grid-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 6px;
+  scrollbar-gutter: stable both-edges;
+}
+
+.board-swimlane-table {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: max-content;
+}
+
+.board-grid--swimlane-header,
+.board-grid--swimlane-row {
+  display: grid;
+  grid-template-columns: repeat(var(--board-column-count), minmax(0, 400px));
+  gap: 18px;
+  align-items: start;
+}
+
+.board-swimlane {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.board-swimlane__rule {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+}
+
+.board-swimlane__rule::before {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto;
+  border-top: 1px solid var(--border-strong);
+}
+
+.board-swimlane__rule span {
+  position: relative;
+  z-index: 1;
+  padding-right: 12px;
+  background: var(--panel);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
 .board-column {
   display: flex;
   flex: 0 0 min(400px, calc(100vw - 96px));
@@ -670,6 +743,14 @@ button {
     border-color 160ms ease,
     transform 160ms ease,
     box-shadow 160ms ease;
+}
+
+.board-column--header-only {
+  min-height: auto;
+}
+
+.board-column--swimlane {
+  min-height: 180px;
 }
 
 .board-column--over {
@@ -757,6 +838,10 @@ button {
   background: var(--drag-over-surface);
 }
 
+.board-column__body--swimlane {
+  min-height: 80px;
+}
+
 .board-column__tail {
   flex: 1 0 84px;
   min-height: 84px;
@@ -770,6 +855,11 @@ button {
 .board-column__empty,
 .message-panel {
   padding: 24px;
+}
+
+.board-column__empty--quiet {
+  min-height: 52px;
+  padding: 0;
 }
 
 .message-panel h2 {
@@ -1201,6 +1291,20 @@ button {
     flex-direction: column;
     overflow: visible;
     padding-bottom: 0;
+  }
+
+  .board-grid-scroll {
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .board-swimlane-table {
+    min-width: 0;
+  }
+
+  .board-grid--swimlane-header,
+  .board-grid--swimlane-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .board-column {

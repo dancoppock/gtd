@@ -16,6 +16,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
@@ -28,12 +29,19 @@ import {
   updateTicket,
 } from "../features/board/api";
 import { BoardColumn } from "../features/board/BoardColumn";
+import { BoardColumnHeader } from "../features/board/BoardColumnHeader";
 import {
   buildRepositionInput,
   findStatusKey,
   haveSameTicketLayout,
   moveTicket,
 } from "../features/board/drag";
+import { SwimlaneToggle } from "../features/board/SwimlaneToggle";
+import {
+  buildSwimlaneRepositionInput,
+  buildSwimlanes,
+  resolveTicketSwimlane,
+} from "../features/board/swimlanes";
 import { TicketViewToggle, type TicketViewMode } from "../features/board/TicketViewToggle";
 import { BoardFilters as BoardFiltersPanel } from "../features/filters/BoardFilters";
 import { AppHeader } from "../features/layout/AppHeader";
@@ -79,6 +87,10 @@ function resolveTicketTone(columns: Array<{ statusKey: string; statusCategory: s
     : "default";
 }
 
+function buildSwimlaneDropTargetId(swimlaneKey: string, columnId: string) {
+  return `swimlane:${swimlaneKey}:${columnId}`;
+}
+
 export function BoardPage() {
   const { boardSlug = "default" } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -86,6 +98,7 @@ export function BoardPage() {
   const [createStatusKey, setCreateStatusKey] = useState<Ticket["statusKey"] | null>(null);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [expandedTicketIds, setExpandedTicketIds] = useState<Set<string>>(() => new Set());
+  const [showSwimlanes, setShowSwimlanes] = useState(false);
   const [ticketViewMode, setTicketViewMode] = useState<TicketViewMode>("compact");
   const { theme, setTheme } = useBoardTheme();
   const [visibleTickets, setVisibleTickets] = useState<Ticket[]>([]);
@@ -176,6 +189,42 @@ export function BoardPage() {
   });
 
   const data = boardQuery.data;
+  const implicitSwimlaneLabelNames = useMemo(
+    () => new Set((data?.board.filterLabels ?? []).map((label) => label.normalizedName)),
+    [data?.board.filterLabels],
+  );
+  const swimlanes = useMemo(
+    () =>
+      data && showSwimlanes
+        ? buildSwimlanes(data.board.columns, visibleTickets, implicitSwimlaneLabelNames)
+        : [],
+    [data, implicitSwimlaneLabelNames, showSwimlanes, visibleTickets],
+  );
+  const swimlaneDropTargets = useMemo(() => {
+    const dropTargets = new Map<string, { columnId: string; laneKey: string }>();
+
+    if (!data || !showSwimlanes) {
+      return dropTargets;
+    }
+
+    swimlanes.forEach((swimlane) => {
+      data.board.columns.forEach((column) => {
+        dropTargets.set(buildSwimlaneDropTargetId(swimlane.key, column.id), {
+          columnId: column.id,
+          laneKey: swimlane.key,
+        });
+      });
+    });
+
+    return dropTargets;
+  }, [data, showSwimlanes, swimlanes]);
+  const boardGridStyle = useMemo(
+    () =>
+      ({
+        "--board-column-count": data?.board.columns.length ?? 0,
+      }) as CSSProperties,
+    [data?.board.columns.length],
+  );
   const activeTicket = activeTicketId
     ? visibleTickets.find((ticket) => ticket.id === activeTicketId) ?? null
     : null;
@@ -199,6 +248,26 @@ export function BoardPage() {
     const overId = String(event.over.id);
 
     setVisibleTickets((currentTickets) => {
+      if (showSwimlanes) {
+        const activeTicket = currentTickets.find((ticket) => ticket.id === activeId);
+        const overTicket = currentTickets.find((ticket) => ticket.id === overId);
+        const activeLaneKey = activeTicket
+          ? resolveTicketSwimlane(activeTicket, implicitSwimlaneLabelNames).key
+          : null;
+        const overLaneKey = overTicket
+          ? resolveTicketSwimlane(overTicket, implicitSwimlaneLabelNames).key
+          : (swimlaneDropTargets.get(overId)?.laneKey ?? null);
+
+        if (!activeLaneKey || !overLaneKey || activeLaneKey !== overLaneKey) {
+          return data.tickets;
+        }
+
+        const mappedOverId = swimlaneDropTargets.get(overId)?.columnId ?? overId;
+        const nextTickets = moveTicket(data.board.columns, currentTickets, activeId, mappedOverId);
+
+        return haveSameTicketLayout(currentTickets, nextTickets) ? currentTickets : nextTickets;
+      }
+
       const activeStatusKey = findStatusKey(data.board.columns, currentTickets, activeId);
       const overStatusKey = findStatusKey(data.board.columns, currentTickets, overId);
 
@@ -223,6 +292,43 @@ export function BoardPage() {
     const overId = String(event.over.id);
 
     setVisibleTickets((currentTickets) => {
+      if (showSwimlanes) {
+        const activeTicket = currentTickets.find((ticket) => ticket.id === activeId);
+        const overTicket = currentTickets.find((ticket) => ticket.id === overId);
+        const activeLaneKey = activeTicket
+          ? resolveTicketSwimlane(activeTicket, implicitSwimlaneLabelNames).key
+          : null;
+        const overLaneKey = overTicket
+          ? resolveTicketSwimlane(overTicket, implicitSwimlaneLabelNames).key
+          : (swimlaneDropTargets.get(overId)?.laneKey ?? null);
+
+        if (!activeLaneKey || !overLaneKey || activeLaneKey !== overLaneKey) {
+          return data.tickets;
+        }
+
+        const mappedOverId = swimlaneDropTargets.get(overId)?.columnId ?? overId;
+        const nextTickets = moveTicket(data.board.columns, currentTickets, activeId, mappedOverId);
+        const didChange = !haveSameTicketLayout(data.tickets, nextTickets);
+
+        if (didChange) {
+          const repositionInput = buildSwimlaneRepositionInput(
+            data.board.columns,
+            nextTickets,
+            activeId,
+            implicitSwimlaneLabelNames,
+          );
+
+          if (repositionInput) {
+            repositionTicketMutation.mutate({
+              ticketId: activeId,
+              input: repositionInput,
+            });
+          }
+        }
+
+        return nextTickets;
+      }
+
       const nextTickets = moveTicket(data.board.columns, currentTickets, activeId, overId);
       const didChange = !haveSameTicketLayout(data.tickets, nextTickets);
 
@@ -336,6 +442,7 @@ export function BoardPage() {
         actions={
           <>
             <TicketViewToggle value={ticketViewMode} onChange={setTicketViewMode} />
+            <SwimlaneToggle value={showSwimlanes} onChange={setShowSwimlanes} />
             <Link className="ghost-button" to={`/boards/${boardSlug}/edit`}>
               Edit Board
             </Link>
@@ -388,29 +495,94 @@ export function BoardPage() {
             onDragStart={handleDragStart}
             sensors={sensors}
           >
-            <section className="board-grid">
-              {data.board.columns.map((column) => {
-                const tickets = visibleTickets.filter((ticket) => ticket.statusKey === column.statusKey);
+            {showSwimlanes ? (
+              <section className="board-grid-scroll">
+                <div className="board-swimlane-table" style={boardGridStyle}>
+                  <section className="board-grid board-grid--swimlane-header">
+                    {data.board.columns.map((column) => {
+                      const tickets = visibleTickets.filter((ticket) => ticket.statusKey === column.statusKey);
 
-                return (
-                  <BoardColumn
-                    key={column.id}
-                    column={column}
-                    expandedTicketIds={expandedTicketIds}
-                    isArchiving={archiveDoneTicketsMutation.isPending && column.statusCategory === "completed"}
-                    tickets={tickets}
-                    onArchiveDoneTickets={() => {
-                      void archiveDoneTicketsMutation.mutateAsync(data.board.id);
-                    }}
-                    onEditTicket={setEditingTicket}
-                    onCreateTicket={setCreateStatusKey}
-                    onInlineTitleUpdate={handleInlineTitleUpdate}
-                    onToggleTicketExpanded={handleToggleTicketExpanded}
-                    viewMode={ticketViewMode}
-                  />
-                );
-              })}
-            </section>
+                      return (
+                        <BoardColumnHeader
+                          key={column.id}
+                          column={column}
+                          isArchiving={
+                            archiveDoneTicketsMutation.isPending &&
+                            column.statusCategory === "completed"
+                          }
+                          ticketCount={tickets.length}
+                          onArchiveDoneTickets={() => {
+                            void archiveDoneTicketsMutation.mutateAsync(data.board.id);
+                          }}
+                          onCreateTicket={setCreateStatusKey}
+                        />
+                      );
+                    })}
+                  </section>
+
+                  {swimlanes.map((swimlane) => (
+                    <section key={swimlane.key} className="board-swimlane">
+                      <div className="board-swimlane__rule">
+                        <span>{swimlane.name}</span>
+                      </div>
+
+                      <section className="board-grid board-grid--swimlane-row">
+                        {data.board.columns.map((column) => {
+                          const laneTickets = swimlane.tickets.filter(
+                            (ticket) => ticket.statusKey === column.statusKey,
+                          );
+
+                          return (
+                            <BoardColumn
+                              key={`${swimlane.key}-${column.id}`}
+                              column={column}
+                              droppableId={buildSwimlaneDropTargetId(swimlane.key, column.id)}
+                              emptyMessage={null}
+                              expandedTicketIds={expandedTicketIds}
+                              showHeader={false}
+                              showTail={false}
+                              variant="swimlane"
+                              tickets={laneTickets}
+                              onEditTicket={setEditingTicket}
+                              onCreateTicket={setCreateStatusKey}
+                              onInlineTitleUpdate={handleInlineTitleUpdate}
+                              onToggleTicketExpanded={handleToggleTicketExpanded}
+                              viewMode={ticketViewMode}
+                            />
+                          );
+                        })}
+                      </section>
+                    </section>
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <section className="board-grid">
+                {data.board.columns.map((column) => {
+                  const tickets = visibleTickets.filter((ticket) => ticket.statusKey === column.statusKey);
+
+                  return (
+                    <BoardColumn
+                      key={column.id}
+                      column={column}
+                      expandedTicketIds={expandedTicketIds}
+                      isArchiving={
+                        archiveDoneTicketsMutation.isPending && column.statusCategory === "completed"
+                      }
+                      tickets={tickets}
+                      onArchiveDoneTickets={() => {
+                        void archiveDoneTicketsMutation.mutateAsync(data.board.id);
+                      }}
+                      onEditTicket={setEditingTicket}
+                      onCreateTicket={setCreateStatusKey}
+                      onInlineTitleUpdate={handleInlineTitleUpdate}
+                      onToggleTicketExpanded={handleToggleTicketExpanded}
+                      viewMode={ticketViewMode}
+                    />
+                  );
+                })}
+              </section>
+            )}
 
             <DragOverlay>
               {activeTicket ? (
