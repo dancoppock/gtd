@@ -74,7 +74,6 @@ export function AppHeader({
 
           <div className="hero-panel__actions">
             <label className="theme-select">
-              <span>Theme</span>
               <select
                 aria-label="Theme"
                 data-testid="theme-select"

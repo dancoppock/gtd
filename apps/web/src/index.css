@@ -344,16 +344,9 @@ button {
 }
 
 .theme-select {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: inline-flex;
+  align-items: center;
   min-width: 140px;
-}
-
-.theme-select span {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--text-muted);
 }
 
 .theme-select select {
@@ -362,7 +355,8 @@ button {
   border-radius: 14px;
   background: var(--button-surface);
   color: var(--button-text);
-  padding: 10px 12px;
+  min-height: 44px;
+  padding: 11px 16px;
   outline: none;
 }
 
