@@ -7,6 +7,7 @@ import { SortableTicketCard } from "../tickets/SortableTicketCard";
 
 type BoardColumnProps = {
   column: Column;
+  collapsed?: boolean;
   droppableId?: string;
   emptyMessage?: string | null;
   expandedTicketIds: ReadonlySet<string>;
@@ -18,13 +19,27 @@ type BoardColumnProps = {
   onCreateTicket: (statusKey: Column["statusKey"]) => void;
   onArchiveDoneTickets?: () => void;
   onInlineTitleUpdate: (ticket: Ticket, nextTitle: string) => Promise<void>;
+  onToggleCollapsed?: () => void;
   onToggleTicketExpanded: (ticketId: string) => void;
   variant?: "default" | "swimlane";
   viewMode: TicketViewMode;
 };
 
+function CollapseIcon({ direction }: { direction: "left" | "right" }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20">
+      {direction === "left" ? (
+        <path d="M12.78 4.97a.75.75 0 0 1 0 1.06L8.81 10l3.97 3.97a.75.75 0 1 1-1.06 1.06l-4.5-4.5a.75.75 0 0 1 0-1.06l4.5-4.5a.75.75 0 0 1 1.06 0Z" />
+      ) : (
+        <path d="M7.22 15.03a.75.75 0 0 1 0-1.06L11.19 10 7.22 6.03a.75.75 0 0 1 1.06-1.06l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 0 1-1.06 0Z" />
+      )}
+    </svg>
+  );
+}
+
 export function BoardColumn({
   column,
+  collapsed = false,
   droppableId,
   emptyMessage = "No tickets match the current filters.",
   expandedTicketIds,
@@ -36,6 +51,7 @@ export function BoardColumn({
   onCreateTicket,
   onArchiveDoneTickets,
   onInlineTitleUpdate,
+  onToggleCollapsed,
   onToggleTicketExpanded,
   variant = "default",
   viewMode,
@@ -43,6 +59,37 @@ export function BoardColumn({
   const { isOver, setNodeRef } = useDroppable({
     id: droppableId ?? column.id,
   });
+
+  if (collapsed) {
+    return (
+      <section
+        className={`board-column board-column--collapsed ${variant === "swimlane" ? "board-column--swimlane" : ""}`}
+        data-testid={`column-${column.statusKey}`}
+      >
+        {showHeader ? (
+          <header className="board-column__header board-column__header--collapsed">
+            <div className="board-column__header-row board-column__header-row--collapsed">
+              <button
+                aria-label={`Expand ${column.name}`}
+                className="board-column__collapse-button"
+                data-testid={`column-expand-${column.statusKey}`}
+                title={`Expand ${column.name}`}
+                type="button"
+                onClick={onToggleCollapsed}
+              >
+                <CollapseIcon direction="right" />
+              </button>
+              <div className="board-column__collapsed-label">
+                <h2>{column.name}</h2>
+              </div>
+            </div>
+          </header>
+        ) : (
+          <div className="board-column__collapsed-spacer" />
+        )}
+      </section>
+    );
+  }
 
   return (
     <section
@@ -52,9 +99,21 @@ export function BoardColumn({
       {showHeader ? (
         <header className="board-column__header">
           <div className="board-column__header-row">
-            <div>
+            <div className="board-column__header-main">
+              <button
+                aria-label={`Collapse ${column.name}`}
+                className="board-column__collapse-button"
+                data-testid={`column-collapse-${column.statusKey}`}
+                title={`Collapse ${column.name}`}
+                type="button"
+                onClick={onToggleCollapsed}
+              >
+                <CollapseIcon direction="left" />
+              </button>
+              <div>
               <h2>{column.name}</h2>
               <p>{tickets.length} tickets</p>
+              </div>
             </div>
             <div className="board-column__header-actions">
               {column.statusCategory === "completed" && onArchiveDoneTickets ? (

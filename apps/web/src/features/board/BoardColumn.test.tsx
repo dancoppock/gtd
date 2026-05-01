@@ -52,4 +52,28 @@ describe("BoardColumn", () => {
 
     expect(onCreateTicket).toHaveBeenCalledWith("todo");
   });
+
+  it("toggles collapse from the column header", () => {
+    const onToggleCollapsed = vi.fn();
+
+    render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          expandedTicketIds={new Set()}
+          tickets={[ticket]}
+          onCreateTicket={vi.fn()}
+          onEditTicket={vi.fn()}
+          onInlineTitleUpdate={vi.fn().mockResolvedValue(undefined)}
+          onToggleCollapsed={onToggleCollapsed}
+          onToggleTicketExpanded={vi.fn()}
+          viewMode="compact"
+        />
+      </DndContext>,
+    );
+
+    fireEvent.click(screen.getByTestId("column-collapse-todo"));
+
+    expect(onToggleCollapsed).toHaveBeenCalledTimes(1);
+  });
 });

@@ -91,11 +91,15 @@ function buildSwimlaneDropTargetId(swimlaneKey: string, columnId: string) {
   return `swimlane:${swimlaneKey}:${columnId}`;
 }
 
+const COLLAPSED_COLUMN_WIDTH_PX = 48;
+const EXPANDED_COLUMN_WIDTH_PX = 400;
+
 export function BoardPage() {
   const { boardSlug = "default" } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [createStatusKey, setCreateStatusKey] = useState<Ticket["statusKey"] | null>(null);
+  const [collapsedStatusKeys, setCollapsedStatusKeys] = useState<Set<string>>(() => new Set());
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [expandedTicketIds, setExpandedTicketIds] = useState<Set<string>>(() => new Set());
   const [showSwimlanes, setShowSwimlanes] = useState(false);
@@ -221,9 +225,16 @@ export function BoardPage() {
   const boardGridStyle = useMemo(
     () =>
       ({
-        "--board-column-count": data?.board.columns.length ?? 0,
+        gridTemplateColumns:
+          data?.board.columns
+            .map((column) =>
+              collapsedStatusKeys.has(column.statusKey)
+                ? `${COLLAPSED_COLUMN_WIDTH_PX}px`
+                : `${EXPANDED_COLUMN_WIDTH_PX}px`,
+            )
+            .join(" ") ?? "",
       }) as CSSProperties,
-    [data?.board.columns.length],
+    [collapsedStatusKeys, data?.board.columns],
   );
   const activeTicket = activeTicketId
     ? visibleTickets.find((ticket) => ticket.id === activeTicketId) ?? null
@@ -435,6 +446,20 @@ export function BoardPage() {
     });
   }
 
+  function handleToggleCollapsed(statusKey: string) {
+    setCollapsedStatusKeys((currentCollapsedStatusKeys) => {
+      const nextCollapsedStatusKeys = new Set(currentCollapsedStatusKeys);
+
+      if (nextCollapsedStatusKeys.has(statusKey)) {
+        nextCollapsedStatusKeys.delete(statusKey);
+      } else {
+        nextCollapsedStatusKeys.add(statusKey);
+      }
+
+      return nextCollapsedStatusKeys;
+    });
+  }
+
   return (
     <main className="page-shell">
       <AppHeader
@@ -506,6 +531,7 @@ export function BoardPage() {
                         <BoardColumnHeader
                           key={column.id}
                           column={column}
+                          collapsed={collapsedStatusKeys.has(column.statusKey)}
                           isArchiving={
                             archiveDoneTicketsMutation.isPending &&
                             column.statusCategory === "completed"
@@ -515,6 +541,7 @@ export function BoardPage() {
                             void archiveDoneTicketsMutation.mutateAsync(data.board.id);
                           }}
                           onCreateTicket={setCreateStatusKey}
+                          onToggleCollapsed={() => handleToggleCollapsed(column.statusKey)}
                         />
                       );
                     })}
@@ -535,6 +562,7 @@ export function BoardPage() {
                           return (
                             <BoardColumn
                               key={`${swimlane.key}-${column.id}`}
+                              collapsed={collapsedStatusKeys.has(column.statusKey)}
                               column={column}
                               droppableId={buildSwimlaneDropTargetId(swimlane.key, column.id)}
                               emptyMessage={null}
@@ -564,6 +592,7 @@ export function BoardPage() {
                   return (
                     <BoardColumn
                       key={column.id}
+                      collapsed={collapsedStatusKeys.has(column.statusKey)}
                       column={column}
                       expandedTicketIds={expandedTicketIds}
                       isArchiving={
@@ -576,6 +605,7 @@ export function BoardPage() {
                       onEditTicket={setEditingTicket}
                       onCreateTicket={setCreateStatusKey}
                       onInlineTitleUpdate={handleInlineTitleUpdate}
+                      onToggleCollapsed={() => handleToggleCollapsed(column.statusKey)}
                       onToggleTicketExpanded={handleToggleTicketExpanded}
                       viewMode={ticketViewMode}
                     />

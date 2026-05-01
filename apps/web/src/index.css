@@ -781,7 +781,6 @@ button {
 .board-grid--swimlane-header,
 .board-grid--swimlane-row {
   display: grid;
-  grid-template-columns: repeat(var(--board-column-count), minmax(0, 400px));
   gap: 18px;
   align-items: start;
 }
@@ -837,6 +836,11 @@ button {
   min-height: auto;
 }
 
+.board-column--collapsed {
+  flex-basis: 48px;
+  min-height: auto;
+}
+
 .board-column--swimlane {
   min-height: 180px;
 }
@@ -861,10 +865,74 @@ button {
   gap: 12px;
 }
 
+.board-column__header-row--collapsed {
+  justify-content: center;
+  width: 100%;
+}
+
+.board-column__collapsed-label {
+  display: none;
+  min-width: 0;
+}
+
+.board-column__collapsed-label h2 {
+  margin: 0;
+  color: var(--column-heading-text);
+}
+
+.board-column__header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.board-column__header-main > div {
+  min-width: 0;
+}
+
 .board-column__header-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.board-column__collapse-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--column-heading-text);
+  flex: 0 0 auto;
+}
+
+.board-column__header-main .board-column__collapse-button {
+  margin-top: -2px;
+  margin-left: -6px;
+}
+
+.board-column__collapse-button svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.board-column__collapse-button:hover {
+  color: var(--accent-strong);
+}
+
+.board-column__header--collapsed {
+  padding: 10px 8px;
+  border-bottom: 0;
+}
+
+.board-column__header-row--collapsed .board-column__collapse-button {
+  margin: 0;
 }
 
 .board-column__header h2 {
@@ -927,6 +995,10 @@ button {
 }
 
 .board-column__body--swimlane {
+  min-height: 80px;
+}
+
+.board-column__collapsed-spacer {
   min-height: 80px;
 }
 
@@ -1399,6 +1471,18 @@ button {
 
   .board-column {
     flex: 1 1 auto;
+  }
+
+  .board-column--collapsed {
+    flex-basis: auto;
+  }
+
+  .board-column__collapsed-label {
+    display: block;
+  }
+
+  .board-column__header-row--collapsed {
+    justify-content: flex-start;
   }
 
   .filters-grid {
