@@ -31,6 +31,7 @@ function makeTicket(args: {
 
   return {
     ...args,
+    archivedAt: null,
     createdAt: timestamp,
     updatedAt: timestamp,
   };

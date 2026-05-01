@@ -62,6 +62,7 @@ export const tickets = sqliteTable("tickets", {
   description: text("description").notNull().default(""),
   priority: text("priority").notNull().default("medium"),
   uiOrder: integer("ui_order").notNull(),
+  archivedAt: integer("archived_at", { mode: "timestamp_ms" }),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 }, (table) => ({
@@ -74,6 +75,11 @@ export const tickets = sqliteTable("tickets", {
   boardPriorityIndex: index("tickets_board_priority_idx").on(
     table.boardId,
     table.priority,
+  ),
+  boardArchivedOrderIndex: index("tickets_board_archived_ui_order_idx").on(
+    table.boardId,
+    table.archivedAt,
+    table.uiOrder,
   ),
 }));
 

@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 
 import {
+  archiveDoneTickets,
   createTicket,
   deleteTicket,
   fetchBoardTickets,
@@ -153,6 +154,13 @@ export function BoardPage() {
     mutationFn: (ticketId: string) => deleteTicket(ticketId),
     onSuccess: async () => {
       setEditingTicket(null);
+      await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
+    },
+  });
+
+  const archiveDoneTicketsMutation = useMutation({
+    mutationFn: (boardId: string) => archiveDoneTickets(boardId),
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
     },
   });
@@ -387,7 +395,11 @@ export function BoardPage() {
                   <BoardColumn
                     key={column.id}
                     column={column}
+                    isArchiving={archiveDoneTicketsMutation.isPending && column.key === "done"}
                     tickets={tickets}
+                    onArchiveDoneTickets={() => {
+                      void archiveDoneTicketsMutation.mutateAsync(data.board.id);
+                    }}
                     onEditTicket={setEditingTicket}
                     onCreateTicket={setCreateColumnId}
                     onInlineTitleUpdate={handleInlineTitleUpdate}

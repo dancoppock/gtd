@@ -45,6 +45,7 @@ CREATE TABLE `tickets` (
   `description` TEXT NOT NULL DEFAULT '',
   `priority` TEXT NOT NULL DEFAULT 'medium',
   `ui_order` INTEGER NOT NULL,
+  `archived_at` INTEGER,
   `created_at` INTEGER NOT NULL,
   `updated_at` INTEGER NOT NULL,
   FOREIGN KEY (`board_id`) REFERENCES `boards` (`id`) ON DELETE CASCADE,
@@ -60,6 +61,9 @@ CREATE INDEX `tickets_board_column_ui_order_idx`
 
 CREATE INDEX `tickets_board_priority_idx`
   ON `tickets` (`board_id`, `priority`);
+
+CREATE INDEX `tickets_board_archived_ui_order_idx`
+  ON `tickets` (`board_id`, `archived_at`, `ui_order`);
 
 CREATE TABLE `ticket_labels` (
   `ticket_id` TEXT NOT NULL,

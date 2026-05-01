@@ -1,4 +1,5 @@
 import {
+  archiveDoneTicketsResponseSchema,
   boardFiltersSchema,
   boardSchema,
   listTicketsResponseSchema,
@@ -118,5 +119,16 @@ export const registerBoardRoutes: FastifyPluginAsync<BoardRouteOptions> = async 
       filters,
       tickets,
     });
+  });
+
+  app.post("/boards/:boardId/archive-done", async (request, reply) => {
+    const { boardId } = boardIdParamsSchema.parse(request.params);
+    const result = boardStore.archiveDoneTickets(boardId);
+
+    if (!result) {
+      return reply.status(404).send(notFound("Board not found"));
+    }
+
+    return archiveDoneTicketsResponseSchema.parse(result);
   });
 };

@@ -1,4 +1,5 @@
 import type {
+  ArchiveDoneTicketsResponse,
   Board,
   BoardDetail,
   BoardFilters,
@@ -77,12 +78,12 @@ export class InMemoryBoardStore {
     return {
       ...board,
       columns: this.getColumnsForBoard(boardId),
-      labels: this.getLabelsForBoard(boardId),
+      labels: this.getVisibleLabelsForBoard(boardId),
     };
   }
 
   listTickets(boardId: string, filters: BoardFilters) {
-    return this.getTicketsForBoard(boardId).filter((ticket) => {
+    return this.getVisibleTicketsForBoard(boardId).filter((ticket) => {
       if (filters.priorities.length > 0 && !filters.priorities.includes(ticket.priority)) {
         return false;
       }
@@ -129,6 +130,7 @@ export class InMemoryBoardStore {
       priority: input.priority,
       uiOrder: nextOrder,
       labelIds,
+      archivedAt: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -181,6 +183,42 @@ export class InMemoryBoardStore {
     return true;
   }
 
+  archiveDoneTickets(boardId: string): ArchiveDoneTicketsResponse | null {
+    const board = this.getBoardById(boardId);
+    if (!board) {
+      return null;
+    }
+
+    const doneColumnId = this.getColumnsForBoard(boardId).find((column) => column.key === "done")?.id;
+    if (!doneColumnId) {
+      return {
+        archivedCount: 0,
+      };
+    }
+
+    const archivedAt = new Date().toISOString();
+    let archivedCount = 0;
+
+    this.getTicketRecordsForBoard(boardId).forEach((ticket) => {
+      if (ticket.columnId === doneColumnId && ticket.archivedAt === null) {
+        this.tickets.set(ticket.id, {
+          ...ticket,
+          archivedAt,
+          updatedAt: archivedAt,
+        });
+        archivedCount += 1;
+      }
+    });
+
+    if (archivedCount > 0) {
+      this.touchBoard(boardId, archivedAt);
+    }
+
+    return {
+      archivedCount,
+    };
+  }
+
   repositionTicket(ticketId: string, input: RepositionTicketInput) {
     const record = this.tickets.get(ticketId);
     if (!record) {
@@ -230,10 +268,20 @@ export class InMemoryBoardStore {
       .sort((left, right) => left.position - right.position);
   }
 
-  private getLabelsForBoard(boardId: string) {
+  private getAllLabelsForBoard(boardId: string) {
     return Array.from(this.labels.values())
       .filter((label) => label.boardId === boardId)
       .sort((left, right) => left.name.localeCompare(right.name));
+  }
+
+  private getVisibleLabelsForBoard(boardId: string) {
+    const visibleLabelIds = new Set(
+      this.getTicketRecordsForBoard(boardId)
+        .filter((ticket) => ticket.archivedAt === null)
+        .flatMap((ticket) => ticket.labelIds),
+    );
+
+    return this.getAllLabelsForBoard(boardId).filter((label) => visibleLabelIds.has(label.id));
   }
 
   private getTicketRecordsForBoard(boardId: string) {
@@ -242,8 +290,10 @@ export class InMemoryBoardStore {
       .sort((left, right) => left.uiOrder - right.uiOrder);
   }
 
-  private getTicketsForBoard(boardId: string) {
-    return this.getTicketRecordsForBoard(boardId).map((ticket) => this.toTicket(ticket));
+  private getVisibleTicketsForBoard(boardId: string) {
+    return this.getTicketRecordsForBoard(boardId)
+      .filter((ticket) => ticket.archivedAt === null)
+      .map((ticket) => this.toTicket(ticket));
   }
 
   private getOrCreateBoardLabels(boardId: string, labelNames: string[]) {
@@ -251,7 +301,7 @@ export class InMemoryBoardStore {
 
     return names.map((name) => {
       const normalizedName = normalizeLabelName(name);
-      const existing = this.getLabelsForBoard(boardId).find(
+      const existing = this.getAllLabelsForBoard(boardId).find(
         (label) => label.normalizedName === normalizedName,
       );
 
@@ -276,7 +326,7 @@ export class InMemoryBoardStore {
       this.getTicketRecordsForBoard(boardId).flatMap((ticket) => ticket.labelIds),
     );
 
-    this.getLabelsForBoard(boardId).forEach((label) => {
+    this.getAllLabelsForBoard(boardId).forEach((label) => {
       if (!referencedLabelIds.has(label.id)) {
         this.labels.delete(label.id);
       }
@@ -334,7 +384,7 @@ export class InMemoryBoardStore {
     };
   }
 
-  private touchBoard(boardId: string) {
+  private touchBoard(boardId: string, updatedAt = new Date().toISOString()) {
     const board = this.boards.get(boardId);
     if (!board) {
       return;
@@ -342,7 +392,7 @@ export class InMemoryBoardStore {
 
     this.boards.set(boardId, {
       ...board,
-      updatedAt: new Date().toISOString(),
+      updatedAt,
     });
   }
 }

@@ -168,6 +168,48 @@ describe("API routes", () => {
     ]);
   });
 
+  it("archives done tickets so they no longer appear in board responses", async () => {
+    const createdResponse = await app.inject({
+      method: "POST",
+      url: "/api/boards/board_default/tickets",
+      payload: {
+        columnId: "col_done",
+        title: "Archive me",
+        description: "Done work ready for archive.",
+        priority: "low",
+        labels: ["archive-only"],
+      },
+    });
+
+    expect(createdResponse.statusCode).toBe(201);
+
+    const archiveResponse = await app.inject({
+      method: "POST",
+      url: "/api/boards/board_default/archive-done",
+    });
+
+    expect(archiveResponse.statusCode).toBe(200);
+    expect(archiveResponse.json()).toEqual({
+      archivedCount: 2,
+    });
+
+    const boardResponse = await app.inject({
+      method: "GET",
+      url: "/api/boards/slug/default/tickets",
+    });
+
+    expect(boardResponse.statusCode).toBe(200);
+    expect(boardResponse.json().tickets.map((ticket: { id: string }) => ticket.id)).toEqual([
+      "ticket_1",
+      "ticket_2",
+    ]);
+    expect(boardResponse.json().board.labels.map((label: { normalizedName: string }) => label.normalizedName)).toEqual([
+      "backend",
+      "frontend",
+      "product",
+    ]);
+  });
+
   it("repositions a ticket into another column", async () => {
     const response = await app.inject({
       method: "POST",

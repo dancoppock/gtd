@@ -1,4 +1,5 @@
 import type {
+  ArchiveDoneTicketsResponse,
   Board,
   BoardDetail,
   BoardFilters,
@@ -19,6 +20,7 @@ export type BoardStore = {
   createTicket(boardId: string, input: CreateTicketInput): Ticket | null;
   updateTicket(ticketId: string, input: UpdateTicketInput): Ticket | null;
   deleteTicket(ticketId: string): boolean;
+  archiveDoneTickets(boardId: string): ArchiveDoneTicketsResponse | null;
   repositionTicket(ticketId: string, input: RepositionTicketInput): Ticket | null;
   dispose?(): void;
 };

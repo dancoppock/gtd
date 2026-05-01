@@ -1,4 +1,5 @@
 import type {
+  ArchiveDoneTicketsResponse,
   CreateTicketInput,
   ListTicketsResponse,
   RepositionTicketInput,
@@ -72,6 +73,12 @@ export async function deleteTicket(ticketId: string) {
   if (!response.ok) {
     await readJson(response);
   }
+}
+
+export async function archiveDoneTickets(boardId: string) {
+  return fetch(`/api/boards/${encodeURIComponent(boardId)}/archive-done`, {
+    method: "POST",
+  }).then((response) => readJson<ArchiveDoneTicketsResponse>(response));
 }
 
 export async function repositionTicket(ticketId: string, input: RepositionTicketInput) {

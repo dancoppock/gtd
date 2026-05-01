@@ -126,6 +126,33 @@ describe("SqliteBoardStore", () => {
     ]);
   });
 
+  it("archives done tickets and hides them from the active board view", () => {
+    const createdTicket = store.createTicket(boardId, {
+      columnId: "col_done",
+      title: "Archive me later",
+      description: "",
+      priority: "low",
+      labels: ["archive-only"],
+    });
+
+    expect(createdTicket).not.toBeNull();
+
+    const result = store.archiveDoneTickets(boardId);
+
+    expect(result).toEqual({
+      archivedCount: 2,
+    });
+    expect(store.listTickets(boardId, emptyFilters()).map((ticket) => ticket.id)).toEqual([
+      "ticket_1",
+      "ticket_2",
+    ]);
+    expect(store.getBoardDetail(boardId)?.labels.map((label) => label.normalizedName)).toEqual([
+      "backend",
+      "frontend",
+      "product",
+    ]);
+  });
+
   it("rebalances the board when a reposition target has no numeric gap left", () => {
     const beforeA = store.createTicket(boardId, {
       columnId: "col_todo",

@@ -26,13 +26,24 @@ function hasTable(sqlite: Database.Database, tableName: string) {
   return Boolean(row);
 }
 
+function hasColumn(sqlite: Database.Database, tableName: string, columnName: string) {
+  const rows = sqlite.prepare(`pragma table_info(${tableName})`).all() as Array<{ name: string }>;
+  return rows.some((row) => row.name === columnName);
+}
+
 function ensureDatabaseSchema(sqlite: Database.Database) {
-  if (hasTable(sqlite, "boards")) {
-    return;
+  if (!hasTable(sqlite, "boards")) {
+    const migrationSql = readFileSync(initialMigrationFilename, "utf8");
+    sqlite.exec(migrationSql);
   }
 
-  const migrationSql = readFileSync(initialMigrationFilename, "utf8");
-  sqlite.exec(migrationSql);
+  if (!hasColumn(sqlite, "tickets", "archived_at")) {
+    sqlite.exec("alter table tickets add column archived_at integer");
+  }
+
+  sqlite.exec(
+    "create index if not exists tickets_board_archived_ui_order_idx on tickets (board_id, archived_at, ui_order)",
+  );
 }
 
 export function createDatabaseClient(filename = defaultDatabaseFilename): DatabaseClient {

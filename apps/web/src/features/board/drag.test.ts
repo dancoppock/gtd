@@ -45,6 +45,7 @@ function makeTicket(id: string, columnId: string, uiOrder: number): Ticket {
     priority: "medium",
     uiOrder,
     labels: [],
+    archivedAt: null,
     createdAt: timestamp,
     updatedAt: timestamp,
   };

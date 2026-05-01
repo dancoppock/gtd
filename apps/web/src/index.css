@@ -612,6 +612,12 @@ button {
   gap: 12px;
 }
 
+.board-column__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .board-column__header h2 {
   margin: 0 0 4px;
   color: var(--column-heading-text);
@@ -634,7 +640,25 @@ button {
   color: var(--accent-strong);
 }
 
+.board-column__archive-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--button-surface);
+  color: var(--accent-strong);
+}
+
 .board-column__add-button svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.board-column__archive-button svg {
   width: 18px;
   height: 18px;
   fill: currentColor;

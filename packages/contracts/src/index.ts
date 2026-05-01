@@ -55,6 +55,7 @@ export const ticketSchema = z.object({
   priority: ticketPrioritySchema.default("medium"),
   uiOrder: z.number().int(),
   labels: z.array(labelSchema),
+  archivedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -103,6 +104,12 @@ export const repositionTicketInputSchema = z.object({
 });
 
 export type RepositionTicketInput = z.infer<typeof repositionTicketInputSchema>;
+
+export const archiveDoneTicketsResponseSchema = z.object({
+  archivedCount: z.number().int().nonnegative(),
+});
+
+export type ArchiveDoneTicketsResponse = z.infer<typeof archiveDoneTicketsResponseSchema>;
 
 export const listTicketsResponseSchema = z.object({
   board: boardDetailSchema,

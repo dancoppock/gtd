@@ -103,3 +103,19 @@ test("drags a ticket into another column and keeps it there after reload", async
   await page.reload();
   await expect(page.getByTestId("column-done")).toContainText("Design ticket modal");
 });
+
+test("archives done tickets and keeps them hidden after reload", async ({ page }) => {
+  const archiveResponse = page.waitForResponse((response) =>
+    response.url().includes("/api/boards/board_default/archive-done") && response.ok(),
+  );
+
+  await page.getByTestId("column-archive-done").click();
+  await archiveResponse;
+
+  await expect(page.getByTestId("column-done")).not.toContainText("Seed default board");
+  await expect(page.getByTestId("column-done")).toContainText("0 tickets");
+
+  await page.reload();
+  await expect(page.getByTestId("column-done")).not.toContainText("Seed default board");
+  await expect(page.getByTestId("column-done")).toContainText("0 tickets");
+});

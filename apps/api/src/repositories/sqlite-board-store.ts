@@ -1,4 +1,5 @@
 import type {
+  ArchiveDoneTicketsResponse,
   Board,
   BoardDetail,
   BoardFilters,
@@ -15,6 +16,7 @@ import {
   eq,
   exists,
   inArray,
+  isNull,
   sql,
   type SQL,
 } from "drizzle-orm";
@@ -114,12 +116,12 @@ export class SqliteBoardStore {
     return {
       ...this.toBoard(board),
       columns: this.getColumnsForBoard(boardId),
-      labels: this.getLabelsForBoard(boardId),
+      labels: this.getVisibleLabelsForBoard(boardId),
     };
   }
 
   listTickets(boardId: string, filters: BoardFilters) {
-    const conditions: SQL[] = [eq(tickets.boardId, boardId)];
+    const conditions: SQL[] = [eq(tickets.boardId, boardId), isNull(tickets.archivedAt)];
     const normalizedLabels = uniqueNames(filters.labels).map(normalizeLabelName);
 
     if (filters.priorities.length > 0) {
@@ -187,6 +189,7 @@ export class SqliteBoardStore {
           description: input.description,
           priority: input.priority,
           uiOrder: nextOrder,
+          archivedAt: null,
           createdAt: now,
           updatedAt: now,
         })
@@ -316,6 +319,55 @@ export class SqliteBoardStore {
         .run();
 
       return true;
+    });
+  }
+
+  archiveDoneTickets(boardId: string): ArchiveDoneTicketsResponse | null {
+    const board = this.getBoardById(boardId);
+    if (!board) {
+      return null;
+    }
+
+    return this.db.transaction((tx) => {
+      const doneColumn = tx
+        .select()
+        .from(columns)
+        .where(and(eq(columns.boardId, boardId), eq(columns.key, "done")))
+        .all()[0];
+
+      if (!doneColumn) {
+        return {
+          archivedCount: 0,
+        };
+      }
+
+      const now = new Date();
+      const archivedCount =
+        tx
+          .update(tickets)
+          .set({
+            archivedAt: now,
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(tickets.boardId, boardId),
+              eq(tickets.columnId, doneColumn.id),
+              isNull(tickets.archivedAt),
+            ),
+          )
+          .run().changes ?? 0;
+
+      if (archivedCount > 0) {
+        tx.update(boards)
+          .set({ updatedAt: now })
+          .where(eq(boards.id, boardId))
+          .run();
+      }
+
+      return {
+        archivedCount,
+      };
     });
   }
 
@@ -454,6 +506,7 @@ export class SqliteBoardStore {
             description: ticket.description,
             priority: ticket.priority,
             uiOrder: ticket.uiOrder,
+            archivedAt: ticket.archivedAt ? new Date(ticket.archivedAt) : null,
             createdAt: new Date(ticket.createdAt),
             updatedAt: new Date(ticket.updatedAt),
           })),
@@ -490,6 +543,24 @@ export class SqliteBoardStore {
       .select()
       .from(labels)
       .where(eq(labels.boardId, boardId))
+      .orderBy(asc(labels.name))
+      .all()
+      .map((label) => this.toLabel(label));
+  }
+
+  private getVisibleLabelsForBoard(boardId: string) {
+    return this.db
+      .select({
+        id: labels.id,
+        boardId: labels.boardId,
+        name: labels.name,
+        normalizedName: labels.normalizedName,
+      })
+      .from(labels)
+      .innerJoin(ticketLabels, eq(ticketLabels.labelId, labels.id))
+      .innerJoin(tickets, eq(tickets.id, ticketLabels.ticketId))
+      .where(and(eq(labels.boardId, boardId), isNull(tickets.archivedAt)))
+      .groupBy(labels.id, labels.boardId, labels.name, labels.normalizedName)
       .orderBy(asc(labels.name))
       .all()
       .map((label) => this.toLabel(label));
@@ -679,6 +750,7 @@ export class SqliteBoardStore {
       priority: ticket.priority as Ticket["priority"],
       uiOrder: ticket.uiOrder,
       labels: labelsByTicket.get(ticket.id) ?? [],
+      archivedAt: ticket.archivedAt ? toIsoString(ticket.archivedAt) : null,
       createdAt: toIsoString(ticket.createdAt),
       updatedAt: toIsoString(ticket.updatedAt),
     }));
