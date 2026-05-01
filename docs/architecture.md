@@ -64,10 +64,12 @@ The app is a small monorepo with a browser frontend, a local API, and a shared c
 ### Ticket
 
 - global across the whole app
-- has `statusKey`: `todo | in_progress | done`
+- has a global `statusKey`
 - has a single global `uiOrder`
 - has many labels
 - can be archived
+
+Statuses are global rather than board-scoped. The seeded defaults are `todo`, `in_progress`, and `done`, but boards can also introduce additional statuses.
 
 ### Label
 
@@ -80,12 +82,21 @@ The app is a small monorepo with a browser frontend, a local API, and a shared c
 
 - a saved view over global tickets
 - has metadata: name, description, slug, `isSystem`
-- owns columns
-- can optionally filter visible tickets by one or more labels
+- regular boards own columns
+- regular boards can optionally filter visible tickets by one or more labels
+- one built-in system board always exists
+
+System board behavior:
+
+- the system board is a special cross-ticket view rather than a normal configurable board
+- it always shows exactly two columns: `Active` and `Done`
+- `Active` groups all non-completed tickets
+- `Done` groups all completed tickets
+- its column configuration and label filter are not editable in the board settings UI
 
 ### Column
 
-- belongs to one board
+- regular columns belong to one board
 - has a display name and position
 - maps to exactly one `statusKey`
 - determines how tickets are grouped on that board
@@ -164,6 +175,7 @@ Current implementation strategy:
 - `BoardsPage.tsx`: board list
 - `BoardEditPage.tsx`: board create/edit form
 - `LabelsPage.tsx`: global label management
+- `InsightsPage.tsx`: completion metrics dashboard
 
 ### Feature Areas
 
@@ -171,6 +183,13 @@ Current implementation strategy:
 - `features/filters`: collapsible search/filter panel
 - `features/layout`: shared header/navigation/theme picker
 - `features/tickets`: ticket card, sortable wrapper, modal form
+
+Notable board-view behaviors:
+
+- optional swimlanes group tickets by first non-implicit label
+- columns can be temporarily collapsed in the UI
+- compact cards can be expanded individually
+- the system board maps its `Active` / `Done` UI back to real ticket statuses when creating, editing, or dragging tickets
 
 ## Current Runtime Notes
 

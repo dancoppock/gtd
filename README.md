@@ -32,8 +32,12 @@ The UI currently supports:
 - board view by slug
 - boards list and board edit/create pages
 - global labels page
+- insights dashboard
 - theme switching
+- swimlane grouping by label
 - filtering by priority, labels, and text search
+- collapsible filter panel and header panel
+- collapsible board columns
 - create/edit ticket modals
 - inline title editing
 - drag/drop reorder within and across columns
@@ -53,8 +57,8 @@ The API persists data in:
 
 On first run, the API seeds:
 
-- one system board: `default`
-- three columns: `Todo`, `In Progress`, `Done`
+- one built-in system board
+- system board columns: `Active`, `Done`
 - demo labels and tickets
 
 ## Data Model
@@ -62,9 +66,11 @@ On first run, the API seeds:
 - Tickets are global and carry a global `statusKey` plus a global `uiOrder`
 - Labels are global and reusable across all tickets and boards
 - Boards are views over tickets
-- Each board owns a set of columns
-- Each column maps to exactly one status
+- Regular boards own a set of columns
+- Each regular board column maps to exactly one status
+- Statuses are global and can be extended beyond the seeded defaults
 - Boards can optionally filter visible tickets by one or more labels
+- One built-in system board always exists and shows all active tickets in `Active` plus all completed tickets in `Done`
 
 ## API Routes
 

@@ -1,132 +1,44 @@
 # AGENTS.md
 
-## Project Summary
+## Purpose
 
-This repo contains a browser-based kanban todos app.
+This file is a lightweight orientation index for coding agents working in this repo.
+Detailed project knowledge should live in the canonical docs rather than being duplicated here.
 
-Main packages:
+## Project At A Glance
 
+- browser-based kanban/todo app
 - `apps/web`: React frontend
 - `apps/api`: Fastify API with SQLite persistence
 - `packages/contracts`: shared Zod schemas and TypeScript types
 
-## Current Stack
+## Read These First
 
-### Frontend
+- [README.md](/Users/dcoppock/Sync/Work/Projects/gtd/README.md): repo overview, stack, routes, run/test commands
+- [docs/architecture.md](/Users/dcoppock/Sync/Work/Projects/gtd/docs/architecture.md): current architecture and domain model
+- [docs/onboarding.md](/Users/dcoppock/Sync/Work/Projects/gtd/docs/onboarding.md): setup, dependency install notes, troubleshooting
+- [apps/web/README.md](/Users/dcoppock/Sync/Work/Projects/gtd/apps/web/README.md): frontend responsibilities and interaction model
 
-- React
-- TypeScript
-- ESLint
-- Vite `6.4.1`
-- React Router
-- TanStack Query
-- dnd-kit
-- React Hook Form
+## Code Entry Points
 
-### Backend
+- [packages/contracts/src/index.ts](/Users/dcoppock/Sync/Work/Projects/gtd/packages/contracts/src/index.ts): shared contracts and constants
+- [apps/api/src/db/client.ts](/Users/dcoppock/Sync/Work/Projects/gtd/apps/api/src/db/client.ts): SQLite bootstrap and migration logic
+- [apps/api/src/repositories/sqlite-board-store.ts](/Users/dcoppock/Sync/Work/Projects/gtd/apps/api/src/repositories/sqlite-board-store.ts): main persistence logic
+- [apps/api/src/app.test.ts](/Users/dcoppock/Sync/Work/Projects/gtd/apps/api/src/app.test.ts): API behavior coverage
+- [apps/web/src/routes/BoardPage.tsx](/Users/dcoppock/Sync/Work/Projects/gtd/apps/web/src/routes/BoardPage.tsx): board page orchestration
+- [apps/web/src/routes/BoardEditPage.tsx](/Users/dcoppock/Sync/Work/Projects/gtd/apps/web/src/routes/BoardEditPage.tsx): board create/edit flow
+- [apps/web/src/features/board/drag.ts](/Users/dcoppock/Sync/Work/Projects/gtd/apps/web/src/features/board/drag.ts): drag/reorder behavior
+- [e2e/board.spec.ts](/Users/dcoppock/Sync/Work/Projects/gtd/e2e/board.spec.ts): main browser smoke coverage
 
-- Node `20.20.0`
-- Fastify
-- ESLint
-- SQLite via `better-sqlite3`
-- Drizzle schema/bootstrap files
-- Zod
+## Agent Notes
 
-### Testing
+- prefer the docs above as the source of truth; if behavior changes, update those docs rather than expanding this file
+- do not commit `apps/api/data/gtd.sqlite`; it is runtime state
+- installs in this environment typically require VPN plus `proxyOn` in the current terminal
+- stable local ports are `3000` for web and `3001` for API
 
-- Vitest
-- `happy-dom` for frontend unit tests
-- disposable SQLite databases for backend repository tests
-- Playwright for browser automation smoke tests
+## Current Cautions
 
-## Key Runtime Facts
-
-- API default URL: `http://127.0.0.1:3001`
-- Frontend default URL: `http://localhost:3000`
-- `pnpm dev:api` frees port `3001` before starting Fastify
-- `pnpm dev:web` frees port `3000` before starting Vite
-- SQLite database file: `apps/api/data/gtd.sqlite`
-- E2E SQLite database file: `apps/api/data/gtd.e2e.sqlite`
-
-## Install Notes
-
-In this environment, dependency installs require:
-
-1. VPN connected
-2. `proxyOn` run in the current terminal
-3. `pnpm install`
-
-## Native Module Note
-
-`better-sqlite3` may require a manual native build.
-
-If the API fails with a missing `better_sqlite3.node` binding:
-
-```bash
-cd node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3
-npm_config_nodedir=$HOME/.nvm/versions/node/v20.20.0 npm run build-release
-```
-
-## Common Commands
-
-From the repo root:
-
-```bash
-pnpm dev:api
-pnpm dev:web
-pnpm stop:api
-pnpm stop:web
-pnpm typecheck
-pnpm lint
-pnpm test
-pnpm test:e2e
-```
-
-## Current Product Model
-
-- tickets are global and use `statusKey`
-- labels are global
-- boards are saved ticket views
-- board columns map to statuses
-- boards can filter by one or more labels
-- ticket ordering uses a single global persisted `uiOrder`
-- filtered reordering is based on the visible subset only
-
-## API Routes
-
-- `GET /health`
-- `GET /api/boards`
-- `POST /api/boards`
-- `GET /api/boards/:boardId`
-- `PATCH /api/boards/:boardId`
-- `DELETE /api/boards/:boardId`
-- `GET /api/boards/:boardId/tickets`
-- `GET /api/boards/slug/:boardSlug`
-- `GET /api/boards/slug/:boardSlug/tickets`
-- `POST /api/boards/:boardId/tickets`
-- `POST /api/boards/:boardId/archive-done`
-- `GET /api/labels`
-- `PATCH /api/labels/:labelId`
-- `DELETE /api/labels/:labelId`
-- `PATCH /api/tickets/:ticketId`
-- `DELETE /api/tickets/:ticketId`
-- `POST /api/tickets/:ticketId/reposition`
-
-## Important Files
-
-- `README.md`: repo overview and run instructions
-- `docs/architecture.md`: implemented architecture
-- `docs/onboarding.md`: setup and troubleshooting
-- `packages/contracts/src/index.ts`: shared contracts
-- `apps/api/src/db/client.ts`: SQLite bootstrap and migration logic
-- `apps/api/src/repositories/sqlite-board-store.ts`: main persistence logic
-- `apps/web/src/routes/BoardPage.tsx`: board page orchestration
-- `apps/web/src/routes/BoardEditPage.tsx`: board create/edit page
-- `apps/web/src/routes/BoardsPage.tsx`: board list page
-- `apps/web/src/routes/LabelsPage.tsx`: global label management page
-
-## Current Gaps
-
-- home-page aggregation beyond the default board is still deferred
-- Playwright CI wiring and artifact retention are not in place yet
-- native dependency setup is still somewhat manual
+- the built-in system board is special-cased behavior; do not assume it behaves like a regular configurable board
+- ticket ordering is global via `uiOrder`, including when reordering filtered subsets
+- Playwright CI wiring is still not documented as fully automated infrastructure

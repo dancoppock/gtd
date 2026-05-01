@@ -4,10 +4,15 @@ This package contains the React frontend for the kanban app.
 
 ## Current Responsibilities
 
+- route between Home, Boards, Labels, Insights, and individual board pages
 - load a board by slug
 - keep filters in URL search params
 - fetch board data through TanStack Query
+- render the built-in system board `Active` / `Done` view
+- render board swimlanes grouped by label
+- support temporary column collapse/expand
 - create and edit tickets in modal dialogs
+- support inline title editing
 - reorder tickets with dnd-kit
 - move tickets across columns and persist the change through the reposition API
 
@@ -30,6 +35,7 @@ This package contains the React frontend for the kanban app.
 - the board keeps a visible filtered ticket list in memory during drag
 - on drop, the frontend computes the moved ticket's visible neighbors
 - the frontend calls `POST /api/tickets/:ticketId/reposition`
+- on the system board, the frontend maps `Active` / `Done` UI columns back to real ticket statuses before persisting changes
 
 ## Development
 

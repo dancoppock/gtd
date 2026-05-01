@@ -107,6 +107,13 @@ End-to-end tests:
 pnpm test:e2e
 ```
 
+Useful variants:
+
+```bash
+pnpm test:e2e:headed
+pnpm test:e2e:debug
+```
+
 Optional Playwright browser install:
 
 ```bash
@@ -140,9 +147,11 @@ curl http://127.0.0.1:3001/api/labels
 ## 7. Current Product Model
 
 - tickets are global
+- statuses are global and can be extended
 - labels are global
-- boards are saved views over tickets
-- board columns map to statuses
+- regular boards are saved views over tickets
+- regular board columns map to statuses
+- one built-in system board always exists and shows `Active` plus `Done`
 - board filters optionally limit tickets by label
 - ticket ordering is global and persisted through `uiOrder`
 - drag/drop on filtered boards reorders against the visible subset only
