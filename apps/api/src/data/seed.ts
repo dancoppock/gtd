@@ -7,6 +7,10 @@ import type {
   TicketPriority,
   TicketStatus,
 } from "@gtd/contracts";
+import {
+  SYSTEM_BOARD_DESCRIPTION as SYSTEM_BOARD_DESCRIPTION_VALUE,
+  SYSTEM_BOARD_NAME as SYSTEM_BOARD_NAME_VALUE,
+} from "@gtd/contracts";
 
 export type SeedTicketRecord = Omit<Ticket, "labels"> & {
   labelIds: string[];
@@ -52,8 +56,8 @@ export function createSeedData(): SeedData {
     {
       id: boardId,
       slug: "default",
-      name: "My Board",
-      description: "Default kanban board",
+      name: SYSTEM_BOARD_NAME_VALUE,
+      description: SYSTEM_BOARD_DESCRIPTION_VALUE,
       isDefault: true,
       isSystem: true,
       createdAt: now,
@@ -89,17 +93,8 @@ export function createSeedData(): SeedData {
       statusKey: "todo",
       statusName: "Todo",
       statusCategory: "active",
-      name: "Todo",
+      name: "Active",
       position: 0,
-    },
-    {
-      id: "col_in_progress",
-      boardId,
-      statusKey: "in_progress",
-      statusName: "In Progress",
-      statusCategory: "active",
-      name: "In Progress",
-      position: 1,
     },
     {
       id: "col_done",
@@ -108,7 +103,7 @@ export function createSeedData(): SeedData {
       statusName: "Done",
       statusCategory: "completed",
       name: "Done",
-      position: 2,
+      position: 1,
     },
   ];
 

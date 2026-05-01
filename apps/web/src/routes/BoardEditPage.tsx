@@ -381,6 +381,7 @@ export function BoardEditPage() {
 
   const isBusy = createBoardMutation.isPending || updateBoardMutation.isPending || deleteBoardMutation.isPending;
   const labels = labelsQuery.data?.labels ?? [];
+  const isSystemBoard = !isCreateMode && Boolean(boardQuery.data?.isSystem);
   const availableStatuses = useMemo(
     () => uniqueStatuses(statusesQuery.data?.statuses ?? boardQuery.data?.availableStatuses ?? []),
     [boardQuery.data?.availableStatuses, statusesQuery.data?.statuses],
@@ -432,7 +433,9 @@ export function BoardEditPage() {
         activeNav="boards"
         description={isCreateMode
           ? "Create a new board by choosing which statuses to expose as columns and optionally filtering to a subset of labels."
-          : "Update board metadata, visible columns, and the board-level label filter."}
+          : isSystemBoard
+            ? "The system board is a built-in Active and Done view across all tickets."
+            : "Update board metadata, visible columns, and the board-level label filter."}
         theme={theme}
         title={isCreateMode ? "Create Board" : `Edit ${boardQuery.data?.name ?? "Board"}`}
         onThemeChange={setTheme}
@@ -457,7 +460,11 @@ export function BoardEditPage() {
           <div className="labels-panel__header">
             <div>
               <h2>{isCreateMode ? "New Board" : "Board Settings"}</h2>
-              <p>Boards reuse the shared ticket pool and can filter by one or more labels.</p>
+              <p>
+                {isSystemBoard
+                  ? "The system board always shows two built-in columns: Active and Done."
+                  : "Boards reuse the shared ticket pool and can filter by one or more labels."}
+              </p>
             </div>
           </div>
 
@@ -512,6 +519,7 @@ export function BoardEditPage() {
               <input
                 autoFocus
                 data-testid="board-name-input"
+                disabled={isSystemBoard}
                 value={formState.name}
                 onChange={(event) =>
                   setFormState((currentValue) => ({
@@ -526,6 +534,7 @@ export function BoardEditPage() {
               <span>Description</span>
               <textarea
                 data-testid="board-description-input"
+                disabled={isSystemBoard}
                 rows={4}
                 value={formState.description}
                 onChange={(event) =>
@@ -551,103 +560,123 @@ export function BoardEditPage() {
               <span>Make this the default board</span>
             </label>
 
-            <div className="filter-group">
-              <span className="filter-group__title">Columns</span>
-              {availableStatuses.length > 0 ? (
-                <p className="muted-text">
-                  Existing statuses: {availableStatuses.map((status) => status.name).join(", ")}
-                </p>
-              ) : null}
+            {isSystemBoard ? (
+              <>
+                <div className="filter-group">
+                  <span className="filter-group__title">Columns</span>
+                  <p className="muted-text">
+                    The system board columns are fixed to Active and Done and cannot be edited.
+                  </p>
+                </div>
 
-              <DndContext collisionDetection={closestCenter} onDragEnd={handleColumnDragEnd} sensors={sensors}>
-                <SortableContext
-                  items={formState.columns.map((column) => column.rowId)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="labels-list">
-                    {formState.columns.map((column, index) => (
-                      <SortableBoardColumnRow
-                        key={column.rowId}
-                        availableStatuses={availableStatuses}
-                        canRemove={formState.columns.length > 1}
-                        column={column}
-                        index={index}
-                        onColumnNameChange={(candidateIndex, value) =>
-                          updateColumnAt(candidateIndex, (candidate) => ({
-                            ...candidate,
-                            name: value,
-                          }))}
-                        onRemove={(candidateIndex) =>
-                          setFormState((currentValue) => ({
-                            ...currentValue,
-                            columns: currentValue.columns.filter((_, rowIndex) => rowIndex !== candidateIndex),
-                          }))}
-                        onStatusChange={(candidateIndex, value, rowId) => {
-                          if (value === NEW_STATUS_VALUE) {
-                            setStatusModalError(null);
-                            setStatusModalValue("");
-                            setStatusModalRowId(rowId);
-                            return;
-                          }
+                <div className="filter-group">
+                  <span className="filter-group__title">Board Filter</span>
+                  <p className="muted-text">
+                    The system board always shows all tickets, so board-level label filters are disabled.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="filter-group">
+                  <span className="filter-group__title">Columns</span>
+                  {availableStatuses.length > 0 ? (
+                    <p className="muted-text">
+                      Existing statuses: {availableStatuses.map((status) => status.name).join(", ")}
+                    </p>
+                  ) : null}
 
-                          updateColumnAt(candidateIndex, (candidate) => ({
-                            ...candidate,
-                            statusKey: value,
-                          }));
-                        }}
-                      />
-                    ))}
+                  <DndContext collisionDetection={closestCenter} onDragEnd={handleColumnDragEnd} sensors={sensors}>
+                    <SortableContext
+                      items={formState.columns.map((column) => column.rowId)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="labels-list">
+                        {formState.columns.map((column, index) => (
+                          <SortableBoardColumnRow
+                            key={column.rowId}
+                            availableStatuses={availableStatuses}
+                            canRemove={formState.columns.length > 1}
+                            column={column}
+                            index={index}
+                            onColumnNameChange={(candidateIndex, value) =>
+                              updateColumnAt(candidateIndex, (candidate) => ({
+                                ...candidate,
+                                name: value,
+                              }))}
+                            onRemove={(candidateIndex) =>
+                              setFormState((currentValue) => ({
+                                ...currentValue,
+                                columns: currentValue.columns.filter((_, rowIndex) => rowIndex !== candidateIndex),
+                              }))}
+                            onStatusChange={(candidateIndex, value, rowId) => {
+                              if (value === NEW_STATUS_VALUE) {
+                                setStatusModalError(null);
+                                setStatusModalValue("");
+                                setStatusModalRowId(rowId);
+                                return;
+                              }
+
+                              updateColumnAt(candidateIndex, (candidate) => ({
+                                ...candidate,
+                                statusKey: value,
+                              }));
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+
+                  <button
+                    className="ghost-button board-edit__add-column"
+                    type="button"
+                    onClick={() =>
+                      setFormState((currentValue) => ({
+                        ...currentValue,
+                        columns: [
+                          ...currentValue.columns,
+                          {
+                            rowId: createRowId(),
+                            name: "New Column",
+                            statusKey: "",
+                          },
+                        ],
+                      }))
+                    }
+                  >
+                    Add Column
+                  </button>
+                </div>
+
+                <div className="filter-group">
+                  <span className="filter-group__title">Board Filter</span>
+                  <div className="chip-list">
+                    {labels.length > 0 ? (
+                      labels.map((label) => (
+                        <label key={label.id} className="chip-toggle">
+                          <input
+                            checked={formState.filterLabelIds.includes(label.id)}
+                            type="checkbox"
+                            onChange={() =>
+                              setFormState((currentValue) => ({
+                                ...currentValue,
+                                filterLabelIds: currentValue.filterLabelIds.includes(label.id)
+                                  ? currentValue.filterLabelIds.filter((candidateId) => candidateId !== label.id)
+                                  : [...currentValue.filterLabelIds, label.id],
+                              }))
+                            }
+                          />
+                          <span>{label.name}</span>
+                        </label>
+                      ))
+                    ) : (
+                      <span className="muted-text">Create labels on tickets first, then use them as board filters.</span>
+                    )}
                   </div>
-                </SortableContext>
-              </DndContext>
-
-              <button
-                className="ghost-button board-edit__add-column"
-                type="button"
-                onClick={() =>
-                  setFormState((currentValue) => ({
-                    ...currentValue,
-                    columns: [
-                      ...currentValue.columns,
-                      {
-                        rowId: createRowId(),
-                        name: "New Column",
-                        statusKey: "",
-                      },
-                    ],
-                  }))
-                }
-              >
-                Add Column
-              </button>
-            </div>
-
-            <div className="filter-group">
-              <span className="filter-group__title">Board Filter</span>
-              <div className="chip-list">
-                {labels.length > 0 ? (
-                  labels.map((label) => (
-                    <label key={label.id} className="chip-toggle">
-                      <input
-                        checked={formState.filterLabelIds.includes(label.id)}
-                        type="checkbox"
-                        onChange={() =>
-                          setFormState((currentValue) => ({
-                            ...currentValue,
-                            filterLabelIds: currentValue.filterLabelIds.includes(label.id)
-                              ? currentValue.filterLabelIds.filter((candidateId) => candidateId !== label.id)
-                              : [...currentValue.filterLabelIds, label.id],
-                          }))
-                        }
-                      />
-                      <span>{label.name}</span>
-                    </label>
-                  ))
-                ) : (
-                  <span className="muted-text">Create labels on tickets first, then use them as board filters.</span>
-                )}
-              </div>
-            </div>
+                </div>
+              </>
+            )}
 
             <div className="modal-card__actions">
               <div className="modal-card__actions-secondary">

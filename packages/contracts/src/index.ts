@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const SYSTEM_BOARD_NAME = "System Board";
+export const SYSTEM_BOARD_DESCRIPTION = "System Board";
+export const SYSTEM_BOARD_ACTIVE_STATUS_KEY = "__system_active__";
+export const SYSTEM_BOARD_DONE_STATUS_KEY = "__system_done__";
+
 export const ticketPrioritySchema = z.enum(["highest", "high", "medium", "low"]);
 export const statusCategorySchema = z.enum(["active", "completed"]);
 export const ticketStatusSchema = z.string().trim().min(1).max(80);

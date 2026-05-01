@@ -1,5 +1,7 @@
 import {
   boardFiltersSchema,
+  SYSTEM_BOARD_ACTIVE_STATUS_KEY,
+  SYSTEM_BOARD_DONE_STATUS_KEY,
   type BoardFilters,
   type Ticket,
   type UpdateTicketInput,
@@ -89,6 +91,41 @@ function resolveTicketTone(columns: Array<{ statusKey: string; statusCategory: s
 
 function buildSwimlaneDropTargetId(swimlaneKey: string, columnId: string) {
   return `swimlane:${swimlaneKey}:${columnId}`;
+}
+
+function toDisplayStatusKey(ticket: Ticket) {
+  return ticket.completedAt ? SYSTEM_BOARD_DONE_STATUS_KEY : SYSTEM_BOARD_ACTIVE_STATUS_KEY;
+}
+
+function mapTicketsForBoardDisplay(isSystemBoard: boolean, tickets: Ticket[]) {
+  if (!isSystemBoard) {
+    return tickets;
+  }
+
+  return tickets.map((ticket) => ({
+    ...ticket,
+    statusKey: toDisplayStatusKey(ticket),
+  }));
+}
+
+function resolveMutationStatusKey(
+  isSystemBoard: boolean,
+  requestedStatusKey: string,
+  actualTicket?: Ticket | null,
+) {
+  if (!isSystemBoard) {
+    return requestedStatusKey;
+  }
+
+  if (requestedStatusKey === SYSTEM_BOARD_DONE_STATUS_KEY) {
+    return "done";
+  }
+
+  if (requestedStatusKey === SYSTEM_BOARD_ACTIVE_STATUS_KEY) {
+    return actualTicket && !actualTicket.completedAt ? actualTicket.statusKey : "todo";
+  }
+
+  return requestedStatusKey;
 }
 
 const COLLAPSED_COLUMN_WIDTH_PX = 48;
@@ -193,6 +230,14 @@ export function BoardPage() {
   });
 
   const data = boardQuery.data;
+  const actualTicketsById = useMemo(
+    () => new Map((data?.tickets ?? []).map((ticket) => [ticket.id, ticket])),
+    [data?.tickets],
+  );
+  const displayedDataTickets = useMemo(
+    () => (data ? mapTicketsForBoardDisplay(data.board.isSystem, data.tickets) : []),
+    [data],
+  );
   const implicitSwimlaneLabelNames = useMemo(
     () => new Set((data?.board.filterLabels ?? []).map((label) => label.normalizedName)),
     [data?.board.filterLabels],
@@ -242,9 +287,9 @@ export function BoardPage() {
 
   useEffect(() => {
     if (data) {
-      setVisibleTickets(data.tickets);
+      setVisibleTickets(displayedDataTickets);
     }
-  }, [data]);
+  }, [data, displayedDataTickets]);
 
   function handleDragStart(event: DragStartEvent) {
     setActiveTicketId(String(event.active.id));
@@ -270,7 +315,7 @@ export function BoardPage() {
           : (swimlaneDropTargets.get(overId)?.laneKey ?? null);
 
         if (!activeLaneKey || !overLaneKey || activeLaneKey !== overLaneKey) {
-          return data.tickets;
+          return displayedDataTickets;
         }
 
         const mappedOverId = swimlaneDropTargets.get(overId)?.columnId ?? overId;
@@ -295,7 +340,7 @@ export function BoardPage() {
     setActiveTicketId(null);
 
     if (!data || !event.over) {
-      setVisibleTickets(data?.tickets ?? []);
+      setVisibleTickets(displayedDataTickets);
       return;
     }
 
@@ -314,12 +359,12 @@ export function BoardPage() {
           : (swimlaneDropTargets.get(overId)?.laneKey ?? null);
 
         if (!activeLaneKey || !overLaneKey || activeLaneKey !== overLaneKey) {
-          return data.tickets;
+          return displayedDataTickets;
         }
 
         const mappedOverId = swimlaneDropTargets.get(overId)?.columnId ?? overId;
         const nextTickets = moveTicket(data.board.columns, currentTickets, activeId, mappedOverId);
-        const didChange = !haveSameTicketLayout(data.tickets, nextTickets);
+        const didChange = !haveSameTicketLayout(displayedDataTickets, nextTickets);
 
         if (didChange) {
           const repositionInput = buildSwimlaneRepositionInput(
@@ -332,7 +377,14 @@ export function BoardPage() {
           if (repositionInput) {
             repositionTicketMutation.mutate({
               ticketId: activeId,
-              input: repositionInput,
+              input: {
+                ...repositionInput,
+                statusKey: resolveMutationStatusKey(
+                  data.board.isSystem,
+                  repositionInput.statusKey,
+                  actualTicketsById.get(activeId) ?? null,
+                ),
+              },
             });
           }
         }
@@ -341,7 +393,7 @@ export function BoardPage() {
       }
 
       const nextTickets = moveTicket(data.board.columns, currentTickets, activeId, overId);
-      const didChange = !haveSameTicketLayout(data.tickets, nextTickets);
+      const didChange = !haveSameTicketLayout(displayedDataTickets, nextTickets);
 
       if (didChange) {
         const repositionInput = buildRepositionInput(data.board.columns, nextTickets, activeId);
@@ -349,7 +401,14 @@ export function BoardPage() {
         if (repositionInput) {
           repositionTicketMutation.mutate({
             ticketId: activeId,
-            input: repositionInput,
+            input: {
+              ...repositionInput,
+              statusKey: resolveMutationStatusKey(
+                data.board.isSystem,
+                repositionInput.statusKey,
+                actualTicketsById.get(activeId) ?? null,
+              ),
+            },
           });
         }
       }
@@ -361,7 +420,7 @@ export function BoardPage() {
   function handleDragCancel() {
     setActiveTicketId(null);
     if (data) {
-      setVisibleTickets(data.tickets);
+      setVisibleTickets(displayedDataTickets);
     }
   }
 
@@ -522,8 +581,8 @@ export function BoardPage() {
           >
             {showSwimlanes ? (
               <section className="board-grid-scroll">
-                <div className="board-swimlane-table" style={boardGridStyle}>
-                  <section className="board-grid board-grid--swimlane-header">
+                <div className="board-swimlane-table">
+                  <section className="board-grid board-grid--swimlane-header" style={boardGridStyle}>
                     {data.board.columns.map((column) => {
                       const tickets = visibleTickets.filter((ticket) => ticket.statusKey === column.statusKey);
 
@@ -553,7 +612,7 @@ export function BoardPage() {
                         <span>{swimlane.name}</span>
                       </div>
 
-                      <section className="board-grid board-grid--swimlane-row">
+                      <section className="board-grid board-grid--swimlane-row" style={boardGridStyle}>
                         {data.board.columns.map((column) => {
                           const laneTickets = swimlane.tickets.filter(
                             (ticket) => ticket.statusKey === column.statusKey,
@@ -645,7 +704,10 @@ export function BoardPage() {
           defaultStatusKey={createStatusKey}
           onClose={() => setCreateStatusKey(null)}
           onSubmit={async (input) => {
-            await createTicketMutation.mutateAsync(input);
+            await createTicketMutation.mutateAsync({
+              ...input,
+              statusKey: resolveMutationStatusKey(data.board.isSystem, input.statusKey),
+            });
           }}
         />
       ) : null}
@@ -661,9 +723,17 @@ export function BoardPage() {
             await deleteTicketMutation.mutateAsync(editingTicket.id);
           }}
           onSubmit={async (input) => {
+            const actualTicket = actualTicketsById.get(editingTicket.id) ?? null;
             await updateTicketMutation.mutateAsync({
               ticketId: editingTicket.id,
-              input,
+              input: {
+                ...input,
+                statusKey: resolveMutationStatusKey(
+                  data.board.isSystem,
+                  input.statusKey,
+                  actualTicket,
+                ),
+              },
             });
           }}
         />

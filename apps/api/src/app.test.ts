@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  SYSTEM_BOARD_ACTIVE_STATUS_KEY,
+  SYSTEM_BOARD_DONE_STATUS_KEY,
+} from "@gtd/contracts";
 
 import { buildApp } from "./app.js";
 import { InMemoryBoardStore } from "./repositories/in-memory-board-store.js";
@@ -38,7 +42,7 @@ describe("API routes", () => {
     expect(response.json()[0]).toMatchObject({
       id: "board_default",
       slug: "default",
-      name: "My Board",
+      name: "System Board",
       isDefault: true,
       isSystem: true,
     });
@@ -56,9 +60,8 @@ describe("API routes", () => {
       slug: "default",
       isDefault: true,
       columns: [
-        expect.objectContaining({ statusKey: "todo" }),
-        expect.objectContaining({ statusKey: "in_progress" }),
-        expect.objectContaining({ statusKey: "done" }),
+        expect.objectContaining({ statusKey: SYSTEM_BOARD_ACTIVE_STATUS_KEY, name: "Active" }),
+        expect.objectContaining({ statusKey: SYSTEM_BOARD_DONE_STATUS_KEY, name: "Done" }),
       ],
     });
   });
@@ -174,6 +177,24 @@ describe("API routes", () => {
       priority: "highest",
       statusKey: "in_progress",
     });
+  });
+
+  it("returns system board tickets grouped into active and done columns", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/boards/slug/default/tickets",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().board.columns).toEqual([
+      expect.objectContaining({ statusKey: SYSTEM_BOARD_ACTIVE_STATUS_KEY, name: "Active" }),
+      expect.objectContaining({ statusKey: SYSTEM_BOARD_DONE_STATUS_KEY, name: "Done" }),
+    ]);
+    expect(response.json().tickets.map((ticket: { id: string; statusKey: string }) => ticket.id)).toEqual([
+      "ticket_1",
+      "ticket_2",
+      "ticket_3",
+    ]);
   });
 
   it("creates a ticket and returns it with hydrated labels", async () => {

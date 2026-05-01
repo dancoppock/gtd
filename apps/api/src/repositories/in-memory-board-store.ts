@@ -17,10 +17,43 @@ import type {
   UpdateLabelInput,
   UpdateTicketInput,
 } from "@gtd/contracts";
+import {
+  SYSTEM_BOARD_ACTIVE_STATUS_KEY as SYSTEM_BOARD_ACTIVE_STATUS_KEY_VALUE,
+  SYSTEM_BOARD_DESCRIPTION as SYSTEM_BOARD_DESCRIPTION_VALUE,
+  SYSTEM_BOARD_DONE_STATUS_KEY as SYSTEM_BOARD_DONE_STATUS_KEY_VALUE,
+  SYSTEM_BOARD_NAME as SYSTEM_BOARD_NAME_VALUE,
+} from "@gtd/contracts";
 
 import { createSeedData, type SeedTicketRecord } from "../data/seed.js";
 
 const ORDER_STEP = 1_000_000;
+const SYSTEM_BOARD_COLUMNS: CreateBoardInput["columns"] = [
+  { name: "Active", statusKey: "todo" },
+  { name: "Done", statusKey: "done" },
+];
+
+function buildSystemBoardColumns(boardId: string): Column[] {
+  return [
+    {
+      id: `${boardId}_system_active`,
+      boardId,
+      name: "Active",
+      statusKey: SYSTEM_BOARD_ACTIVE_STATUS_KEY_VALUE,
+      statusName: "Active",
+      statusCategory: "active",
+      position: 0,
+    },
+    {
+      id: `${boardId}_system_done`,
+      boardId,
+      name: "Done",
+      statusKey: SYSTEM_BOARD_DONE_STATUS_KEY_VALUE,
+      statusName: "Done",
+      statusCategory: "completed",
+      position: 1,
+    },
+  ];
+}
 
 function normalizeLabelName(label: string) {
   return label.trim().toLowerCase();
@@ -126,6 +159,8 @@ export class InMemoryBoardStore {
     seed.tickets.forEach((ticket) => {
       this.tickets.set(ticket.id, ticket);
     });
+
+    this.ensureSystemBoard();
   }
 
   listBoards() {
@@ -164,10 +199,10 @@ export class InMemoryBoardStore {
 
     return {
       ...board,
-      columns: this.getColumnsForBoard(boardId),
+      columns: this.getEffectiveColumnsForBoard(board),
       availableLabels: this.getAllLabels(),
       availableStatuses: this.listStatuses(),
-      filterLabels: this.getBoardFilterLabels(boardId),
+      filterLabels: board.isSystem ? [] : this.getBoardFilterLabels(boardId),
     };
   }
 
@@ -200,6 +235,25 @@ export class InMemoryBoardStore {
     const existingBoard = this.getBoardById(boardId);
     if (!existingBoard) {
       return null;
+    }
+
+    if (existingBoard.isSystem) {
+      this.boards.set(boardId, {
+        ...existingBoard,
+        name: SYSTEM_BOARD_NAME_VALUE,
+        description: SYSTEM_BOARD_DESCRIPTION_VALUE,
+        isDefault:
+          input.isDefault
+          || (existingBoard.isDefault && this.getDefaultBoard()?.id === boardId),
+        updatedAt: new Date().toISOString(),
+      });
+
+      if (input.isDefault) {
+        this.clearDefaultBoard(boardId);
+      }
+
+      this.ensureSystemBoard();
+      return this.getBoardDetail(boardId);
     }
 
     this.boards.set(boardId, {
@@ -312,7 +366,7 @@ export class InMemoryBoardStore {
 
     const normalizedLabels = uniqueNames(filters.labels).map(normalizeLabelName);
 
-    return this.getVisibleTicketRecordsForBoard(board.id)
+    return this.getVisibleTicketRecordsForBoard(board)
       .filter((ticket) => {
         if (filters.priorities.length > 0 && !filters.priorities.includes(ticket.priority)) {
           return false;
@@ -341,12 +395,19 @@ export class InMemoryBoardStore {
       return null;
     }
 
-    const statusKeys = new Set(this.getColumnsForBoard(boardId).map((column) => column.statusKey));
-    if (!statusKeys.has(input.statusKey)) {
+    const resolvedStatusKey = board.isSystem
+      ? this.resolveSystemBoardStatusKey(input.statusKey)
+      : input.statusKey;
+    const statusKeys = board.isSystem
+      ? new Set(this.listStatuses().map((status) => status.key))
+      : new Set(this.getStoredColumnsForBoard(boardId).map((column) => column.statusKey));
+    if (!statusKeys.has(resolvedStatusKey)) {
       return null;
     }
 
-    const boardFilterLabelNames = this.getBoardFilterLabels(boardId).map((label) => label.name);
+    const boardFilterLabelNames = board.isSystem
+      ? []
+      : this.getBoardFilterLabels(boardId).map((label) => label.name);
     const labelIds = this.getOrCreateLabels([...input.labels, ...boardFilterLabelNames]).map(
       (label) => label.id,
     );
@@ -356,13 +417,13 @@ export class InMemoryBoardStore {
 
     const record: SeedTicketRecord = {
       id: ticketId,
-      statusKey: input.statusKey,
+      statusKey: resolvedStatusKey,
       title: input.title,
       description: input.description,
       priority: input.priority,
       uiOrder: nextOrder,
       labelIds,
-      completedAt: this.statuses.get(input.statusKey)?.category === "completed" ? now : null,
+      completedAt: this.statuses.get(resolvedStatusKey)?.category === "completed" ? now : null,
       archivedAt: null,
       createdAt: now,
       updatedAt: now,
@@ -482,7 +543,7 @@ export class InMemoryBoardStore {
       return null;
     }
 
-    const visibleDoneTickets = this.getVisibleTicketRecordsForBoard(boardId).filter(
+    const visibleDoneTickets = this.getVisibleTicketRecordsForBoard(board).filter(
       (ticket) => this.statuses.get(ticket.statusKey)?.category === "completed",
     );
     const archivedAt = new Date().toISOString();
@@ -555,10 +616,14 @@ export class InMemoryBoardStore {
     return this.toTicket(updatedRecord);
   }
 
-  private getColumnsForBoard(boardId: string) {
+  private getStoredColumnsForBoard(boardId: string) {
     return Array.from(this.columns.values())
       .filter((column) => column.boardId === boardId)
       .sort((left, right) => left.position - right.position);
+  }
+
+  private getEffectiveColumnsForBoard(board: Board) {
+    return board.isSystem ? buildSystemBoardColumns(board.id) : this.getStoredColumnsForBoard(board.id);
   }
 
   private getAllLabels() {
@@ -576,9 +641,15 @@ export class InMemoryBoardStore {
       .sort((left, right) => left.name.localeCompare(right.name));
   }
 
-  private getVisibleTicketRecordsForBoard(boardId: string) {
-    const statusKeys = new Set(this.getColumnsForBoard(boardId).map((column) => column.statusKey));
-    const filterLabelIds = this.boardLabelFilters.get(boardId) ?? new Set<string>();
+  private getVisibleTicketRecordsForBoard(board: Board) {
+    if (board.isSystem) {
+      return Array.from(this.tickets.values())
+        .filter((ticket) => ticket.archivedAt === null)
+        .sort((left, right) => left.uiOrder - right.uiOrder);
+    }
+
+    const statusKeys = new Set(this.getStoredColumnsForBoard(board.id).map((column) => column.statusKey));
+    const filterLabelIds = this.boardLabelFilters.get(board.id) ?? new Set<string>();
 
     return Array.from(this.tickets.values())
       .filter((ticket) => ticket.archivedAt === null)
@@ -773,6 +844,67 @@ export class InMemoryBoardStore {
         });
       }
     });
+  }
+
+  private resolveSystemBoardStatusKey(
+    requestedStatusKey: string,
+    existingStatusKey?: string | null,
+  ) {
+    if (requestedStatusKey === SYSTEM_BOARD_DONE_STATUS_KEY_VALUE) {
+      return "done";
+    }
+
+    if (requestedStatusKey === SYSTEM_BOARD_ACTIVE_STATUS_KEY_VALUE) {
+      return existingStatusKey && this.statuses.get(existingStatusKey)?.category === "active"
+        ? existingStatusKey
+        : "todo";
+    }
+
+    return requestedStatusKey;
+  }
+
+  private ensureSystemBoard() {
+    const now = new Date().toISOString();
+    const systemBoards = this.listBoards().filter((board) => board.isSystem);
+    let systemBoard = systemBoards[0] ?? null;
+
+    if (!systemBoard) {
+      const hasDefaultBoard = this.getDefaultBoard() !== null;
+      systemBoard = {
+        id: "board_system",
+        slug: this.createUniqueSlug("System Board"),
+        name: SYSTEM_BOARD_NAME_VALUE,
+        description: SYSTEM_BOARD_DESCRIPTION_VALUE,
+        isDefault: !hasDefaultBoard,
+        isSystem: true,
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.boards.set(systemBoard.id, systemBoard);
+
+      if (systemBoard.isDefault) {
+        this.clearDefaultBoard(systemBoard.id);
+      }
+    } else {
+      this.boards.set(systemBoard.id, {
+        ...systemBoard,
+        name: SYSTEM_BOARD_NAME_VALUE,
+        description: SYSTEM_BOARD_DESCRIPTION_VALUE,
+        isSystem: true,
+        updatedAt: now,
+      });
+    }
+
+    systemBoards.slice(1).forEach((board) => {
+      this.boards.set(board.id, {
+        ...board,
+        isSystem: false,
+        updatedAt: now,
+      });
+    });
+
+    this.replaceBoardColumns(systemBoard.id, SYSTEM_BOARD_COLUMNS);
+    this.replaceBoardLabelFilters(systemBoard.id, []);
   }
 }
 

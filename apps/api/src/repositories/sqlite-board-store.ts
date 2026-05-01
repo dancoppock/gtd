@@ -17,11 +17,44 @@ import type {
   UpdateLabelInput,
   UpdateTicketInput,
 } from "@gtd/contracts";
+import {
+  SYSTEM_BOARD_ACTIVE_STATUS_KEY as SYSTEM_BOARD_ACTIVE_STATUS_KEY_VALUE,
+  SYSTEM_BOARD_DESCRIPTION as SYSTEM_BOARD_DESCRIPTION_VALUE,
+  SYSTEM_BOARD_DONE_STATUS_KEY as SYSTEM_BOARD_DONE_STATUS_KEY_VALUE,
+  SYSTEM_BOARD_NAME as SYSTEM_BOARD_NAME_VALUE,
+} from "@gtd/contracts";
 
 import { createSeedData } from "../data/seed.js";
 import { createDatabaseClient, type DatabaseClient } from "../db/client.js";
 
 const ORDER_STEP = 1_000_000;
+const SYSTEM_BOARD_COLUMNS: CreateBoardInput["columns"] = [
+  { name: "Active", statusKey: "todo" },
+  { name: "Done", statusKey: "done" },
+];
+
+function buildSystemBoardColumns(boardId: string): Column[] {
+  return [
+    {
+      id: `${boardId}_system_active`,
+      boardId,
+      name: "Active",
+      statusKey: SYSTEM_BOARD_ACTIVE_STATUS_KEY_VALUE,
+      statusName: "Active",
+      statusCategory: "active",
+      position: 0,
+    },
+    {
+      id: `${boardId}_system_done`,
+      boardId,
+      name: "Done",
+      statusKey: SYSTEM_BOARD_DONE_STATUS_KEY_VALUE,
+      statusName: "Done",
+      statusCategory: "completed",
+      position: 1,
+    },
+  ];
+}
 
 type BoardRow = {
   id: string;
@@ -160,6 +193,7 @@ export class SqliteBoardStore {
     this.client = client;
     this.sqlite = client.sqlite;
     this.seedDemoDataIfNeeded();
+    this.ensureSystemBoard();
   }
 
   listBoards() {
@@ -214,10 +248,10 @@ export class SqliteBoardStore {
 
     return {
       ...board,
-      columns: this.getColumnsForBoard(boardId),
+      columns: this.getEffectiveColumnsForBoard(board),
       availableLabels: this.getAllLabels(),
       availableStatuses: this.listStatuses(),
-      filterLabels: this.getBoardFilterLabels(boardId),
+      filterLabels: board.isSystem ? [] : this.getBoardFilterLabels(boardId),
     };
   }
 
@@ -251,6 +285,36 @@ export class SqliteBoardStore {
     const existingBoard = this.getBoardById(boardId);
     if (!existingBoard) {
       return null;
+    }
+
+    if (existingBoard.isSystem) {
+      const updatedAt = Date.now();
+
+      this.sqlite.transaction(() => {
+        const shouldStayDefault = input.isDefault
+          || (existingBoard.isDefault && this.getDefaultBoard()?.id === boardId);
+
+        if (input.isDefault) {
+          this.clearDefaultBoard(boardId);
+        }
+
+        this.sqlite
+          .prepare(`
+            update boards
+            set name = ?, description = ?, is_default = ?, is_system = 1, updated_at = ?
+            where id = ?
+          `)
+          .run(
+            SYSTEM_BOARD_NAME_VALUE,
+            SYSTEM_BOARD_DESCRIPTION_VALUE,
+            shouldStayDefault ? 1 : 0,
+            updatedAt,
+            boardId,
+          );
+      })();
+
+      this.ensureSystemBoard();
+      return this.getBoardDetail(boardId);
     }
 
     const updatedAt = Date.now();
@@ -378,8 +442,13 @@ export class SqliteBoardStore {
       return null;
     }
 
-    const statusKeys = new Set(this.getColumnsForBoard(boardId).map((column) => column.statusKey));
-    if (!statusKeys.has(input.statusKey)) {
+    const resolvedStatusKey = board.isSystem
+      ? this.resolveSystemBoardStatusKey(input.statusKey)
+      : input.statusKey;
+    const statusKeys = board.isSystem
+      ? new Set(this.listStatuses().map((status) => status.key))
+      : new Set(this.getStoredColumnsForBoard(boardId).map((column) => column.statusKey));
+    if (!statusKeys.has(resolvedStatusKey)) {
       return null;
     }
 
@@ -387,7 +456,9 @@ export class SqliteBoardStore {
     const now = Date.now();
 
     this.sqlite.transaction(() => {
-      const boardFilterLabelNames = this.getBoardFilterLabels(boardId).map((label) => label.name);
+      const boardFilterLabelNames = board.isSystem
+        ? []
+        : this.getBoardFilterLabels(boardId).map((label) => label.name);
       const labels = this.getOrCreateLabels([...input.labels, ...boardFilterLabelNames]);
       const nextOrder = this.getNextGlobalOrder();
 
@@ -398,12 +469,12 @@ export class SqliteBoardStore {
         `)
         .run(
           ticketId,
-          input.statusKey,
+          resolvedStatusKey,
           input.title,
           input.description,
           input.priority,
           nextOrder,
-          this.getStatusCategory(input.statusKey) === "completed" ? now : null,
+          this.getStatusCategory(resolvedStatusKey) === "completed" ? now : null,
           now,
           now,
         );
@@ -546,14 +617,8 @@ export class SqliteBoardStore {
       return null;
     }
 
-    const completedStatusKeys = new Set(
-      this.getColumnsForBoard(boardId)
-        .filter((column) => column.statusCategory === "completed")
-        .map((column) => column.statusKey),
-    );
-
     const visibleDoneIds = this.selectVisibleTicketRows(boardId, emptyFilters)
-      .filter((ticket) => completedStatusKeys.has(ticket.status_key))
+      .filter((ticket) => this.getStatusCategory(ticket.status_key) === "completed")
       .map((ticket) => ticket.id);
 
     if (visibleDoneIds.length === 0) {
@@ -745,7 +810,7 @@ export class SqliteBoardStore {
     })();
   }
 
-  private getColumnsForBoard(boardId: string) {
+  private getStoredColumnsForBoard(boardId: string) {
     const rows = this.sqlite
       .prepare(`
         select
@@ -760,6 +825,10 @@ export class SqliteBoardStore {
       .all(boardId) as ColumnRow[];
 
     return rows.map((row) => this.toColumn(row));
+  }
+
+  private getEffectiveColumnsForBoard(board: Board) {
+    return board.isSystem ? buildSystemBoardColumns(board.id) : this.getStoredColumnsForBoard(board.id);
   }
 
   private getAllLabels() {
@@ -785,7 +854,16 @@ export class SqliteBoardStore {
   }
 
   private selectVisibleTicketRows(boardId: string, filters: BoardFilters) {
-    const columns = this.getColumnsForBoard(boardId);
+    const board = this.getBoardById(boardId);
+    if (!board) {
+      return [] as TicketRow[];
+    }
+
+    if (board.isSystem) {
+      return this.selectSystemBoardTicketRows(filters);
+    }
+
+    const columns = this.getStoredColumnsForBoard(boardId);
     if (columns.length === 0) {
       return [] as TicketRow[];
     }
@@ -849,6 +927,48 @@ export class SqliteBoardStore {
     `;
 
     return this.sqlite.prepare(sql).all(...params) as TicketRow[];
+  }
+
+  private selectSystemBoardTicketRows(filters: BoardFilters) {
+    const normalizedLabels = uniqueNames(filters.labels).map(normalizeLabelName);
+    const conditions = ["tickets.archived_at is null"];
+    const params: unknown[] = [];
+
+    if (filters.priorities.length > 0) {
+      conditions.push(`tickets.priority in (${placeholders(filters.priorities)})`);
+      params.push(...filters.priorities);
+    }
+
+    if (normalizedLabels.length > 0) {
+      conditions.push(`
+        exists (
+          select 1
+          from ticket_labels
+          inner join labels on labels.id = ticket_labels.label_id
+          where ticket_labels.ticket_id = tickets.id
+            and labels.normalized_name in (${placeholders(normalizedLabels)})
+        )
+      `);
+      params.push(...normalizedLabels);
+    }
+
+    if (filters.q.trim()) {
+      const query = `%${escapeLike(filters.q.trim().toLowerCase())}%`;
+      conditions.push(`
+        (
+          lower(tickets.title) like ? escape '\\'
+          or lower(tickets.description) like ? escape '\\'
+        )
+      `);
+      params.push(query, query);
+    }
+
+    return this.sqlite.prepare(`
+      select tickets.*
+      from tickets
+      where ${conditions.join(" and ")}
+      order by tickets.ui_order asc
+    `).all(...params) as TicketRow[];
   }
 
   private selectTicketRowsByIds(ticketIds: string[]) {
@@ -1173,5 +1293,85 @@ export class SqliteBoardStore {
       name: row.name,
       normalizedName: row.normalized_name,
     };
+  }
+
+  private resolveSystemBoardStatusKey(
+    requestedStatusKey: string,
+    existingStatusKey?: string | null,
+  ) {
+    if (requestedStatusKey === SYSTEM_BOARD_DONE_STATUS_KEY_VALUE) {
+      return "done";
+    }
+
+    if (requestedStatusKey === SYSTEM_BOARD_ACTIVE_STATUS_KEY_VALUE) {
+      return existingStatusKey && this.getStatusCategory(existingStatusKey) === "active"
+        ? existingStatusKey
+        : "todo";
+    }
+
+    return requestedStatusKey;
+  }
+
+  private ensureSystemBoard() {
+    const now = Date.now();
+    const systemBoards = this.sqlite
+      .prepare("select * from boards where is_system = 1 order by created_at asc, id asc")
+      .all() as BoardRow[];
+    let systemBoard = systemBoards[0] ? this.toBoard(systemBoards[0]) : null;
+
+    this.sqlite.transaction(() => {
+      if (!systemBoard) {
+        const hasDefaultBoard = this.getDefaultBoard() !== null;
+        systemBoard = {
+          id: "board_system",
+          slug: this.createUniqueSlug("System Board"),
+          name: SYSTEM_BOARD_NAME_VALUE,
+          description: SYSTEM_BOARD_DESCRIPTION_VALUE,
+          isDefault: !hasDefaultBoard,
+          isSystem: true,
+          createdAt: new Date(now).toISOString(),
+          updatedAt: new Date(now).toISOString(),
+        };
+
+        if (systemBoard.isDefault) {
+          this.clearDefaultBoard(systemBoard.id);
+        }
+
+        this.sqlite
+          .prepare(`
+            insert into boards (id, slug, name, description, is_default, is_system, created_at, updated_at)
+            values (?, ?, ?, ?, ?, 1, ?, ?)
+          `)
+          .run(
+            systemBoard.id,
+            systemBoard.slug,
+            SYSTEM_BOARD_NAME_VALUE,
+            SYSTEM_BOARD_DESCRIPTION_VALUE,
+            systemBoard.isDefault ? 1 : 0,
+            now,
+            now,
+          );
+      } else {
+        this.sqlite
+          .prepare(`
+            update boards
+            set name = ?, description = ?, is_system = 1, updated_at = ?
+            where id = ?
+          `)
+          .run(
+            SYSTEM_BOARD_NAME_VALUE,
+            SYSTEM_BOARD_DESCRIPTION_VALUE,
+            now,
+            systemBoard.id,
+          );
+      }
+
+      if (systemBoards.length > 1) {
+        this.sqlite
+          .prepare("update boards set is_system = 0, updated_at = ? where is_system = 1 and id != ?")
+          .run(now, systemBoard.id);
+      }
+
+    })();
   }
 }
