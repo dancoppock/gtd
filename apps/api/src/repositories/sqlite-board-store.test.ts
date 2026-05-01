@@ -92,6 +92,66 @@ describe("SqliteBoardStore", () => {
     expect(backendCountRow.count).toBe(1);
   });
 
+  it("lists all labels for the board, including archived-only labels", () => {
+    store.createTicket(boardId, {
+      columnId: "col_done",
+      title: "Archive-only label ticket",
+      description: "",
+      priority: "low",
+      labels: ["archive-only"],
+    });
+    store.archiveDoneTickets(boardId);
+
+    expect(store.listAllLabels(boardId)).toEqual([
+      expect.objectContaining({
+        normalizedName: "archive-only",
+        activeTicketCount: 0,
+        archivedTicketCount: 1,
+      }),
+      expect.objectContaining({
+        normalizedName: "backend",
+        activeTicketCount: 1,
+        archivedTicketCount: 1,
+      }),
+      expect.objectContaining({
+        normalizedName: "frontend",
+        activeTicketCount: 1,
+        archivedTicketCount: 0,
+      }),
+      expect.objectContaining({
+        normalizedName: "product",
+        activeTicketCount: 1,
+        archivedTicketCount: 1,
+      }),
+    ]);
+  });
+
+  it("updates a label name across the board", () => {
+    const updatedLabel = store.updateLabel("label_frontend", {
+      name: "ux",
+    });
+
+    expect(updatedLabel).toMatchObject({
+      id: "label_frontend",
+      name: "ux",
+      normalizedName: "ux",
+    });
+    expect(store.listTickets(boardId, emptyFilters())[0]?.labels.map((label) => label.normalizedName)).toContain("ux");
+  });
+
+  it("deletes a label and removes it from all tickets", () => {
+    const didDelete = store.deleteLabel("label_backend");
+
+    expect(didDelete).toBe(true);
+    expect(store.listAllLabels(boardId).map((label) => label.normalizedName)).toEqual([
+      "frontend",
+      "product",
+    ]);
+    expect(
+      store.listTickets(boardId, emptyFilters()).flatMap((ticket) => ticket.labels.map((label) => label.normalizedName)),
+    ).not.toContain("backend");
+  });
+
   it("replaces label assignments when updating a ticket", () => {
     const updatedTicket = store.updateTicket("ticket_1", {
       labels: ["backend"],

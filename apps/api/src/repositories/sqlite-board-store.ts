@@ -6,8 +6,10 @@ import type {
   Column,
   CreateTicketInput,
   Label,
+  LabelUsage,
   RepositionTicketInput,
   Ticket,
+  UpdateLabelInput,
   UpdateTicketInput,
 } from "@gtd/contracts";
 import {
@@ -102,6 +104,16 @@ export class SqliteBoardStore {
     return board ? this.toBoard(board) : null;
   }
 
+  getLabelById(labelId: string) {
+    const label = this.db
+      .select()
+      .from(labels)
+      .where(eq(labels.id, labelId))
+      .all()[0];
+
+    return label ? this.toLabel(label) : null;
+  }
+
   getBoardDetail(boardId: string): BoardDetail | null {
     const board = this.db
       .select()
@@ -118,6 +130,33 @@ export class SqliteBoardStore {
       columns: this.getColumnsForBoard(boardId),
       labels: this.getVisibleLabelsForBoard(boardId),
     };
+  }
+
+  listAllLabels(boardId: string) {
+    return this.db
+      .select({
+        id: labels.id,
+        boardId: labels.boardId,
+        name: labels.name,
+        normalizedName: labels.normalizedName,
+        activeTicketCount: sql<number>`coalesce(sum(case when ${tickets.archivedAt} is null and ${tickets.id} is not null then 1 else 0 end), 0)`,
+        archivedTicketCount: sql<number>`coalesce(sum(case when ${tickets.archivedAt} is not null then 1 else 0 end), 0)`,
+      })
+      .from(labels)
+      .leftJoin(ticketLabels, eq(ticketLabels.labelId, labels.id))
+      .leftJoin(tickets, eq(tickets.id, ticketLabels.ticketId))
+      .where(eq(labels.boardId, boardId))
+      .groupBy(labels.id, labels.boardId, labels.name, labels.normalizedName)
+      .orderBy(asc(labels.name))
+      .all()
+      .map((label) => ({
+        id: label.id,
+        boardId: label.boardId,
+        name: label.name,
+        normalizedName: label.normalizedName,
+        activeTicketCount: label.activeTicketCount,
+        archivedTicketCount: label.archivedTicketCount,
+      }) satisfies LabelUsage);
   }
 
   listTickets(boardId: string, filters: BoardFilters) {
@@ -222,6 +261,66 @@ export class SqliteBoardStore {
       }
 
       return this.hydrateTickets([insertedTicket], tx)[0] ?? null;
+    });
+  }
+
+  updateLabel(labelId: string, input: UpdateLabelInput) {
+    return this.db.transaction((tx) => {
+      const existingLabel = tx
+        .select()
+        .from(labels)
+        .where(eq(labels.id, labelId))
+        .all()[0];
+
+      if (!existingLabel) {
+        return null;
+      }
+
+      tx.update(labels)
+        .set({
+          name: input.name,
+          normalizedName: normalizeLabelName(input.name),
+        })
+        .where(eq(labels.id, labelId))
+        .run();
+
+      tx.update(boards)
+        .set({ updatedAt: new Date() })
+        .where(eq(boards.id, existingLabel.boardId))
+        .run();
+
+      const updatedLabel = tx
+        .select()
+        .from(labels)
+        .where(eq(labels.id, labelId))
+        .all()[0];
+
+      return updatedLabel ? this.toLabel(updatedLabel) : null;
+    });
+  }
+
+  deleteLabel(labelId: string) {
+    return this.db.transaction((tx) => {
+      const existingLabel = tx
+        .select()
+        .from(labels)
+        .where(eq(labels.id, labelId))
+        .all()[0];
+
+      if (!existingLabel) {
+        return false;
+      }
+
+      tx.delete(labels)
+        .where(eq(labels.id, labelId))
+        .run();
+
+      tx.update(boards)
+        .set({ updatedAt: new Date() })
+        .where(eq(boards.id, existingLabel.boardId))
+        .run();
+
+      return true;
     });
   }
 

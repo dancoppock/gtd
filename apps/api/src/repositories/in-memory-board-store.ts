@@ -8,6 +8,7 @@ import type {
   Label,
   RepositionTicketInput,
   Ticket,
+  UpdateLabelInput,
   UpdateTicketInput,
 } from "@gtd/contracts";
 
@@ -69,6 +70,10 @@ export class InMemoryBoardStore {
     return this.listBoards().find((board) => board.slug === slug) ?? null;
   }
 
+  getLabelById(labelId: string) {
+    return this.labels.get(labelId) ?? null;
+  }
+
   getBoardDetail(boardId: string): BoardDetail | null {
     const board = this.getBoardById(boardId);
     if (!board) {
@@ -80,6 +85,31 @@ export class InMemoryBoardStore {
       columns: this.getColumnsForBoard(boardId),
       labels: this.getVisibleLabelsForBoard(boardId),
     };
+  }
+
+  listAllLabels(boardId: string) {
+    return this.getAllLabelsForBoard(boardId).map((label) => {
+      let activeTicketCount = 0;
+      let archivedTicketCount = 0;
+
+      this.getTicketRecordsForBoard(boardId).forEach((ticket) => {
+        if (!ticket.labelIds.includes(label.id)) {
+          return;
+        }
+
+        if (ticket.archivedAt === null) {
+          activeTicketCount += 1;
+        } else {
+          archivedTicketCount += 1;
+        }
+      });
+
+      return {
+        ...label,
+        activeTicketCount,
+        archivedTicketCount,
+      };
+    });
   }
 
   listTickets(boardId: string, filters: BoardFilters) {
@@ -139,6 +169,47 @@ export class InMemoryBoardStore {
     this.touchBoard(boardId);
 
     return this.toTicket(record);
+  }
+
+  updateLabel(labelId: string, input: UpdateLabelInput) {
+    const existingLabel = this.labels.get(labelId);
+    if (!existingLabel) {
+      return null;
+    }
+
+    const updatedLabel: Label = {
+      ...existingLabel,
+      name: input.name,
+      normalizedName: normalizeLabelName(input.name),
+    };
+
+    this.labels.set(labelId, updatedLabel);
+    this.touchBoard(existingLabel.boardId);
+
+    return updatedLabel;
+  }
+
+  deleteLabel(labelId: string) {
+    const existingLabel = this.labels.get(labelId);
+    if (!existingLabel) {
+      return false;
+    }
+
+    this.labels.delete(labelId);
+
+    this.getTicketRecordsForBoard(existingLabel.boardId).forEach((ticket) => {
+      if (ticket.labelIds.includes(labelId)) {
+        this.tickets.set(ticket.id, {
+          ...ticket,
+          labelIds: ticket.labelIds.filter((candidateLabelId) => candidateLabelId !== labelId),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    });
+
+    this.touchBoard(existingLabel.boardId);
+
+    return true;
   }
 
   updateTicket(ticketId: string, input: UpdateTicketInput) {

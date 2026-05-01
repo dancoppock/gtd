@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 
 import { createDefaultBoardStore, type BoardStore } from "./repositories/board-store.js";
 import { registerBoardRoutes } from "./routes/boards.js";
+import { registerLabelRoutes } from "./routes/labels.js";
 import { registerTicketRoutes } from "./routes/tickets.js";
 
 type BuildAppOptions = {
@@ -24,8 +25,12 @@ function createBoardStoreProxy(getBoardStore: () => BoardStore): BoardStore {
     getBoardById: (boardId) => getBoardStore().getBoardById(boardId),
     getBoardBySlug: (slug) => getBoardStore().getBoardBySlug(slug),
     getBoardDetail: (boardId) => getBoardStore().getBoardDetail(boardId),
+    getLabelById: (labelId) => getBoardStore().getLabelById(labelId),
+    listAllLabels: (boardId) => getBoardStore().listAllLabels(boardId),
     listTickets: (boardId, filters) => getBoardStore().listTickets(boardId, filters),
     createTicket: (boardId, input) => getBoardStore().createTicket(boardId, input),
+    updateLabel: (labelId, input) => getBoardStore().updateLabel(labelId, input),
+    deleteLabel: (labelId) => getBoardStore().deleteLabel(labelId),
     updateTicket: (ticketId, input) => getBoardStore().updateTicket(ticketId, input),
     deleteTicket: (ticketId) => getBoardStore().deleteTicket(ticketId),
     archiveDoneTickets: (boardId) => getBoardStore().archiveDoneTickets(boardId),
@@ -78,6 +83,10 @@ export function buildApp(options: BuildAppOptions = {}) {
   });
 
   app.register(registerBoardRoutes, {
+    prefix: "/api",
+    boardStore,
+  });
+  app.register(registerLabelRoutes, {
     prefix: "/api",
     boardStore,
   });

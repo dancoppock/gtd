@@ -42,6 +42,32 @@ describe("API routes", () => {
     });
   });
 
+  it("lists all labels for a board by slug", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/boards/slug/default/labels",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().labels).toEqual([
+      expect.objectContaining({
+        normalizedName: "backend",
+        activeTicketCount: 2,
+        archivedTicketCount: 0,
+      }),
+      expect.objectContaining({
+        normalizedName: "frontend",
+        activeTicketCount: 1,
+        archivedTicketCount: 0,
+      }),
+      expect.objectContaining({
+        normalizedName: "product",
+        activeTicketCount: 2,
+        archivedTicketCount: 0,
+      }),
+    ]);
+  });
+
   it("returns board tickets filtered by query params", async () => {
     const response = await app.inject({
       method: "GET",
@@ -122,6 +148,63 @@ describe("API routes", () => {
     expect(response.json().labels.map((label: { normalizedName: string }) => label.normalizedName)).toEqual([
       "frontend",
     ]);
+  });
+
+  it("updates a label name", async () => {
+    const response = await app.inject({
+      method: "PATCH",
+      url: "/api/labels/label_frontend",
+      payload: {
+        name: "ux",
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      id: "label_frontend",
+      name: "ux",
+      normalizedName: "ux",
+    });
+  });
+
+  it("returns 409 when renaming a label to an existing board label", async () => {
+    const response = await app.inject({
+      method: "PATCH",
+      url: "/api/labels/label_frontend",
+      payload: {
+        name: "backend",
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({
+      message: "Label name already exists on this board",
+    });
+  });
+
+  it("deletes a label and removes it from all tickets", async () => {
+    const deleteResponse = await app.inject({
+      method: "DELETE",
+      url: "/api/labels/label_backend",
+    });
+
+    expect(deleteResponse.statusCode).toBe(204);
+
+    const boardResponse = await app.inject({
+      method: "GET",
+      url: "/api/boards/slug/default/tickets",
+    });
+
+    expect(boardResponse.statusCode).toBe(200);
+    expect(boardResponse.json().board.labels.map((label: { normalizedName: string }) => label.normalizedName)).toEqual([
+      "frontend",
+      "product",
+    ]);
+    expect(
+      boardResponse.json().tickets.flatMap((ticket: { labels: Array<{ normalizedName: string }> }) =>
+        ticket.labels.map((label) => label.normalizedName),
+      ),
+    ).not.toContain("backend");
   });
 
   it("removes orphan labels from board detail after ticket label updates", async () => {
@@ -207,6 +290,35 @@ describe("API routes", () => {
       "backend",
       "frontend",
       "product",
+    ]);
+
+    const labelsResponse = await app.inject({
+      method: "GET",
+      url: "/api/boards/slug/default/labels",
+    });
+
+    expect(labelsResponse.statusCode).toBe(200);
+    expect(labelsResponse.json().labels).toEqual([
+      expect.objectContaining({
+        normalizedName: "archive-only",
+        activeTicketCount: 0,
+        archivedTicketCount: 1,
+      }),
+      expect.objectContaining({
+        normalizedName: "backend",
+        activeTicketCount: 1,
+        archivedTicketCount: 1,
+      }),
+      expect.objectContaining({
+        normalizedName: "frontend",
+        activeTicketCount: 1,
+        archivedTicketCount: 0,
+      }),
+      expect.objectContaining({
+        normalizedName: "product",
+        activeTicketCount: 1,
+        archivedTicketCount: 1,
+      }),
     ]);
   });
 

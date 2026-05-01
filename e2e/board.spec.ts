@@ -119,3 +119,23 @@ test("archives done tickets and keeps them hidden after reload", async ({ page }
   await expect(page.getByTestId("column-done")).not.toContainText("Seed default board");
   await expect(page.getByTestId("column-done")).toContainText("0 tickets");
 });
+
+test("navigates to labels and manages them", async ({ page }) => {
+  await page.getByRole("link", { name: "Labels" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Labels" })).toBeVisible();
+  await expect(page.getByTestId("label-row-backend")).toBeVisible();
+  await expect(page.getByTestId("label-row-backend")).toContainText("(2 tickets, 0 archived)");
+
+  await page.getByTestId("label-edit-frontend").click();
+  await page.getByTestId("label-input-label_frontend").fill("ux");
+  await page.getByTestId("label-save-label_frontend").click();
+  await expect(page.getByTestId("label-row-ux")).toBeVisible();
+
+  await page.getByTestId("label-delete-backend").click();
+  await expect(page.getByTestId("label-row-backend")).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Boards" }).click();
+  await page.getByRole("button", { name: "Expand filters panel" }).click();
+  await expect(page.getByTestId("label-filter-ux")).toBeVisible();
+  await expect(page.getByTestId("label-filter-backend")).toHaveCount(0);
+});

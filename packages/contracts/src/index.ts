@@ -46,6 +46,13 @@ export const labelSchema = z.object({
 
 export type Label = z.infer<typeof labelSchema>;
 
+export const labelUsageSchema = labelSchema.extend({
+  activeTicketCount: z.number().int().nonnegative(),
+  archivedTicketCount: z.number().int().nonnegative(),
+});
+
+export type LabelUsage = z.infer<typeof labelUsageSchema>;
+
 export const ticketSchema = z.object({
   id: z.string(),
   boardId: z.string(),
@@ -110,6 +117,19 @@ export const archiveDoneTicketsResponseSchema = z.object({
 });
 
 export type ArchiveDoneTicketsResponse = z.infer<typeof archiveDoneTicketsResponseSchema>;
+
+export const listLabelsResponseSchema = z.object({
+  board: boardSchema,
+  labels: z.array(labelUsageSchema),
+});
+
+export type ListLabelsResponse = z.infer<typeof listLabelsResponseSchema>;
+
+export const updateLabelInputSchema = z.object({
+  name: z.string().trim().min(1).max(50),
+});
+
+export type UpdateLabelInput = z.infer<typeof updateLabelInputSchema>;
 
 export const listTicketsResponseSchema = z.object({
   board: boardDetailSchema,

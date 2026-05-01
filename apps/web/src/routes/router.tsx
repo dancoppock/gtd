@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import { BoardPage } from "./BoardPage";
+import { LabelsPage } from "./LabelsPage";
 
 export const router = createBrowserRouter([
   {
@@ -10,5 +11,9 @@ export const router = createBrowserRouter([
   {
     path: "/boards/:boardSlug",
     element: <BoardPage />,
+  },
+  {
+    path: "/boards/:boardSlug/labels",
+    element: <LabelsPage />,
   },
 ]);

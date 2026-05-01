@@ -1,9 +1,12 @@
 import type {
   ArchiveDoneTicketsResponse,
   CreateTicketInput,
+  Label,
   ListTicketsResponse,
+  ListLabelsResponse,
   RepositionTicketInput,
   Ticket,
+  UpdateLabelInput,
   UpdateTicketInput,
 } from "@gtd/contracts";
 
@@ -45,6 +48,12 @@ export async function fetchBoardTickets(boardSlug: string, filters: BoardFilterS
   return fetch(url).then((response) => readJson<ListTicketsResponse>(response));
 }
 
+export async function fetchBoardLabels(boardSlug: string) {
+  return fetch(`/api/boards/slug/${encodeURIComponent(boardSlug)}/labels`).then((response) =>
+    readJson<ListLabelsResponse>(response),
+  );
+}
+
 export async function createTicket(boardId: string, input: CreateTicketInput) {
   return fetch(`/api/boards/${encodeURIComponent(boardId)}/tickets`, {
     method: "POST",
@@ -79,6 +88,26 @@ export async function archiveDoneTickets(boardId: string) {
   return fetch(`/api/boards/${encodeURIComponent(boardId)}/archive-done`, {
     method: "POST",
   }).then((response) => readJson<ArchiveDoneTicketsResponse>(response));
+}
+
+export async function updateLabel(labelId: string, input: UpdateLabelInput) {
+  return fetch(`/api/labels/${encodeURIComponent(labelId)}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  }).then((response) => readJson<Label>(response));
+}
+
+export async function deleteLabel(labelId: string) {
+  const response = await fetch(`/api/labels/${encodeURIComponent(labelId)}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    await readJson(response);
+  }
 }
 
 export async function repositionTicket(ticketId: string, input: RepositionTicketInput) {
