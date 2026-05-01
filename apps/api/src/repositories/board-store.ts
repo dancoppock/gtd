@@ -3,11 +3,13 @@ import type {
   Board,
   BoardDetail,
   BoardFilters,
+  CreateBoardInput,
   CreateTicketInput,
   Label,
   LabelUsage,
   RepositionTicketInput,
   Ticket,
+  UpdateBoardInput,
   UpdateLabelInput,
   UpdateTicketInput,
 } from "@gtd/contracts";
@@ -19,8 +21,11 @@ export type BoardStore = {
   getBoardById(boardId: string): Board | null;
   getBoardBySlug(slug: string): Board | null;
   getBoardDetail(boardId: string): BoardDetail | null;
+  createBoard(input: CreateBoardInput): BoardDetail;
+  updateBoard(boardId: string, input: UpdateBoardInput): BoardDetail | null;
+  deleteBoard(boardId: string): boolean;
   getLabelById(labelId: string): Label | null;
-  listAllLabels(boardId: string): LabelUsage[];
+  listAllLabels(): LabelUsage[];
   listTickets(boardId: string, filters: BoardFilters): Ticket[];
   createTicket(boardId: string, input: CreateTicketInput): Ticket | null;
   updateLabel(labelId: string, input: UpdateLabelInput): Label | null;

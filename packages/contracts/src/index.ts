@@ -1,135 +1,61 @@
 import { z } from "zod";
 
-export const ticketPrioritySchema = z.enum([
-  "highest",
-  "high",
-  "medium",
-  "low",
-]);
-
-export type TicketPriority = z.infer<typeof ticketPrioritySchema>;
-
-export const columnKeySchema = z.enum([
-  "todo",
-  "in_progress",
-  "done",
-]);
-
-export type ColumnKey = z.infer<typeof columnKeySchema>;
-
-export const boardSchema = z.object({
-  id: z.string(),
-  slug: z.string(),
-  name: z.string(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-});
-
-export type Board = z.infer<typeof boardSchema>;
-
-export const columnSchema = z.object({
-  id: z.string(),
-  boardId: z.string(),
-  key: columnKeySchema,
-  name: z.string(),
-  position: z.number().int().nonnegative(),
-});
-
-export type Column = z.infer<typeof columnSchema>;
+export const ticketPrioritySchema = z.enum(["highest", "high", "medium", "low"]);
+export const ticketStatusSchema = z.enum(["todo", "in_progress", "done"]);
 
 export const labelSchema = z.object({
-  id: z.string(),
-  boardId: z.string(),
-  name: z.string(),
-  normalizedName: z.string(),
+  id: z.string().min(1),
+  name: z.string().min(1),
+  normalizedName: z.string().min(1),
 });
-
-export type Label = z.infer<typeof labelSchema>;
 
 export const labelUsageSchema = labelSchema.extend({
   activeTicketCount: z.number().int().nonnegative(),
   archivedTicketCount: z.number().int().nonnegative(),
 });
 
-export type LabelUsage = z.infer<typeof labelUsageSchema>;
+export const boardSchema = z.object({
+  id: z.string().min(1),
+  slug: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string(),
+  isSystem: z.boolean(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+});
+
+export const columnSchema = z.object({
+  id: z.string().min(1),
+  boardId: z.string().min(1),
+  name: z.string().min(1),
+  statusKey: ticketStatusSchema,
+  position: z.number().int().nonnegative(),
+});
 
 export const ticketSchema = z.object({
-  id: z.string(),
-  boardId: z.string(),
-  columnId: z.string(),
-  title: z.string(),
+  id: z.string().min(1),
+  title: z.string().min(1),
   description: z.string(),
-  priority: ticketPrioritySchema.default("medium"),
+  priority: ticketPrioritySchema,
+  statusKey: ticketStatusSchema,
   uiOrder: z.number().int(),
   labels: z.array(labelSchema),
-  archivedAt: z.string().datetime().nullable(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  archivedAt: z.string().nullable(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
 });
-
-export type Ticket = z.infer<typeof ticketSchema>;
-
-export const boardDetailSchema = boardSchema.extend({
-  columns: z.array(columnSchema),
-  labels: z.array(labelSchema),
-});
-
-export type BoardDetail = z.infer<typeof boardDetailSchema>;
 
 export const boardFiltersSchema = z.object({
   priorities: z.array(ticketPrioritySchema).default([]),
   labels: z.array(z.string().min(1)).default([]),
-  q: z.string().trim().default(""),
+  q: z.string().default(""),
 });
 
-export type BoardFilters = z.infer<typeof boardFiltersSchema>;
-
-export const createTicketInputSchema = z.object({
-  columnId: z.string(),
-  title: z.string().trim().min(1).max(200),
-  description: z.string().trim().default(""),
-  priority: ticketPrioritySchema.default("medium"),
-  labels: z.array(z.string().trim().min(1).max(50)).default([]),
+export const boardDetailSchema = boardSchema.extend({
+  columns: z.array(columnSchema),
+  availableLabels: z.array(labelSchema),
+  filterLabels: z.array(labelSchema),
 });
-
-export type CreateTicketInput = z.infer<typeof createTicketInputSchema>;
-
-export const updateTicketInputSchema = z.object({
-  title: z.string().trim().min(1).max(200).optional(),
-  description: z.string().trim().optional(),
-  columnId: z.string().optional(),
-  priority: ticketPrioritySchema.optional(),
-  labels: z.array(z.string().trim().min(1).max(50)).optional(),
-});
-
-export type UpdateTicketInput = z.infer<typeof updateTicketInputSchema>;
-
-export const repositionTicketInputSchema = z.object({
-  columnId: z.string(),
-  prevVisibleTicketId: z.string().nullable(),
-  nextVisibleTicketId: z.string().nullable(),
-});
-
-export type RepositionTicketInput = z.infer<typeof repositionTicketInputSchema>;
-
-export const archiveDoneTicketsResponseSchema = z.object({
-  archivedCount: z.number().int().nonnegative(),
-});
-
-export type ArchiveDoneTicketsResponse = z.infer<typeof archiveDoneTicketsResponseSchema>;
-
-export const listLabelsResponseSchema = z.object({
-  board: boardSchema,
-  labels: z.array(labelUsageSchema),
-});
-
-export type ListLabelsResponse = z.infer<typeof listLabelsResponseSchema>;
-
-export const updateLabelInputSchema = z.object({
-  name: z.string().trim().min(1).max(50),
-});
-
-export type UpdateLabelInput = z.infer<typeof updateLabelInputSchema>;
 
 export const listTicketsResponseSchema = z.object({
   board: boardDetailSchema,
@@ -137,4 +63,70 @@ export const listTicketsResponseSchema = z.object({
   tickets: z.array(ticketSchema),
 });
 
+export const listLabelsResponseSchema = z.object({
+  labels: z.array(labelUsageSchema),
+});
+
+export const boardColumnInputSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  statusKey: ticketStatusSchema,
+});
+
+export const createBoardInputSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(2_000).default(""),
+  columns: z.array(boardColumnInputSchema).min(1),
+  filterLabelIds: z.array(z.string().min(1)).default([]),
+});
+
+export const updateBoardInputSchema = createBoardInputSchema;
+
+export const createTicketInputSchema = z.object({
+  statusKey: ticketStatusSchema,
+  title: z.string().trim().min(1).max(200),
+  description: z.string().default(""),
+  priority: ticketPrioritySchema.default("medium"),
+  labels: z.array(z.string().min(1)).default([]),
+});
+
+export const updateTicketInputSchema = z.object({
+  statusKey: ticketStatusSchema.optional(),
+  title: z.string().trim().min(1).max(200).optional(),
+  description: z.string().optional(),
+  priority: ticketPrioritySchema.optional(),
+  labels: z.array(z.string().min(1)).optional(),
+});
+
+export const updateLabelInputSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+});
+
+export const repositionTicketInputSchema = z.object({
+  statusKey: ticketStatusSchema,
+  prevVisibleTicketId: z.string().min(1).nullable(),
+  nextVisibleTicketId: z.string().min(1).nullable(),
+});
+
+export const archiveDoneTicketsResponseSchema = z.object({
+  archivedCount: z.number().int().nonnegative(),
+});
+
+export type TicketPriority = z.infer<typeof ticketPrioritySchema>;
+export type TicketStatus = z.infer<typeof ticketStatusSchema>;
+export type Label = z.infer<typeof labelSchema>;
+export type LabelUsage = z.infer<typeof labelUsageSchema>;
+export type Board = z.infer<typeof boardSchema>;
+export type Column = z.infer<typeof columnSchema>;
+export type Ticket = z.infer<typeof ticketSchema>;
+export type BoardFilters = z.infer<typeof boardFiltersSchema>;
+export type BoardDetail = z.infer<typeof boardDetailSchema>;
 export type ListTicketsResponse = z.infer<typeof listTicketsResponseSchema>;
+export type ListLabelsResponse = z.infer<typeof listLabelsResponseSchema>;
+export type BoardColumnInput = z.infer<typeof boardColumnInputSchema>;
+export type CreateBoardInput = z.infer<typeof createBoardInputSchema>;
+export type UpdateBoardInput = z.infer<typeof updateBoardInputSchema>;
+export type CreateTicketInput = z.infer<typeof createTicketInputSchema>;
+export type UpdateTicketInput = z.infer<typeof updateTicketInputSchema>;
+export type UpdateLabelInput = z.infer<typeof updateLabelInputSchema>;
+export type RepositionTicketInput = z.infer<typeof repositionTicketInputSchema>;
+export type ArchiveDoneTicketsResponse = z.infer<typeof archiveDoneTicketsResponseSchema>;

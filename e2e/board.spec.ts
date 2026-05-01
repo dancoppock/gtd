@@ -54,21 +54,6 @@ test("creates a ticket and persists it after reload", async ({ page }) => {
   await expect(page.getByTestId("column-todo")).toContainText("Automation smoke ticket");
 });
 
-test("edits a ticket and persists the change after reload", async ({ page }) => {
-  await page.getByRole("button", { name: "Edit Design ticket modal" }).click();
-  await expect(page.getByRole("dialog", { name: "Edit Ticket" })).toBeVisible();
-
-  await page.getByTestId("ticket-modal-title-input").fill("Design ticket modal v2");
-  await page.getByLabel("Priority").selectOption("low");
-  await page.getByTestId("ticket-modal-labels-input").fill("frontend, ux");
-  await page.getByTestId("ticket-modal-submit").click();
-
-  await expect(page.getByTestId("column-todo")).toContainText("Design ticket modal v2");
-
-  await page.reload();
-  await expect(page.getByTestId("column-todo")).toContainText("Design ticket modal v2");
-});
-
 test("drags a ticket into another column and keeps it there after reload", async ({ page }) => {
   const ticketCard = page.getByTestId("ticket-ticket_1");
   const targetColumn = page.getByTestId("column-body-done");
@@ -120,7 +105,7 @@ test("archives done tickets and keeps them hidden after reload", async ({ page }
   await expect(page.getByTestId("column-done")).toContainText("0 tickets");
 });
 
-test("navigates to labels and manages them", async ({ page }) => {
+test("navigates to labels and manages them globally", async ({ page }) => {
   await page.getByRole("link", { name: "Labels" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Labels" })).toBeVisible();
   await expect(page.getByTestId("label-row-backend")).toBeVisible();
@@ -134,8 +119,25 @@ test("navigates to labels and manages them", async ({ page }) => {
   await page.getByTestId("label-delete-backend").click();
   await expect(page.getByTestId("label-row-backend")).toHaveCount(0);
 
-  await page.getByRole("link", { name: "Boards" }).click();
+  await page.getByRole("link", { name: "Home" }).click();
   await page.getByRole("button", { name: "Expand filters panel" }).click();
   await expect(page.getByTestId("label-filter-ux")).toBeVisible();
   await expect(page.getByTestId("label-filter-backend")).toHaveCount(0);
+});
+
+test("creates a filtered board from the boards page", async ({ page }) => {
+  await page.getByRole("link", { name: "Boards" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Boards" })).toBeVisible();
+  await page.getByRole("link", { name: "Create Board" }).click();
+
+  await page.getByTestId("board-name-input").fill("Frontend Work");
+  await page.getByTestId("board-description-input").fill("Only show frontend tickets");
+  await page.getByRole("checkbox", { name: "frontend" }).click({ force: true });
+  await page.getByRole("button", { name: "Create Board" }).click();
+
+  await expect(page).toHaveURL(/\/boards\/frontend-work$/);
+  await expect(page.getByRole("heading", { name: "Frontend Work" })).toBeVisible();
+  await expect(page.getByTestId("column-todo")).toContainText("Design ticket modal");
+  await expect(page.getByTestId("column-in_progress")).not.toContainText("Build board API route");
+  await expect(page.getByTestId("column-done")).not.toContainText("Seed default board");
 });

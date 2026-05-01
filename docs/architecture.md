@@ -2,7 +2,7 @@
 
 ## Overview
 
-The app is implemented as a small monorepo with a browser frontend and a local API:
+The app is a small monorepo with a browser frontend, a local API, and a shared contracts package:
 
 ```text
 .
@@ -21,17 +21,11 @@ The app is implemented as a small monorepo with a browser frontend and a local A
 │       └── src
 │           ├── app
 │           ├── features
-│           │   ├── board
-│           │   ├── filters
-│           │   └── tickets
 │           └── routes
 ├── docs
-│   └── architecture.md
 ├── packages
 │   └── contracts
-│       └── src
-│           └── index.ts
-└── package.json
+└── e2e
 ```
 
 ## Tooling
@@ -53,194 +47,134 @@ The app is implemented as a small monorepo with a browser frontend and a local A
 - Fastify
 - TypeScript
 - ESLint
-- Drizzle ORM
 - SQLite via `better-sqlite3`
+- Drizzle schema/bootstrap files
 - Zod
-
-### Shared Package
-
-`packages/contracts` contains the shared schemas and types used by both apps:
-
-- board DTOs
-- column DTOs
-- label DTOs
-- ticket DTOs
-- filter schema
-- create/update ticket input
-- reposition input
 
 ### Testing
 
 - Vitest for unit tests across the workspace
 - `happy-dom` for frontend tests
 - disposable SQLite databases for backend repository tests
-- Fastify route tests via `app.inject()` with an injected board store
-- React component tests for filter interactions and ticket modal flows
-- Playwright end-to-end tests for the main browser flows
+- Fastify route tests via `app.inject()`
+- Playwright for browser smoke tests
 
-## Data Model
+## Core Domain Model
+
+### Ticket
+
+- global across the whole app
+- has `statusKey`: `todo | in_progress | done`
+- has a single global `uiOrder`
+- has many labels
+- can be archived
+
+### Label
+
+- global across the whole app
+- unique by normalized name
+- can be attached to tickets
+- can also be used in board filters
 
 ### Board
 
-- has many columns
-- has many labels
-- has many tickets
+- a saved view over global tickets
+- has metadata: name, description, slug, `isSystem`
+- owns columns
+- can optionally filter visible tickets by one or more labels
 
 ### Column
 
 - belongs to one board
-- is fixed for the default board today
-- is still modeled as persisted board-owned data to support future multi-board expansion
+- has a display name and position
+- maps to exactly one `statusKey`
+- determines how tickets are grouped on that board
 
-### Ticket
+## Persistence Model
 
-- belongs to one board
-- belongs to one column
-- has many labels through `ticket_labels`
-- carries one global `uiOrder`
+The SQLite schema currently stores:
 
-### Label
+- `boards`
+- `columns`
+- `labels`
+- `board_label_filters`
+- `tickets`
+- `ticket_labels`
 
-- belongs to one board
-- is unique per board by normalized name
+Important implementation detail:
 
-## Database
+- old single-board data is migrated forward in `apps/api/src/db/client.ts`
+- legacy `tickets.board_id` / `tickets.column_id` data is converted into global `tickets.status_key`
+- legacy board-scoped labels are merged into global labels by normalized name
 
-The API stores data in `apps/api/data/gtd.sqlite`.
+## API Shape
 
-Automation tests use a separate isolated file:
+### Boards
 
-- `apps/api/data/gtd.e2e.sqlite`
-
-The schema is defined in:
-
-- `apps/api/src/db/schema.ts`
-- `apps/api/drizzle/0000_init.sql`
-
-On first startup, the API initializes the SQLite schema if needed and seeds:
-
-- board `default`
-- columns `Todo`, `In Progress`, `Done`
-- a few starter labels
-- a few starter tickets
-
-## API Design
-
-### Routes
-
-- `GET /health`
 - `GET /api/boards`
+- `POST /api/boards`
 - `GET /api/boards/:boardId`
+- `PATCH /api/boards/:boardId`
+- `DELETE /api/boards/:boardId`
 - `GET /api/boards/:boardId/tickets`
 - `GET /api/boards/slug/:boardSlug`
 - `GET /api/boards/slug/:boardSlug/tickets`
 - `POST /api/boards/:boardId/tickets`
+- `POST /api/boards/:boardId/archive-done`
+
+### Labels
+
+- `GET /api/labels`
+- `PATCH /api/labels/:labelId`
+- `DELETE /api/labels/:labelId`
+
+### Tickets
+
 - `PATCH /api/tickets/:ticketId`
+- `DELETE /api/tickets/:ticketId`
 - `POST /api/tickets/:ticketId/reposition`
 
-When `GTD_ENABLE_TEST_ROUTES=true`, the API also exposes:
+### Test-only
+
+When `GTD_ENABLE_TEST_ROUTES=true`:
 
 - `POST /api/test/reset`
 
-That route is used only by Playwright to reset the isolated E2E database between tests.
-
-### Filters
-
-Ticket list endpoints accept:
-
-- repeated `priority`
-- repeated `label`
-- `q`
-
-Example:
-
-```text
-/api/boards/slug/default/tickets?priority=high&label=frontend&q=modal
-```
-
-### Reposition Contract
-
-The frontend sends:
-
-```json
-{
-  "columnId": "col_done",
-  "prevVisibleTicketId": "ticket_3",
-  "nextVisibleTicketId": null
-}
-```
-
-The backend:
-
-1. loads the moved ticket
-2. resolves visible neighbors
-3. computes a new global `uiOrder`
-4. updates `columnId`, `uiOrder`, and `updatedAt`
-5. persists the change in a transaction
-
 ## Ordering Strategy
 
-`uiOrder` is global to the board, not scoped per column.
+`uiOrder` is global to all tickets.
 
 Current behavior:
 
 - drag/drop within filtered results reorders against the visible subset only
-- moving between columns updates both `columnId` and `uiOrder`
-- new tickets append at the end of the board order
+- moving between columns updates both `statusKey` and `uiOrder`
+- new tickets append at the end of the global order
 
 Current implementation strategy:
 
-- use large integer gaps, starting at `1_000_000`
-- insert between neighbors using midpoint math
-- rebalance the board if gaps become too small
+- large integer gaps starting at `1_000_000`
+- midpoint insertion between neighbors
+- full rebalance when no numeric gap remains
 
 ## Frontend Structure
 
-### `routes/BoardPage.tsx`
+### Routes
 
-Coordinates:
+- `BoardPage.tsx`: board view, filters, ticket modal state, drag/drop
+- `BoardsPage.tsx`: board list
+- `BoardEditPage.tsx`: board create/edit form
+- `LabelsPage.tsx`: global label management
 
-- route params and search params
-- board fetches
-- modal state
-- drag-and-drop state
-- reposition mutations
+### Feature Areas
 
-### `features/board`
+- `features/board`: API client, DnD helpers, board column rendering
+- `features/filters`: collapsible search/filter panel
+- `features/layout`: shared header/navigation/theme picker
+- `features/tickets`: ticket card, sortable wrapper, modal form
 
-- `api.ts`: HTTP functions
-- `BoardColumn.tsx`: droppable column and sortable context
-- `drag.ts`: drag helpers and neighbor calculation
+## Current Runtime Notes
 
-### `features/filters`
-
-- filter panel with multi-select priorities, labels, and text search
-
-### `features/tickets`
-
-- ticket cards
-- sortable ticket wrapper
-- create/edit modal form
-
-## Runtime Notes
-
-### Node
-
-The current working Node version for local development is `20.20.0`.
-
-### Vite
-
-The frontend is pinned to Vite `6.4.1`, which matches the current local Node environment more reliably than the latest Vite major in this setup.
-
-### Native SQLite Binding
-
-`better-sqlite3` requires a native module. In this environment, it may require a manual build against the active Node version if the initial install skips or fails native compilation.
-
-## Current Gaps
-
-The main remaining gaps are:
-
-- Playwright CI wiring and artifact retention
-- smoother first-time native dependency setup
-- stronger drag-and-drop error recovery and UX polish
-- additional board features such as delete/archive and label management UI
+- default API URL: `http://127.0.0.1:3001`
+- default frontend URL: `http://localhost:3000`
+- dev scripts keep those ports stable by stopping existing listeners first
+- Playwright uses `apps/api/data/gtd.e2e.sqlite` so local dev data is not touched

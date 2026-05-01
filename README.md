@@ -1,15 +1,13 @@
 # GTD Kanban App
 
-This repository contains a browser-based kanban todos app with:
+Browser-based kanban todos app with:
 
-- a React + Vite frontend
-- a Fastify API
+- React + Vite frontend
+- Fastify API
 - shared Zod contracts
-- SQLite persistence through Drizzle
+- SQLite persistence
 
-Quick setup help lives in:
-
-- `docs/onboarding.md`
+Quick setup help lives in `docs/onboarding.md`.
 
 ## Current Architecture
 
@@ -29,20 +27,24 @@ Quick setup help lives in:
 - dnd-kit
 - React Hook Form
 
-The board UI supports:
+The UI currently supports:
 
-- loading a board by slug
+- board view by slug
+- boards list and board edit/create pages
+- global labels page
+- theme switching
 - filtering by priority, labels, and text search
-- creating tickets in a modal
-- editing tickets in a modal
-- dragging tickets within and across columns
+- create/edit ticket modals
+- inline title editing
+- drag/drop reorder within and across columns
+- archive of visible done tickets
 
 ### Backend
 
 - Node.js
 - Fastify
-- Drizzle ORM
 - SQLite via `better-sqlite3`
+- Drizzle-managed schema/bootstrap files
 - shared request/response validation via Zod
 
 The API persists data in:
@@ -51,20 +53,37 @@ The API persists data in:
 
 On first run, the API seeds:
 
-- one board: `default`
+- one system board: `default`
 - three columns: `Todo`, `In Progress`, `Done`
 - demo labels and tickets
+
+## Data Model
+
+- Tickets are global and carry a global `statusKey` plus a global `uiOrder`
+- Labels are global and reusable across all tickets and boards
+- Boards are views over tickets
+- Each board owns a set of columns
+- Each column maps to exactly one status
+- Boards can optionally filter visible tickets by one or more labels
 
 ## API Routes
 
 - `GET /health`
 - `GET /api/boards`
+- `POST /api/boards`
 - `GET /api/boards/:boardId`
+- `PATCH /api/boards/:boardId`
+- `DELETE /api/boards/:boardId`
 - `GET /api/boards/:boardId/tickets`
 - `GET /api/boards/slug/:boardSlug`
 - `GET /api/boards/slug/:boardSlug/tickets`
 - `POST /api/boards/:boardId/tickets`
+- `POST /api/boards/:boardId/archive-done`
+- `GET /api/labels`
+- `PATCH /api/labels/:labelId`
+- `DELETE /api/labels/:labelId`
 - `PATCH /api/tickets/:ticketId`
+- `DELETE /api/tickets/:ticketId`
 - `POST /api/tickets/:ticketId/reposition`
 
 Ticket list routes support:
@@ -98,13 +117,6 @@ npm_config_nodedir=$HOME/.nvm/versions/node/v20.20.0 npm run build-release
 From the repo root:
 
 ```bash
-npm run dev:api
-npm run dev:web
-```
-
-Or with pnpm:
-
-```bash
 pnpm dev:api
 pnpm dev:web
 ```
@@ -115,8 +127,6 @@ Notes:
 - the frontend listens on `http://localhost:3000`
 - `pnpm dev:api` stops any existing process on port `3001` before starting Fastify
 - `pnpm dev:web` stops any existing process on port `3000` before starting Vite
-- Vite now uses a strict port, so it will not silently move to `3001`, `3002`, or another port
-- if another app is already using one of those ports, the matching `dev:*` command will stop it first
 
 Optional manual stops:
 
@@ -127,36 +137,19 @@ pnpm stop:web
 
 ## Testing
 
-Unit tests use `Vitest`, and browser automation uses `Playwright`.
-
 From the repo root:
 
 ```bash
+pnpm typecheck
 pnpm lint
 pnpm test
-pnpm test:watch
-pnpm test:coverage
 pnpm test:e2e
 ```
 
-`pnpm test:e2e` uses the locally installed Google Chrome browser on this machine.
-
-Current first-pass coverage targets include:
+Current automated coverage includes:
 
 - frontend drag/reorder helpers
 - React component behavior for filters and ticket modals
-- SQLite-backed board store behavior
+- SQLite-backed repository behavior
 - Fastify route behavior via `app.inject()`
-- Playwright smoke coverage for load, filter, create, edit, and drag flows
-
-## Verification Status
-
-The current implementation has been verified to:
-
-- pass `pnpm typecheck`
-- pass `pnpm test`
-- pass `pnpm test:e2e`
-- serve the SQLite-backed API
-- create tickets through the API
-- reposition tickets through the API
-- serve the React frontend through Vite
+- Playwright smoke coverage for board load/filter/create/drag plus labels and boards flows

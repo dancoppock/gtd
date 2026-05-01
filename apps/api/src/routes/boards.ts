@@ -1,8 +1,11 @@
 import {
   archiveDoneTicketsResponseSchema,
+  boardDetailSchema,
   boardFiltersSchema,
   boardSchema,
+  createBoardInputSchema,
   listTicketsResponseSchema,
+  updateBoardInputSchema,
 } from "@gtd/contracts";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
@@ -42,9 +45,15 @@ function parseFilters(query: unknown) {
 }
 
 function notFound(message: string) {
-  return {
-    message,
-  };
+  return { message };
+}
+
+function badRequest(message: string) {
+  return { message };
+}
+
+function validateUniqueColumnStatuses(statusKeys: string[]) {
+  return new Set(statusKeys).size === statusKeys.length;
 }
 
 type BoardRouteOptions = {
@@ -58,6 +67,16 @@ export const registerBoardRoutes: FastifyPluginAsync<BoardRouteOptions> = async 
     return boardSchema.array().parse(boardStore.listBoards());
   });
 
+  app.post("/boards", async (request, reply) => {
+    const input = createBoardInputSchema.parse(request.body);
+
+    if (!validateUniqueColumnStatuses(input.columns.map((column) => column.statusKey))) {
+      return reply.status(400).send(badRequest("Each board column must map to a unique status"));
+    }
+
+    return reply.status(201).send(boardDetailSchema.parse(boardStore.createBoard(input)));
+  });
+
   app.get("/boards/:boardId", async (request, reply) => {
     const { boardId } = boardIdParamsSchema.parse(request.params);
     const board = boardStore.getBoardDetail(boardId);
@@ -66,7 +85,40 @@ export const registerBoardRoutes: FastifyPluginAsync<BoardRouteOptions> = async 
       return reply.status(404).send(notFound("Board not found"));
     }
 
-    return board;
+    return boardDetailSchema.parse(board);
+  });
+
+  app.patch("/boards/:boardId", async (request, reply) => {
+    const { boardId } = boardIdParamsSchema.parse(request.params);
+    const input = updateBoardInputSchema.parse(request.body);
+
+    if (!validateUniqueColumnStatuses(input.columns.map((column) => column.statusKey))) {
+      return reply.status(400).send(badRequest("Each board column must map to a unique status"));
+    }
+
+    const board = boardStore.updateBoard(boardId, input);
+
+    if (!board) {
+      return reply.status(404).send(notFound("Board not found"));
+    }
+
+    return boardDetailSchema.parse(board);
+  });
+
+  app.delete("/boards/:boardId", async (request, reply) => {
+    const { boardId } = boardIdParamsSchema.parse(request.params);
+    const board = boardStore.getBoardById(boardId);
+
+    if (!board) {
+      return reply.status(404).send(notFound("Board not found"));
+    }
+
+    if (board.isSystem) {
+      return reply.status(400).send(badRequest("System boards cannot be deleted"));
+    }
+
+    boardStore.deleteBoard(boardId);
+    return reply.status(204).send();
   });
 
   app.get("/boards/:boardId/tickets", async (request, reply) => {
@@ -95,7 +147,12 @@ export const registerBoardRoutes: FastifyPluginAsync<BoardRouteOptions> = async 
       return reply.status(404).send(notFound("Board not found"));
     }
 
-    return board;
+    const detail = boardStore.getBoardDetail(board.id);
+    if (!detail) {
+      return reply.status(404).send(notFound("Board not found"));
+    }
+
+    return boardDetailSchema.parse(detail);
   });
 
   app.get("/boards/slug/:boardSlug/tickets", async (request, reply) => {
@@ -106,8 +163,8 @@ export const registerBoardRoutes: FastifyPluginAsync<BoardRouteOptions> = async 
       return reply.status(404).send(notFound("Board not found"));
     }
 
-    const boardDetail = boardStore.getBoardDetail(board.id);
-    if (!boardDetail) {
+    const detail = boardStore.getBoardDetail(board.id);
+    if (!detail) {
       return reply.status(404).send(notFound("Board not found"));
     }
 
@@ -115,7 +172,7 @@ export const registerBoardRoutes: FastifyPluginAsync<BoardRouteOptions> = async 
     const tickets = boardStore.listTickets(board.id, filters);
 
     return listTicketsResponseSchema.parse({
-      board: boardDetail,
+      board: detail,
       filters,
       tickets,
     });

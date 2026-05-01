@@ -10,7 +10,7 @@ type BoardColumnProps = {
   tickets: Ticket[];
   isArchiving?: boolean;
   onEditTicket: (ticket: Ticket) => void;
-  onCreateTicket: (columnId: string) => void;
+  onCreateTicket: (statusKey: Column["statusKey"]) => void;
   onArchiveDoneTickets?: () => void;
   onInlineTitleUpdate: (ticket: Ticket, nextTitle: string) => Promise<void>;
   viewMode: TicketViewMode;
@@ -33,7 +33,7 @@ export function BoardColumn({
   return (
     <section
       className={`board-column ${isOver ? "board-column--over" : ""}`}
-      data-testid={`column-${column.key}`}
+      data-testid={`column-${column.statusKey}`}
     >
       <header className="board-column__header">
         <div className="board-column__header-row">
@@ -42,7 +42,7 @@ export function BoardColumn({
             <p>{tickets.length} tickets</p>
           </div>
           <div className="board-column__header-actions">
-            {column.key === "done" && onArchiveDoneTickets ? (
+            {column.statusKey === "done" && onArchiveDoneTickets ? (
               <button
                 aria-label="Archive done tickets"
                 className="board-column__archive-button"
@@ -57,13 +57,13 @@ export function BoardColumn({
                 </svg>
               </button>
             ) : null}
-            <button
-              aria-label={`Add ticket in ${column.name}`}
-              className="board-column__add-button"
-              data-testid={`column-add-${column.key}`}
-              type="button"
-              onClick={() => onCreateTicket(column.id)}
-            >
+              <button
+                aria-label={`Add ticket in ${column.name}`}
+                className="board-column__add-button"
+                data-testid={`column-add-${column.statusKey}`}
+                type="button"
+                onClick={() => onCreateTicket(column.statusKey)}
+              >
               <svg aria-hidden="true" viewBox="0 0 20 20">
                 <path d="M9 4a1 1 0 1 1 2 0v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H4a1 1 0 1 1 0-2h5V4Z" />
               </svg>
@@ -75,7 +75,7 @@ export function BoardColumn({
       <div
         ref={setNodeRef}
         className={`board-column__body ${isOver ? "board-column__body--over" : ""}`}
-        data-testid={`column-body-${column.key}`}
+        data-testid={`column-body-${column.statusKey}`}
       >
         <SortableContext
           items={tickets.map((ticket) => ticket.id)}
@@ -86,7 +86,7 @@ export function BoardColumn({
               <SortableTicketCard
                 key={ticket.id}
                 ticket={ticket}
-                tone={column.key === "done" ? "done" : "default"}
+                tone={column.statusKey === "done" ? "done" : "default"}
                 onEdit={() => onEditTicket(ticket)}
                 onTitleUpdate={(nextTitle) => onInlineTitleUpdate(ticket, nextTitle)}
                 viewMode={viewMode}

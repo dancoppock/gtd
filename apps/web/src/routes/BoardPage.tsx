@@ -17,7 +17,7 @@ import {
 } from "@dnd-kit/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import {
   archiveDoneTickets,
@@ -30,7 +30,7 @@ import {
 import { BoardColumn } from "../features/board/BoardColumn";
 import {
   buildRepositionInput,
-  findColumnId,
+  findStatusKey,
   haveSameTicketLayout,
   moveTicket,
 } from "../features/board/drag";
@@ -72,19 +72,15 @@ function writeFilters(nextFilters: BoardFilters) {
   return params;
 }
 
-function resolveTicketTone(
-  ticket: Ticket,
-  columns: { id: string; key: "todo" | "in_progress" | "done" }[],
-) {
-  const column = columns.find((candidate) => candidate.id === ticket.columnId);
-  return column?.key === "done" ? "done" : "default";
+function resolveTicketTone(ticket: Ticket) {
+  return ticket.statusKey === "done" ? "done" : "default";
 }
 
 export function BoardPage() {
   const { boardSlug = "default" } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
-  const [createColumnId, setCreateColumnId] = useState<string | null>(null);
+  const [createStatusKey, setCreateStatusKey] = useState<Ticket["statusKey"] | null>(null);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [ticketViewMode, setTicketViewMode] = useState<TicketViewMode>("compact");
   const { theme, setTheme } = useBoardTheme();
@@ -108,10 +104,10 @@ export function BoardPage() {
 
   const createTicketMutation = useMutation({
     mutationFn: (input: {
-      columnId: string;
+      statusKey: Ticket["statusKey"];
       title: string;
       description: string;
-      priority: "highest" | "high" | "medium" | "low";
+      priority: Ticket["priority"];
       labels: string[];
     }) => {
       if (!boardQuery.data) {
@@ -121,8 +117,10 @@ export function BoardPage() {
       return createTicket(boardQuery.data.board.id, input);
     },
     onSuccess: async () => {
-      setCreateColumnId(null);
+      setCreateStatusKey(null);
       await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
+      await queryClient.invalidateQueries({ queryKey: ["boards"] });
+      await queryClient.invalidateQueries({ queryKey: ["labels"] });
     },
   });
 
@@ -134,6 +132,8 @@ export function BoardPage() {
     onSuccess: async () => {
       setEditingTicket(null);
       await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
+      await queryClient.invalidateQueries({ queryKey: ["boards"] });
+      await queryClient.invalidateQueries({ queryKey: ["labels"] });
     },
   });
 
@@ -142,6 +142,8 @@ export function BoardPage() {
     onSuccess: async () => {
       setEditingTicket(null);
       await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
+      await queryClient.invalidateQueries({ queryKey: ["boards"] });
+      await queryClient.invalidateQueries({ queryKey: ["labels"] });
     },
   });
 
@@ -149,14 +151,23 @@ export function BoardPage() {
     mutationFn: (boardId: string) => archiveDoneTickets(boardId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
+      await queryClient.invalidateQueries({ queryKey: ["boards"] });
+      await queryClient.invalidateQueries({ queryKey: ["labels"] });
     },
   });
 
   const repositionTicketMutation = useMutation({
-    mutationFn: (args: { ticketId: string; input: { columnId: string; prevVisibleTicketId: string | null; nextVisibleTicketId: string | null } }) =>
-      repositionTicket(args.ticketId, args.input),
+    mutationFn: (args: {
+      ticketId: string;
+      input: {
+        statusKey: Ticket["statusKey"];
+        prevVisibleTicketId: string | null;
+        nextVisibleTicketId: string | null;
+      };
+    }) => repositionTicket(args.ticketId, args.input),
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
+      await queryClient.invalidateQueries({ queryKey: ["boards"] });
     },
   });
 
@@ -184,10 +195,10 @@ export function BoardPage() {
     const overId = String(event.over.id);
 
     setVisibleTickets((currentTickets) => {
-      const activeColumnId = findColumnId(data.board.columns, currentTickets, activeId);
-      const overColumnId = findColumnId(data.board.columns, currentTickets, overId);
+      const activeStatusKey = findStatusKey(data.board.columns, currentTickets, activeId);
+      const overStatusKey = findStatusKey(data.board.columns, currentTickets, overId);
 
-      if (!activeColumnId || !overColumnId || activeColumnId === overColumnId) {
+      if (!activeStatusKey || !overStatusKey || activeStatusKey === overStatusKey) {
         return currentTickets;
       }
 
@@ -272,21 +283,24 @@ export function BoardPage() {
   return (
     <main className="page-shell">
       <AppHeader
+        activeNav={boardSlug === "default" ? "home" : "boards"}
         actions={
           <>
             <TicketViewToggle value={ticketViewMode} onChange={setTicketViewMode} />
+            <Link className="ghost-button" to={`/boards/${boardSlug}/edit`}>
+              Edit Board
+            </Link>
             <button
               className="primary-button"
               disabled={!data}
               type="button"
-              onClick={() => setCreateColumnId(data?.board.columns[0]?.id ?? null)}
+              onClick={() => setCreateStatusKey(data?.board.columns[0]?.statusKey ?? "todo")}
             >
               New Ticket
             </button>
           </>
         }
-        boardSlug={boardSlug}
-        description="The board model already supports multiple boards and board-owned columns, while v1 stays fixed to Todo, In Progress, and Done."
+        description={data?.board.description ?? "Loading board configuration..."}
         theme={theme}
         title={data?.board.name ?? "Loading board..."}
         onThemeChange={setTheme}
@@ -303,7 +317,8 @@ export function BoardPage() {
         <>
           <BoardFiltersPanel
             filters={filters}
-            availableLabels={data.board.labels}
+            availableLabels={data.board.availableLabels}
+            implicitLabels={data.board.filterLabels}
             onChange={(nextFilters) => setSearchParams(writeFilters(nextFilters))}
             onClear={() =>
               setSearchParams(
@@ -326,19 +341,19 @@ export function BoardPage() {
           >
             <section className="board-grid">
               {data.board.columns.map((column) => {
-                const tickets = visibleTickets.filter((ticket) => ticket.columnId === column.id);
+                const tickets = visibleTickets.filter((ticket) => ticket.statusKey === column.statusKey);
 
                 return (
                   <BoardColumn
                     key={column.id}
                     column={column}
-                    isArchiving={archiveDoneTicketsMutation.isPending && column.key === "done"}
+                    isArchiving={archiveDoneTicketsMutation.isPending && column.statusKey === "done"}
                     tickets={tickets}
                     onArchiveDoneTickets={() => {
                       void archiveDoneTicketsMutation.mutateAsync(data.board.id);
                     }}
                     onEditTicket={setEditingTicket}
-                    onCreateTicket={setCreateColumnId}
+                    onCreateTicket={setCreateStatusKey}
                     onInlineTitleUpdate={handleInlineTitleUpdate}
                     viewMode={ticketViewMode}
                   />
@@ -350,7 +365,7 @@ export function BoardPage() {
               {activeTicket ? (
                 <TicketCard
                   ticket={activeTicket}
-                  tone={resolveTicketTone(activeTicket, data.board.columns)}
+                  tone={resolveTicketTone(activeTicket)}
                   onEdit={() => undefined}
                   onTitleUpdate={async () => undefined}
                   viewMode={ticketViewMode}
@@ -366,14 +381,15 @@ export function BoardPage() {
         </section>
       )}
 
-      {createColumnId && data ? (
+      {createStatusKey && data ? (
         <TicketModal
           mode="create"
           ticket={null}
           columns={data.board.columns}
-          availableLabels={data.board.labels}
-          defaultColumnId={createColumnId}
-          onClose={() => setCreateColumnId(null)}
+          availableLabels={data.board.availableLabels}
+          implicitLabels={data.board.filterLabels}
+          defaultStatusKey={createStatusKey}
+          onClose={() => setCreateStatusKey(null)}
           onSubmit={async (input) => {
             await createTicketMutation.mutateAsync(input);
           }}
@@ -385,7 +401,7 @@ export function BoardPage() {
           mode="edit"
           ticket={editingTicket}
           columns={data.board.columns}
-          availableLabels={data.board.labels}
+          availableLabels={data.board.availableLabels}
           onClose={() => setEditingTicket(null)}
           onDelete={async () => {
             await deleteTicketMutation.mutateAsync(editingTicket.id);

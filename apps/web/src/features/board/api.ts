@@ -1,11 +1,15 @@
 import type {
   ArchiveDoneTicketsResponse,
+  Board,
+  BoardDetail,
+  CreateBoardInput,
   CreateTicketInput,
   Label,
-  ListTicketsResponse,
   ListLabelsResponse,
+  ListTicketsResponse,
   RepositionTicketInput,
   Ticket,
+  UpdateBoardInput,
   UpdateLabelInput,
   UpdateTicketInput,
 } from "@gtd/contracts";
@@ -30,6 +34,16 @@ export type BoardFilterState = {
   q: string;
 };
 
+export async function fetchBoards() {
+  return fetch("/api/boards").then((response) => readJson<Board[]>(response));
+}
+
+export async function fetchBoard(boardSlug: string) {
+  return fetch(`/api/boards/slug/${encodeURIComponent(boardSlug)}`).then((response) =>
+    readJson<BoardDetail>(response),
+  );
+}
+
 export async function fetchBoardTickets(boardSlug: string, filters: BoardFilterState) {
   const params = new URLSearchParams();
 
@@ -48,10 +62,38 @@ export async function fetchBoardTickets(boardSlug: string, filters: BoardFilterS
   return fetch(url).then((response) => readJson<ListTicketsResponse>(response));
 }
 
-export async function fetchBoardLabels(boardSlug: string) {
-  return fetch(`/api/boards/slug/${encodeURIComponent(boardSlug)}/labels`).then((response) =>
-    readJson<ListLabelsResponse>(response),
-  );
+export async function createBoard(input: CreateBoardInput) {
+  return fetch("/api/boards", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  }).then((response) => readJson<BoardDetail>(response));
+}
+
+export async function updateBoard(boardId: string, input: UpdateBoardInput) {
+  return fetch(`/api/boards/${encodeURIComponent(boardId)}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  }).then((response) => readJson<BoardDetail>(response));
+}
+
+export async function deleteBoard(boardId: string) {
+  const response = await fetch(`/api/boards/${encodeURIComponent(boardId)}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    await readJson(response);
+  }
+}
+
+export async function fetchLabels() {
+  return fetch("/api/labels").then((response) => readJson<ListLabelsResponse>(response));
 }
 
 export async function createTicket(boardId: string, input: CreateTicketInput) {

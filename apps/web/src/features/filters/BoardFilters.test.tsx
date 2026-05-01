@@ -13,13 +13,19 @@ const filters: BoardFiltersState = {
 const availableLabels: Label[] = [
   {
     id: "label_backend",
-    boardId: "board_default",
     name: "backend",
     normalizedName: "backend",
   },
   {
     id: "label_frontend",
-    boardId: "board_default",
+    name: "frontend",
+    normalizedName: "frontend",
+  },
+];
+
+const implicitLabels: Label[] = [
+  {
+    id: "label_frontend",
     name: "frontend",
     normalizedName: "frontend",
   },
@@ -80,6 +86,31 @@ describe("BoardFilters", () => {
       labels: ["backend", "frontend"],
       q: "modal",
     });
+  });
+
+  it("shows implicit board labels as locked and does not toggle them", () => {
+    const onChange = vi.fn();
+
+    render(
+      <BoardFilters
+        filters={{ priorities: [], labels: [], q: "" }}
+        availableLabels={availableLabels}
+        implicitLabels={implicitLabels}
+        onChange={onChange}
+        onClear={vi.fn()}
+      />,
+    );
+
+    expandFilters();
+
+    const implicitLabel = screen.getByTestId("label-filter-frontend");
+    expect(implicitLabel).toBeChecked();
+    expect(implicitLabel).toBeDisabled();
+    expect(screen.getByText("frontend (board)")).toBeInTheDocument();
+
+    fireEvent.click(implicitLabel);
+
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("calls onClear and shows the empty-state hint when there are no labels", () => {

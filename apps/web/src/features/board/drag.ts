@@ -5,18 +5,25 @@ function getColumnIds(columns: Column[]) {
   return new Set(columns.map((column) => column.id));
 }
 
+function getColumnStatus(columns: Column[], columnId: string) {
+  return columns.find((column) => column.id === columnId)?.statusKey ?? null;
+}
+
 function cloneGroups(columns: Column[], tickets: Ticket[]) {
   const groups = new Map<string, Ticket[]>();
 
   columns.forEach((column) => {
-    groups.set(column.id, tickets.filter((ticket) => ticket.columnId === column.id));
+    groups.set(
+      column.statusKey,
+      tickets.filter((ticket) => ticket.statusKey === column.statusKey),
+    );
   });
 
   return groups;
 }
 
 function flattenGroups(columns: Column[], groups: Map<string, Ticket[]>) {
-  return columns.flatMap((column) => groups.get(column.id) ?? []);
+  return columns.flatMap((column) => groups.get(column.statusKey) ?? []);
 }
 
 export function haveSameTicketLayout(previousTickets: Ticket[], nextTickets: Ticket[]) {
@@ -26,23 +33,23 @@ export function haveSameTicketLayout(previousTickets: Ticket[], nextTickets: Tic
       const nextTicket = nextTickets[index];
 
       return nextTicket
-        ? ticket.id === nextTicket.id && ticket.columnId === nextTicket.columnId
+        ? ticket.id === nextTicket.id && ticket.statusKey === nextTicket.statusKey
         : false;
     })
   );
 }
 
-export function findColumnId(columns: Column[], tickets: Ticket[], itemId: string | null) {
+export function findStatusKey(columns: Column[], tickets: Ticket[], itemId: string | null) {
   if (!itemId) {
     return null;
   }
 
   const columnIds = getColumnIds(columns);
   if (columnIds.has(itemId)) {
-    return itemId;
+    return getColumnStatus(columns, itemId);
   }
 
-  return tickets.find((ticket) => ticket.id === itemId)?.columnId ?? null;
+  return tickets.find((ticket) => ticket.id === itemId)?.statusKey ?? null;
 }
 
 export function moveTicket(
@@ -59,32 +66,32 @@ export function moveTicket(
     return tickets;
   }
 
-  const activeColumnId = activeTicket.columnId;
-  const overColumnId = findColumnId(columns, tickets, overId);
-  if (!overColumnId) {
+  const activeStatusKey = activeTicket.statusKey;
+  const overStatusKey = findStatusKey(columns, tickets, overId);
+  if (!overStatusKey) {
     return tickets;
   }
 
-  const sourceTickets = [...(groups.get(activeColumnId) ?? [])];
+  const sourceTickets = [...(groups.get(activeStatusKey) ?? [])];
   const destinationTickets =
-    activeColumnId === overColumnId
+    activeStatusKey === overStatusKey
       ? sourceTickets
-      : [...(groups.get(overColumnId) ?? [])];
+      : [...(groups.get(overStatusKey) ?? [])];
 
   const activeIndex = sourceTickets.findIndex((ticket) => ticket.id === activeId);
   if (activeIndex < 0) {
     return tickets;
   }
 
-  if (activeColumnId === overColumnId) {
+  if (activeStatusKey === overStatusKey) {
     if (columnIds.has(overId)) {
       const nextTickets = sourceTickets.filter((ticket) => ticket.id !== activeId);
       nextTickets.push({
         ...activeTicket,
-        columnId: overColumnId,
+        statusKey: overStatusKey,
       });
 
-      groups.set(overColumnId, nextTickets);
+      groups.set(overStatusKey, nextTickets);
       return flattenGroups(columns, groups);
     }
 
@@ -93,7 +100,7 @@ export function moveTicket(
       return tickets;
     }
 
-    groups.set(overColumnId, arrayMove(sourceTickets, activeIndex, overIndex));
+    groups.set(overStatusKey, arrayMove(sourceTickets, activeIndex, overIndex));
     return flattenGroups(columns, groups);
   }
 
@@ -106,11 +113,11 @@ export function moveTicket(
 
   nextDestinationTickets.splice(insertIndex, 0, {
     ...activeTicket,
-    columnId: overColumnId,
+    statusKey: overStatusKey,
   });
 
-  groups.set(activeColumnId, nextSourceTickets);
-  groups.set(overColumnId, nextDestinationTickets);
+  groups.set(activeStatusKey, nextSourceTickets);
+  groups.set(overStatusKey, nextDestinationTickets);
 
   return flattenGroups(columns, groups);
 }
@@ -125,8 +132,11 @@ export function buildRepositionInput(
     return null;
   }
 
-  const columnTickets = columns
-    .flatMap((column) => (column.id === ticket.columnId ? tickets.filter((candidate) => candidate.columnId === column.id) : []));
+  const columnTickets = columns.flatMap((column) =>
+    column.statusKey === ticket.statusKey
+      ? tickets.filter((candidate) => candidate.statusKey === column.statusKey)
+      : [],
+  );
 
   const ticketIndex = columnTickets.findIndex((candidate) => candidate.id === ticketId);
   if (ticketIndex < 0) {
@@ -134,7 +144,7 @@ export function buildRepositionInput(
   }
 
   return {
-    columnId: ticket.columnId,
+    statusKey: ticket.statusKey,
     prevVisibleTicketId: columnTickets[ticketIndex - 1]?.id ?? null,
     nextVisibleTicketId: columnTickets[ticketIndex + 1]?.id ?? null,
   };

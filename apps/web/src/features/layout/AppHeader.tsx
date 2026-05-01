@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import {
   isBoardTheme,
@@ -9,7 +9,7 @@ import {
 } from "../theme/themes";
 
 type AppHeaderProps = {
-  boardSlug: string;
+  activeNav: "home" | "boards" | "labels" | "insights";
   title: string;
   description: string;
   theme: BoardTheme;
@@ -17,8 +17,12 @@ type AppHeaderProps = {
   actions?: ReactNode;
 };
 
+function navClass(activeNav: AppHeaderProps["activeNav"], target: AppHeaderProps["activeNav"]) {
+  return `app-nav__link ${activeNav === target ? "app-nav__link--active" : ""}`;
+}
+
 export function AppHeader({
-  boardSlug,
+  activeNav,
   title,
   description,
   theme,
@@ -57,15 +61,15 @@ export function AppHeader({
             <p>{description}</p>
 
             <nav aria-label="Primary navigation" className="app-nav">
-              <NavLink className={({ isActive }) => `app-nav__link ${isActive ? "app-nav__link--active" : ""}`} end to="/boards/default">
+              <Link className={navClass(activeNav, "home")} to="/boards/default">
                 Home
-              </NavLink>
-              <NavLink className={({ isActive }) => `app-nav__link ${isActive ? "app-nav__link--active" : ""}`} end to={`/boards/${boardSlug}`}>
+              </Link>
+              <Link className={navClass(activeNav, "boards")} to="/boards">
                 Boards
-              </NavLink>
-              <NavLink className={({ isActive }) => `app-nav__link ${isActive ? "app-nav__link--active" : ""}`} to={`/boards/${boardSlug}/labels`}>
+              </Link>
+              <Link className={navClass(activeNav, "labels")} to="/labels">
                 Labels
-              </NavLink>
+              </Link>
               <span aria-disabled="true" className="app-nav__placeholder">
                 Insights
               </span>

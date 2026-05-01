@@ -4,6 +4,7 @@ import type {
   Label,
   Ticket,
   TicketPriority,
+  TicketStatus,
 } from "@gtd/contracts";
 
 export type SeedTicketRecord = Omit<Ticket, "labels"> & {
@@ -14,13 +15,16 @@ export type SeedData = {
   boards: Board[];
   columns: Column[];
   labels: Label[];
+  boardLabelFilters: Array<{
+    boardId: string;
+    labelId: string;
+  }>;
   tickets: SeedTicketRecord[];
 };
 
 function makeTicket(args: {
   id: string;
-  boardId: string;
-  columnId: string;
+  statusKey: TicketStatus;
   title: string;
   description: string;
   priority: TicketPriority;
@@ -46,6 +50,8 @@ export function createSeedData(): SeedData {
       id: boardId,
       slug: "default",
       name: "My Board",
+      description: "Default kanban board",
+      isSystem: true,
       createdAt: now,
       updatedAt: now,
     },
@@ -55,21 +61,21 @@ export function createSeedData(): SeedData {
     {
       id: "col_todo",
       boardId,
-      key: "todo",
+      statusKey: "todo",
       name: "Todo",
       position: 0,
     },
     {
       id: "col_in_progress",
       boardId,
-      key: "in_progress",
+      statusKey: "in_progress",
       name: "In Progress",
       position: 1,
     },
     {
       id: "col_done",
       boardId,
-      key: "done",
+      statusKey: "done",
       name: "Done",
       position: 2,
     },
@@ -78,19 +84,16 @@ export function createSeedData(): SeedData {
   const labels: Label[] = [
     {
       id: "label_product",
-      boardId,
       name: "product",
       normalizedName: "product",
     },
     {
       id: "label_frontend",
-      boardId,
       name: "frontend",
       normalizedName: "frontend",
     },
     {
       id: "label_backend",
-      boardId,
       name: "backend",
       normalizedName: "backend",
     },
@@ -99,8 +102,7 @@ export function createSeedData(): SeedData {
   const tickets: SeedTicketRecord[] = [
     makeTicket({
       id: "ticket_1",
-      boardId,
-      columnId: "col_todo",
+      statusKey: "todo",
       title: "Design ticket modal",
       description: "Sketch the create and edit ticket flow using the shared schema.",
       priority: "high",
@@ -109,8 +111,7 @@ export function createSeedData(): SeedData {
     }),
     makeTicket({
       id: "ticket_2",
-      boardId,
-      columnId: "col_in_progress",
+      statusKey: "in_progress",
       title: "Build board API route",
       description: "Return board detail, filters, and ticket collections in one response.",
       priority: "highest",
@@ -119,8 +120,7 @@ export function createSeedData(): SeedData {
     }),
     makeTicket({
       id: "ticket_3",
-      boardId,
-      columnId: "col_done",
+      statusKey: "done",
       title: "Seed default board",
       description: "Pre-create one board with Todo, In Progress, and Done columns.",
       priority: "medium",
@@ -133,6 +133,7 @@ export function createSeedData(): SeedData {
     boards,
     columns,
     labels,
+    boardLabelFilters: [],
     tickets,
   };
 }

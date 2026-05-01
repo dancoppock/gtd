@@ -7,14 +7,6 @@ import { z } from "zod";
 
 import { boardStore as defaultBoardStore, type BoardStore } from "../repositories/board-store.js";
 
-const boardIdParamsSchema = z.object({
-  boardId: z.string().min(1),
-});
-
-const boardSlugParamsSchema = z.object({
-  boardSlug: z.string().min(1),
-});
-
 const labelIdParamsSchema = z.object({
   labelId: z.string().min(1),
 });
@@ -24,15 +16,11 @@ function normalizeLabelName(name: string) {
 }
 
 function notFound(message: string) {
-  return {
-    message,
-  };
+  return { message };
 }
 
 function conflict(message: string) {
-  return {
-    message,
-  };
+  return { message };
 }
 
 type LabelRouteOptions = {
@@ -42,31 +30,9 @@ type LabelRouteOptions = {
 export const registerLabelRoutes: FastifyPluginAsync<LabelRouteOptions> = async (app, options) => {
   const boardStore = options.boardStore ?? defaultBoardStore;
 
-  app.get("/boards/:boardId/labels", async (request, reply) => {
-    const { boardId } = boardIdParamsSchema.parse(request.params);
-    const board = boardStore.getBoardById(boardId);
-
-    if (!board) {
-      return reply.status(404).send(notFound("Board not found"));
-    }
-
+  app.get("/labels", async () => {
     return listLabelsResponseSchema.parse({
-      board,
-      labels: boardStore.listAllLabels(boardId),
-    });
-  });
-
-  app.get("/boards/slug/:boardSlug/labels", async (request, reply) => {
-    const { boardSlug } = boardSlugParamsSchema.parse(request.params);
-    const board = boardStore.getBoardBySlug(boardSlug);
-
-    if (!board) {
-      return reply.status(404).send(notFound("Board not found"));
-    }
-
-    return listLabelsResponseSchema.parse({
-      board,
-      labels: boardStore.listAllLabels(board.id),
+      labels: boardStore.listAllLabels(),
     });
   });
 
@@ -80,12 +46,12 @@ export const registerLabelRoutes: FastifyPluginAsync<LabelRouteOptions> = async 
     }
 
     const nextNormalizedName = normalizeLabelName(input.name);
-    const conflictingLabel = boardStore.listAllLabels(existingLabel.boardId).find((label) =>
+    const conflictingLabel = boardStore.listAllLabels().find((label) =>
       label.id !== labelId && label.normalizedName === nextNormalizedName,
     );
 
     if (conflictingLabel) {
-      return reply.status(409).send(conflict("Label name already exists on this board"));
+      return reply.status(409).send(conflict("Label name already exists"));
     }
 
     const updatedLabel = boardStore.updateLabel(labelId, input);

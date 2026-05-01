@@ -573,6 +573,28 @@ button {
   color: var(--accent-strong);
 }
 
+.chip-toggle--implicit span {
+  background: color-mix(in srgb, var(--chip-selected-surface) 72%, var(--chip-surface));
+  border-color: color-mix(in srgb, var(--chip-selected-border) 78%, var(--border));
+  color: var(--accent-strong);
+}
+
+.chip-toggle--implicit input + span::before {
+  content: "Locked";
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.chip-toggle input:disabled + span {
+  cursor: default;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chip-selected-border) 54%, transparent);
+}
+
 .field {
   display: flex;
   flex-direction: column;

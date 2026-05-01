@@ -6,6 +6,7 @@ const ALL_PRIORITIES: TicketPriority[] = ["highest", "high", "medium", "low"];
 type BoardFiltersProps = {
   filters: BoardFilters;
   availableLabels: Label[];
+  implicitLabels?: Label[];
   onChange: (next: BoardFilters) => void;
   onClear: () => void;
 };
@@ -19,11 +20,13 @@ function toggleValue<T extends string>(values: T[], nextValue: T) {
 export function BoardFilters({
   filters,
   availableLabels,
+  implicitLabels = [],
   onChange,
   onClear,
 }: BoardFiltersProps) {
   const { priorities, labels, q } = filters;
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const implicitLabelNames = new Set(implicitLabels.map((label) => label.normalizedName));
 
   return (
     <section
@@ -106,20 +109,34 @@ export function BoardFilters({
               <div className="chip-list">
                 {availableLabels.length > 0 ? (
                   availableLabels.map((label) => (
-                    <label key={label.id} className="chip-toggle">
+                    <label
+                      key={label.id}
+                      className={`chip-toggle ${implicitLabelNames.has(label.normalizedName) ? "chip-toggle--implicit" : ""}`}
+                    >
                       <input
                         data-testid={`label-filter-${label.normalizedName}`}
                         type="checkbox"
-                        checked={labels.includes(label.normalizedName)}
-                        onChange={() =>
+                        checked={
+                          implicitLabelNames.has(label.normalizedName)
+                          || labels.includes(label.normalizedName)
+                        }
+                        disabled={implicitLabelNames.has(label.normalizedName)}
+                        onChange={() => {
+                          if (implicitLabelNames.has(label.normalizedName)) {
+                            return;
+                          }
+
                           onChange({
                             priorities,
                             labels: toggleValue(labels, label.normalizedName),
                             q,
-                          })
-                        }
+                          });
+                        }}
                       />
-                      <span>{label.name}</span>
+                      <span>
+                        {label.name}
+                        {implicitLabelNames.has(label.normalizedName) ? " (board)" : ""}
+                      </span>
                     </label>
                   ))
                 ) : (

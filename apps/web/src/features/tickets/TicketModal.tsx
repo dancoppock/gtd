@@ -7,11 +7,12 @@ type TicketModalProps = {
   ticket: Ticket | null;
   columns: Column[];
   availableLabels: Label[];
-  defaultColumnId?: string;
+  implicitLabels?: Label[];
+  defaultStatusKey?: Ticket["statusKey"];
   onClose: () => void;
   onDelete?: () => Promise<void>;
   onSubmit: (input: {
-    columnId: string;
+    statusKey: Ticket["statusKey"];
     title: string;
     description: string;
     priority: TicketPriority;
@@ -20,7 +21,7 @@ type TicketModalProps = {
 };
 
 type TicketFormValues = {
-  columnId: string;
+  statusKey: Ticket["statusKey"];
   title: string;
   description: string;
   priority: TicketPriority;
@@ -49,7 +50,8 @@ export function TicketModal({
   ticket,
   columns,
   availableLabels,
-  defaultColumnId,
+  implicitLabels = [],
+  defaultStatusKey,
   onClose,
   onDelete,
   onSubmit,
@@ -57,7 +59,7 @@ export function TicketModal({
   const [isDeleting, setIsDeleting] = useState(false);
   const { formState, handleSubmit, register, reset } = useForm<TicketFormValues>({
     defaultValues: {
-      columnId: defaultColumnId ?? columns[0]?.id ?? "",
+      statusKey: defaultStatusKey ?? columns[0]?.statusKey ?? "todo",
       title: "",
       description: "",
       priority: "medium",
@@ -67,13 +69,13 @@ export function TicketModal({
 
   useEffect(() => {
     reset({
-      columnId: ticket?.columnId ?? defaultColumnId ?? columns[0]?.id ?? "",
+      statusKey: ticket?.statusKey ?? defaultStatusKey ?? columns[0]?.statusKey ?? "todo",
       title: ticket?.title ?? "",
       description: ticket?.description ?? "",
       priority: ticket?.priority ?? "medium",
       labelsText: ticket ? labelsToText(ticket.labels) : "",
     });
-  }, [columns, defaultColumnId, reset, ticket]);
+  }, [columns, defaultStatusKey, reset, ticket]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -92,6 +94,8 @@ export function TicketModal({
   const submitLabel = mode === "create" ? "Create Ticket" : "Save Changes";
   const title = mode === "create" ? "Create Ticket" : "Edit Ticket";
   const isBusy = formState.isSubmitting || isDeleting;
+
+  const implicitLabelNames = implicitLabels.map((label) => label.name);
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -117,11 +121,16 @@ export function TicketModal({
           className="modal-form"
           onSubmit={handleSubmit(async (values) => {
             await onSubmit({
-              columnId: values.columnId,
+              statusKey: values.statusKey,
               title: values.title.trim(),
               description: values.description.trim(),
               priority: values.priority,
-              labels: parseLabels(values.labelsText),
+              labels: Array.from(
+                new Set([
+                  ...parseLabels(values.labelsText),
+                  ...implicitLabelNames,
+                ]),
+              ),
             });
           })}
         >
@@ -148,9 +157,9 @@ export function TicketModal({
           <div className="modal-form__row">
             <label className="field">
               <span>Column</span>
-              <select {...register("columnId", { required: true })}>
+              <select {...register("statusKey", { required: true })}>
                 {columns.map((column) => (
-                  <option key={column.id} value={column.id}>
+                  <option key={column.id} value={column.statusKey}>
                     {column.name}
                   </option>
                 ))}
@@ -176,6 +185,11 @@ export function TicketModal({
               data-testid="ticket-modal-labels-input"
               placeholder="frontend, backend, product"
             />
+            {mode === "create" && implicitLabels.length > 0 ? (
+              <small className="field__hint" data-testid="ticket-modal-implicit-labels">
+                Board labels added automatically: {implicitLabelNames.join(", ")}
+              </small>
+            ) : null}
             {availableLabels.length > 0 ? (
               <small className="field__hint">
                 Existing labels: {availableLabels.map((label) => label.name).join(", ")}

@@ -4,18 +4,16 @@ import type {
 } from "@gtd/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useParams } from "react-router-dom";
 
 import { AppHeader } from "../features/layout/AppHeader";
 import { useBoardTheme } from "../features/theme/useBoardTheme";
 import {
   deleteLabel,
-  fetchBoardLabels,
+  fetchLabels,
   updateLabel,
 } from "../features/board/api";
 
 export function LabelsPage() {
-  const { boardSlug = "default" } = useParams();
   const { theme, setTheme } = useBoardTheme();
   const queryClient = useQueryClient();
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
@@ -23,8 +21,8 @@ export function LabelsPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const labelsQuery = useQuery({
-    queryKey: ["labels", boardSlug],
-    queryFn: () => fetchBoardLabels(boardSlug),
+    queryKey: ["labels"],
+    queryFn: fetchLabels,
   });
 
   const updateLabelMutation = useMutation({
@@ -33,8 +31,9 @@ export function LabelsPage() {
       setEditingLabelId(null);
       setDraftName("");
       setErrorMessage(null);
-      await queryClient.invalidateQueries({ queryKey: ["labels", boardSlug] });
-      await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
+      await queryClient.invalidateQueries({ queryKey: ["labels"] });
+      await queryClient.invalidateQueries({ queryKey: ["board"] });
+      await queryClient.invalidateQueries({ queryKey: ["boards"] });
     },
     onError: (error) => {
       setErrorMessage(error instanceof Error ? error.message : "Failed to update label");
@@ -47,8 +46,9 @@ export function LabelsPage() {
       setEditingLabelId(null);
       setDraftName("");
       setErrorMessage(null);
-      await queryClient.invalidateQueries({ queryKey: ["labels", boardSlug] });
-      await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
+      await queryClient.invalidateQueries({ queryKey: ["labels"] });
+      await queryClient.invalidateQueries({ queryKey: ["board"] });
+      await queryClient.invalidateQueries({ queryKey: ["boards"] });
     },
     onError: (error) => {
       setErrorMessage(error instanceof Error ? error.message : "Failed to delete label");
@@ -65,16 +65,14 @@ export function LabelsPage() {
 
   function formatLabelUsage(label: LabelUsage) {
     const activeLabel = label.activeTicketCount === 1 ? "ticket" : "tickets";
-    const archivedLabel = label.archivedTicketCount === 1 ? "archived" : "archived";
-
-    return `(${label.activeTicketCount} ${activeLabel}, ${label.archivedTicketCount} ${archivedLabel})`;
+    return `(${label.activeTicketCount} ${activeLabel}, ${label.archivedTicketCount} archived)`;
   }
 
   return (
     <main className="page-shell">
       <AppHeader
-        boardSlug={boardSlug}
-        description="Manage all labels stored for this board. Deleting a label removes it from every ticket, including archived tickets."
+        activeNav="labels"
+        description="Manage the global label catalogue. Deleting a label removes it from all active tickets, archived tickets, and board filters."
         theme={theme}
         title="Labels"
         onThemeChange={setTheme}
@@ -92,7 +90,7 @@ export function LabelsPage() {
           <div className="labels-panel__header">
             <div>
               <h2>All Labels</h2>
-              <p>{data.labels.length} labels stored for {data.board.name}.</p>
+              <p>{data.labels.length} labels stored across all boards.</p>
             </div>
           </div>
 
@@ -196,14 +194,14 @@ export function LabelsPage() {
           ) : (
             <div className="message-panel">
               <h2>No labels yet</h2>
-              <p>Labels will appear here as tickets are created or edited.</p>
+              <p>Labels will appear here as tickets are created or boards begin filtering by them.</p>
             </div>
           )}
         </section>
       ) : (
         <section className="message-panel">
           <h2>Loading labels</h2>
-          <p>Fetching the full label list for this board.</p>
+          <p>Fetching the full label catalogue.</p>
         </section>
       )}
     </main>

@@ -6,8 +6,7 @@ import { TicketCard } from "./TicketCard";
 
 const ticket: Ticket = {
   id: "ticket_1",
-  boardId: "board_default",
-  columnId: "col_todo",
+  statusKey: "todo",
   title: "Refine compact ticket card",
   description: "Hide lower-priority metadata in compact mode.",
   priority: "medium",
@@ -15,13 +14,11 @@ const ticket: Ticket = {
   labels: [
     {
       id: "label_frontend",
-      boardId: "board_default",
       name: "frontend",
       normalizedName: "frontend",
     },
     {
       id: "label_ux",
-      boardId: "board_default",
       name: "ux",
       normalizedName: "ux",
     },

@@ -8,14 +8,14 @@ const columns: Column[] = [
   {
     id: "col_todo",
     boardId: "board_default",
-    key: "todo",
+    statusKey: "todo",
     name: "Todo",
     position: 0,
   },
   {
     id: "col_done",
     boardId: "board_default",
-    key: "done",
+    statusKey: "done",
     name: "Done",
     position: 1,
   },
@@ -24,22 +24,27 @@ const columns: Column[] = [
 const availableLabels: Label[] = [
   {
     id: "label_frontend",
-    boardId: "board_default",
     name: "frontend",
     normalizedName: "frontend",
   },
   {
     id: "label_backend",
-    boardId: "board_default",
     name: "backend",
     normalizedName: "backend",
   },
 ];
 
+const implicitLabels: Label[] = [
+  {
+    id: "label_qa",
+    name: "qa",
+    normalizedName: "qa",
+  },
+];
+
 const existingTicket: Ticket = {
   id: "ticket_1",
-  boardId: "board_default",
-  columnId: "col_done",
+  statusKey: "done",
   title: "Refine modal copy",
   description: "Update the edit flow wording.",
   priority: "high",
@@ -67,7 +72,7 @@ describe("TicketModal", () => {
 
     expect(screen.getByRole("dialog", { name: "Create Ticket" })).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveFocus();
-    expect(screen.getByLabelText("Column")).toHaveValue("col_todo");
+    expect(screen.getByLabelText("Column")).toHaveValue("todo");
     expect(screen.getByLabelText("Priority")).toHaveValue("medium");
     expect(screen.getByText("Existing labels: frontend, backend")).toBeInTheDocument();
 
@@ -84,7 +89,7 @@ describe("TicketModal", () => {
 
     await waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith({
-        columnId: "col_todo",
+        statusKey: "todo",
         title: "Add tests for modal",
         description: "Cover create and edit paths.",
         priority: "medium",
@@ -93,20 +98,58 @@ describe("TicketModal", () => {
     );
   });
 
-  it("uses the provided default column in create mode", () => {
+  it("shows implicit board labels in create mode and includes them on submit", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
     render(
       <TicketModal
         mode="create"
         ticket={null}
         columns={columns}
         availableLabels={availableLabels}
-        defaultColumnId="col_done"
+        implicitLabels={implicitLabels}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.getByTestId("ticket-modal-implicit-labels")).toHaveTextContent(
+      "Board labels added automatically: qa",
+    );
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Create filtered ticket" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("frontend, backend, product"), {
+      target: { value: "backend, qa" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Ticket" }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({
+        statusKey: "todo",
+        title: "Create filtered ticket",
+        description: "",
+        priority: "medium",
+        labels: ["backend", "qa"],
+      }),
+    );
+  });
+
+  it("uses the provided default status in create mode", () => {
+    render(
+      <TicketModal
+        mode="create"
+        ticket={null}
+        columns={columns}
+        availableLabels={availableLabels}
+        defaultStatusKey="done"
         onClose={vi.fn()}
         onSubmit={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
-    expect(screen.getByLabelText("Column")).toHaveValue("col_done");
+    expect(screen.getByLabelText("Column")).toHaveValue("done");
   });
 
   it("prefills edit mode fields and submits the updated values", async () => {
@@ -126,7 +169,7 @@ describe("TicketModal", () => {
     expect(screen.getByRole("dialog", { name: "Edit Ticket" })).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveValue("Refine modal copy");
     expect(screen.getByLabelText("Description")).toHaveValue("Update the edit flow wording.");
-    expect(screen.getByLabelText("Column")).toHaveValue("col_done");
+    expect(screen.getByLabelText("Column")).toHaveValue("done");
     expect(screen.getByLabelText("Priority")).toHaveValue("high");
     expect(screen.getByPlaceholderText("frontend, backend, product")).toHaveValue("frontend, backend");
 
@@ -140,7 +183,7 @@ describe("TicketModal", () => {
 
     await waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith({
-        columnId: "col_done",
+        statusKey: "done",
         title: "Refine modal copy",
         description: "Update the edit flow wording.",
         priority: "low",

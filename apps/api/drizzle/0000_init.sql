@@ -4,6 +4,8 @@ CREATE TABLE `boards` (
   `id` TEXT PRIMARY KEY NOT NULL,
   `slug` TEXT NOT NULL,
   `name` TEXT NOT NULL,
+  `description` TEXT NOT NULL DEFAULT '',
+  `is_system` INTEGER NOT NULL DEFAULT 0,
   `created_at` INTEGER NOT NULL,
   `updated_at` INTEGER NOT NULL
 );
@@ -28,19 +30,27 @@ CREATE UNIQUE INDEX `columns_board_key_unique`
 
 CREATE TABLE `labels` (
   `id` TEXT PRIMARY KEY NOT NULL,
-  `board_id` TEXT NOT NULL,
   `name` TEXT NOT NULL,
-  `normalized_name` TEXT NOT NULL,
-  FOREIGN KEY (`board_id`) REFERENCES `boards` (`id`) ON DELETE CASCADE
+  `normalized_name` TEXT NOT NULL
 );
 
-CREATE UNIQUE INDEX `labels_board_normalized_name_unique`
-  ON `labels` (`board_id`, `normalized_name`);
+CREATE UNIQUE INDEX `labels_normalized_name_unique`
+  ON `labels` (`normalized_name`);
+
+CREATE TABLE `board_label_filters` (
+  `board_id` TEXT NOT NULL,
+  `label_id` TEXT NOT NULL,
+  PRIMARY KEY (`board_id`, `label_id`),
+  FOREIGN KEY (`board_id`) REFERENCES `boards` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`label_id`) REFERENCES `labels` (`id`) ON DELETE CASCADE
+);
+
+CREATE INDEX `board_label_filters_label_idx`
+  ON `board_label_filters` (`label_id`);
 
 CREATE TABLE `tickets` (
   `id` TEXT PRIMARY KEY NOT NULL,
-  `board_id` TEXT NOT NULL,
-  `column_id` TEXT NOT NULL,
+  `status_key` TEXT NOT NULL,
   `title` TEXT NOT NULL,
   `description` TEXT NOT NULL DEFAULT '',
   `priority` TEXT NOT NULL DEFAULT 'medium',
@@ -48,22 +58,20 @@ CREATE TABLE `tickets` (
   `archived_at` INTEGER,
   `created_at` INTEGER NOT NULL,
   `updated_at` INTEGER NOT NULL,
-  FOREIGN KEY (`board_id`) REFERENCES `boards` (`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`column_id`) REFERENCES `columns` (`id`) ON DELETE RESTRICT,
   CHECK (`priority` IN ('highest', 'high', 'medium', 'low'))
 );
 
-CREATE INDEX `tickets_board_ui_order_idx`
-  ON `tickets` (`board_id`, `ui_order`);
+CREATE INDEX `tickets_ui_order_idx`
+  ON `tickets` (`ui_order`);
 
-CREATE INDEX `tickets_board_column_ui_order_idx`
-  ON `tickets` (`board_id`, `column_id`, `ui_order`);
+CREATE INDEX `tickets_status_ui_order_idx`
+  ON `tickets` (`status_key`, `ui_order`);
 
-CREATE INDEX `tickets_board_priority_idx`
-  ON `tickets` (`board_id`, `priority`);
+CREATE INDEX `tickets_priority_idx`
+  ON `tickets` (`priority`);
 
-CREATE INDEX `tickets_board_archived_ui_order_idx`
-  ON `tickets` (`board_id`, `archived_at`, `ui_order`);
+CREATE INDEX `tickets_archived_ui_order_idx`
+  ON `tickets` (`archived_at`, `ui_order`);
 
 CREATE TABLE `ticket_labels` (
   `ticket_id` TEXT NOT NULL,
@@ -76,11 +84,13 @@ CREATE TABLE `ticket_labels` (
 CREATE INDEX `ticket_labels_label_idx`
   ON `ticket_labels` (`label_id`);
 
-INSERT INTO `boards` (`id`, `slug`, `name`, `created_at`, `updated_at`)
+INSERT INTO `boards` (`id`, `slug`, `name`, `description`, `is_system`, `created_at`, `updated_at`)
 VALUES (
   'board_default',
   'default',
   'My Board',
+  'Default kanban board',
+  1,
   CAST(strftime('%s', 'now') AS INTEGER) * 1000,
   CAST(strftime('%s', 'now') AS INTEGER) * 1000
 );

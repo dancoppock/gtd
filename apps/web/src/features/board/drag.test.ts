@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildRepositionInput,
-  findColumnId,
+  findStatusKey,
   haveSameTicketLayout,
   moveTicket,
 } from "./drag";
@@ -15,31 +15,30 @@ const columns: Column[] = [
   {
     id: "col_todo",
     boardId,
-    key: "todo",
+    statusKey: "todo",
     name: "Todo",
     position: 0,
   },
   {
     id: "col_in_progress",
     boardId,
-    key: "in_progress",
+    statusKey: "in_progress",
     name: "In Progress",
     position: 1,
   },
   {
     id: "col_done",
     boardId,
-    key: "done",
+    statusKey: "done",
     name: "Done",
     position: 2,
   },
 ];
 
-function makeTicket(id: string, columnId: string, uiOrder: number): Ticket {
+function makeTicket(id: string, statusKey: Ticket["statusKey"], uiOrder: number): Ticket {
   return {
     id,
-    boardId,
-    columnId,
+    statusKey,
     title: `Ticket ${id}`,
     description: "",
     priority: "medium",
@@ -52,22 +51,22 @@ function makeTicket(id: string, columnId: string, uiOrder: number): Ticket {
 }
 
 describe("board drag helpers", () => {
-  it("resolves a column id for both column and ticket drag targets", () => {
+  it("resolves a status key for both column and ticket drag targets", () => {
     const tickets = [
-      makeTicket("ticket_1", "col_todo", 1_000_000),
-      makeTicket("ticket_2", "col_done", 2_000_000),
+      makeTicket("ticket_1", "todo", 1_000_000),
+      makeTicket("ticket_2", "done", 2_000_000),
     ];
 
-    expect(findColumnId(columns, tickets, "col_done")).toBe("col_done");
-    expect(findColumnId(columns, tickets, "ticket_1")).toBe("col_todo");
-    expect(findColumnId(columns, tickets, "missing")).toBeNull();
+    expect(findStatusKey(columns, tickets, "col_done")).toBe("done");
+    expect(findStatusKey(columns, tickets, "ticket_1")).toBe("todo");
+    expect(findStatusKey(columns, tickets, "missing")).toBeNull();
   });
 
-  it("reorders tickets within the same column", () => {
+  it("reorders tickets within the same visible column", () => {
     const tickets = [
-      makeTicket("ticket_1", "col_todo", 1_000_000),
-      makeTicket("ticket_2", "col_todo", 2_000_000),
-      makeTicket("ticket_3", "col_done", 3_000_000),
+      makeTicket("ticket_1", "todo", 1_000_000),
+      makeTicket("ticket_2", "todo", 2_000_000),
+      makeTicket("ticket_3", "done", 3_000_000),
     ];
 
     const nextTickets = moveTicket(columns, tickets, "ticket_2", "ticket_1");
@@ -76,31 +75,31 @@ describe("board drag helpers", () => {
     expect(haveSameTicketLayout(tickets, nextTickets)).toBe(false);
   });
 
-  it("moves a ticket into another column and appends when dropped on the column body", () => {
+  it("moves a ticket into another visible status and appends when dropped on the column body", () => {
     const tickets = [
-      makeTicket("ticket_1", "col_todo", 1_000_000),
-      makeTicket("ticket_2", "col_todo", 2_000_000),
-      makeTicket("ticket_3", "col_done", 3_000_000),
+      makeTicket("ticket_1", "todo", 1_000_000),
+      makeTicket("ticket_2", "todo", 2_000_000),
+      makeTicket("ticket_3", "done", 3_000_000),
     ];
 
     const nextTickets = moveTicket(columns, tickets, "ticket_1", "col_done");
 
-    expect(nextTickets.map((ticket) => `${ticket.id}:${ticket.columnId}`)).toEqual([
-      "ticket_2:col_todo",
-      "ticket_3:col_done",
-      "ticket_1:col_done",
+    expect(nextTickets.map((ticket) => `${ticket.id}:${ticket.statusKey}`)).toEqual([
+      "ticket_2:todo",
+      "ticket_3:done",
+      "ticket_1:done",
     ]);
   });
 
-  it("builds a reposition payload from the current visible order inside a column", () => {
+  it("builds a reposition payload from the current visible order inside a status column", () => {
     const tickets = [
-      makeTicket("ticket_1", "col_todo", 1_000_000),
-      makeTicket("ticket_2", "col_todo", 2_000_000),
-      makeTicket("ticket_3", "col_todo", 3_000_000),
+      makeTicket("ticket_1", "todo", 1_000_000),
+      makeTicket("ticket_2", "todo", 2_000_000),
+      makeTicket("ticket_3", "todo", 3_000_000),
     ];
 
     expect(buildRepositionInput(columns, tickets, "ticket_2")).toEqual({
-      columnId: "col_todo",
+      statusKey: "todo",
       prevVisibleTicketId: "ticket_1",
       nextVisibleTicketId: "ticket_3",
     });
@@ -108,14 +107,14 @@ describe("board drag helpers", () => {
 
   it("uses only the visible subset when building reposition input for filtered boards", () => {
     const visibleTickets = [
-      makeTicket("ticket_1", "col_todo", 1_000_000),
-      makeTicket("ticket_3", "col_todo", 3_000_000),
+      makeTicket("ticket_1", "todo", 1_000_000),
+      makeTicket("ticket_3", "todo", 3_000_000),
     ];
 
     const nextVisibleTickets = moveTicket(columns, visibleTickets, "ticket_3", "ticket_1");
 
     expect(buildRepositionInput(columns, nextVisibleTickets, "ticket_3")).toEqual({
-      columnId: "col_todo",
+      statusKey: "todo",
       prevVisibleTicketId: null,
       nextVisibleTicketId: "ticket_1",
     });

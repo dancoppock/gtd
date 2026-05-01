@@ -28,8 +28,8 @@ Main packages:
 - Node `20.20.0`
 - Fastify
 - ESLint
-- Drizzle ORM
 - SQLite via `better-sqlite3`
+- Drizzle schema/bootstrap files
 - Zod
 
 ### Testing
@@ -56,12 +56,6 @@ In this environment, dependency installs require:
 2. `proxyOn` run in the current terminal
 3. `pnpm install`
 
-If install commands hang or fail, first verify:
-
-- VPN is connected
-- `proxyOn` was run in the same shell
-- no stale `pnpm` process is still running
-
 ## Native Module Note
 
 `better-sqlite3` may require a manual native build.
@@ -78,50 +72,23 @@ npm_config_nodedir=$HOME/.nvm/versions/node/v20.20.0 npm run build-release
 From the repo root:
 
 ```bash
-npm run dev:api
-npm run dev:web
+pnpm dev:api
+pnpm dev:web
 pnpm stop:api
 pnpm stop:web
-pnpm lint
 pnpm typecheck
+pnpm lint
 pnpm test
 pnpm test:e2e
 ```
 
-`pnpm typecheck`:
+## Current Product Model
 
-- runs the root `typecheck` script
-- runs `tsc --noEmit -p tsconfig.json` in all workspaces
-- checks TypeScript correctness without generating build output
-
-`pnpm lint`:
-
-- runs ESLint from the repo root
-- checks TypeScript and config files across the workspace
-- enforces a minimal first-pass ruleset for TypeScript hygiene and React hook safety
-
-`pnpm test`:
-
-- runs workspace unit tests in `@gtd/api` and `@gtd/web`
-- covers drag/reorder helper logic on the frontend
-- covers filter and ticket modal component behavior on the frontend
-- covers SQLite-backed repository behavior on the backend
-- covers Fastify route behavior with `app.inject()`
-
-`pnpm test:e2e`:
-
-- runs Playwright smoke tests against real local API and Vite servers
-- resets an isolated SQLite database between tests through a test-only API route
-- covers board load, filtering, create, edit, and drag flows
-
-## Current Product Behavior
-
-- one visible board is used for now
-- fixed columns: `Todo`, `In Progress`, `Done`
-- tickets support multiple labels
-- filters support priority, label, and text search
-- create and edit flows use modal dialogs
-- drag/drop works within and across columns
+- tickets are global and use `statusKey`
+- labels are global
+- boards are saved ticket views
+- board columns map to statuses
+- boards can filter by one or more labels
 - ticket ordering uses a single global persisted `uiOrder`
 - filtered reordering is based on the visible subset only
 
@@ -129,12 +96,20 @@ pnpm test:e2e
 
 - `GET /health`
 - `GET /api/boards`
+- `POST /api/boards`
 - `GET /api/boards/:boardId`
+- `PATCH /api/boards/:boardId`
+- `DELETE /api/boards/:boardId`
 - `GET /api/boards/:boardId/tickets`
 - `GET /api/boards/slug/:boardSlug`
 - `GET /api/boards/slug/:boardSlug/tickets`
 - `POST /api/boards/:boardId/tickets`
+- `POST /api/boards/:boardId/archive-done`
+- `GET /api/labels`
+- `PATCH /api/labels/:labelId`
+- `DELETE /api/labels/:labelId`
 - `PATCH /api/tickets/:ticketId`
+- `DELETE /api/tickets/:ticketId`
 - `POST /api/tickets/:ticketId/reposition`
 
 ## Important Files
@@ -142,13 +117,16 @@ pnpm test:e2e
 - `README.md`: repo overview and run instructions
 - `docs/architecture.md`: implemented architecture
 - `docs/onboarding.md`: setup and troubleshooting
+- `packages/contracts/src/index.ts`: shared contracts
+- `apps/api/src/db/client.ts`: SQLite bootstrap and migration logic
 - `apps/api/src/repositories/sqlite-board-store.ts`: main persistence logic
-- `apps/api/src/db/client.ts`: SQLite bootstrap
 - `apps/web/src/routes/BoardPage.tsx`: board page orchestration
-- `apps/web/src/features/board/drag.ts`: drag/reposition helpers
+- `apps/web/src/routes/BoardEditPage.tsx`: board create/edit page
+- `apps/web/src/routes/BoardsPage.tsx`: board list page
+- `apps/web/src/routes/LabelsPage.tsx`: global label management page
 
 ## Current Gaps
 
+- home-page aggregation beyond the default board is still deferred
 - Playwright CI wiring and artifact retention are not in place yet
 - native dependency setup is still somewhat manual
-- drag-and-drop UX could use more polish and failure recovery
