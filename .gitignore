@@ -9,6 +9,7 @@ test-results
 apps/api/data/gtd.e2e.sqlite
 apps/api/data/gtd.e2e.sqlite-shm
 apps/api/data/gtd.e2e.sqlite-wal
+apps/api/data/gtd.sqlite
 apps/api/data/gtd.sqlite-shm
 apps/api/data/gtd.sqlite-wal
 *.tsbuildinfo
