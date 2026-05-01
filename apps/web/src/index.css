@@ -630,13 +630,18 @@ button {
 }
 
 .board-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(280px, 1fr));
+  display: flex;
+  align-items: stretch;
   gap: 18px;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 6px;
+  scrollbar-gutter: stable both-edges;
 }
 
 .board-column {
   display: flex;
+  flex: 0 0 min(340px, calc(100vw - 96px));
   flex-direction: column;
   min-height: 440px;
   background: var(--column-surface);
@@ -1108,7 +1113,16 @@ button {
     justify-content: flex-start;
   }
 
-  .board-grid,
+  .board-grid {
+    flex-direction: column;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .board-column {
+    flex: 1 1 auto;
+  }
+
   .filters-grid {
     grid-template-columns: 1fr;
   }
