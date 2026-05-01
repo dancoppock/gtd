@@ -1,25 +1,94 @@
-import type { BoardDetail, CreateBoardInput, TicketStatus } from "@gtd/contracts";
+import type { BoardDetail, CreateBoardInput, Status } from "@gtd/contracts";
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { CSS } from "@dnd-kit/utilities";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import {
   createBoard,
+  createStatus,
   deleteBoard,
   fetchBoard,
   fetchLabels,
+  fetchStatuses,
   updateBoard,
 } from "../features/board/api";
 import { AppHeader } from "../features/layout/AppHeader";
 import { useBoardTheme } from "../features/theme/useBoardTheme";
 
-type BoardFormState = CreateBoardInput;
+type BoardColumnFormState = {
+  rowId: string;
+  name: string;
+  statusKey: string;
+};
 
-const STATUS_OPTIONS: Array<{ value: TicketStatus; label: string }> = [
-  { value: "todo", label: "Todo" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "done", label: "Done" },
-];
+type BoardFormState = {
+  name: string;
+  description: string;
+  isDefault: boolean;
+  columns: BoardColumnFormState[];
+  filterLabelIds: string[];
+};
+
+type CreateStatusModalProps = {
+  errorMessage?: string | null;
+  isBusy: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+};
+
+type SortableBoardColumnRowProps = {
+  availableStatuses: Status[];
+  canRemove: boolean;
+  column: BoardColumnFormState;
+  index: number;
+  onColumnNameChange: (index: number, value: string) => void;
+  onRemove: (index: number) => void;
+  onStatusChange: (index: number, value: string, rowId: string) => void;
+};
+
+const NEW_STATUS_VALUE = "__new_status__";
+
+function createRowId() {
+  return `board-column-${crypto.randomUUID()}`;
+}
+
+function uniqueStatuses(statuses: Status[]) {
+  const seen = new Set<string>();
+
+  return statuses.filter((status) => {
+    if (seen.has(status.key)) {
+      return false;
+    }
+
+    seen.add(status.key);
+    return true;
+  });
+}
+
+function defaultColumn(statusKey: string, name: string): BoardColumnFormState {
+  return {
+    rowId: createRowId(),
+    name,
+    statusKey,
+  };
+}
 
 function emptyBoardFormState(): BoardFormState {
   return {
@@ -27,9 +96,9 @@ function emptyBoardFormState(): BoardFormState {
     description: "",
     isDefault: false,
     columns: [
-      { name: "Todo", statusKey: "todo" },
-      { name: "In Progress", statusKey: "in_progress" },
-      { name: "Done", statusKey: "done" },
+      defaultColumn("todo", "Todo"),
+      defaultColumn("in_progress", "In Progress"),
+      defaultColumn("done", "Done"),
     ],
     filterLabelIds: [],
   };
@@ -41,11 +110,169 @@ function toBoardFormState(board: BoardDetail): BoardFormState {
     description: board.description,
     isDefault: board.isDefault,
     columns: board.columns.map((column) => ({
+      rowId: createRowId(),
       name: column.name,
       statusKey: column.statusKey,
     })),
     filterLabelIds: board.filterLabels.map((label) => label.id),
   };
+}
+
+function CreateStatusModal({
+  errorMessage,
+  isBusy,
+  value,
+  onChange,
+  onClose,
+  onSubmit,
+}: CreateStatusModalProps) {
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <div
+        className="modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-status-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="modal-card__header">
+          <div>
+            <h2 id="create-status-title">Create Status</h2>
+            <p>Create the status now so it is immediately available to this board.</p>
+          </div>
+          <button className="ghost-button" type="button" onClick={onClose}>
+            Close
+          </button>
+        </div>
+
+        <form
+          className="modal-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit();
+          }}
+        >
+          <label className="field">
+            <span>Status Name</span>
+            <input
+              autoFocus
+              data-testid="status-modal-name-input"
+              placeholder="Blocked"
+              value={value}
+              onChange={(event) => onChange(event.target.value)}
+            />
+          </label>
+
+          {errorMessage ? <p className="labels-panel__error">{errorMessage}</p> : null}
+
+          <div className="modal-card__actions">
+            <div className="modal-card__actions-secondary" />
+            <div className="modal-card__actions-main">
+              <button className="ghost-button" disabled={isBusy} type="button" onClick={onClose}>
+                Cancel
+              </button>
+              <button
+                className="primary-button"
+                data-testid="status-modal-submit"
+                disabled={isBusy || !value.trim()}
+                type="submit"
+              >
+                {isBusy ? "Creating..." : "Create Status"}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function SortableBoardColumnRow({
+  availableStatuses,
+  canRemove,
+  column,
+  index,
+  onColumnNameChange,
+  onRemove,
+  onStatusChange,
+}: SortableBoardColumnRowProps) {
+  const {
+    attributes,
+    isDragging,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({
+    id: column.rowId,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <article
+      ref={setNodeRef}
+      className={`label-row board-edit__column-row ${isDragging ? "board-edit__column-row--dragging" : ""}`}
+      style={style}
+    >
+      <button
+        aria-label={`Reorder column ${column.name}`}
+        className="board-edit__drag-handle"
+        type="button"
+        {...attributes}
+        {...listeners}
+      >
+        <svg aria-hidden="true" viewBox="0 0 20 20">
+          <path d="M7 5.25A1.25 1.25 0 1 1 5.75 4 1.25 1.25 0 0 1 7 5.25Zm0 4.75A1.25 1.25 0 1 1 5.75 8.75 1.25 1.25 0 0 1 7 10Zm0 4.75A1.25 1.25 0 1 1 5.75 13.5 1.25 1.25 0 0 1 7 14.75Zm7.25-9.5A1.25 1.25 0 1 1 13 4a1.25 1.25 0 0 1 1.25 1.25Zm0 4.75A1.25 1.25 0 1 1 13 8.75 1.25 1.25 0 0 1 14.25 10Zm0 4.75A1.25 1.25 0 1 1 13 13.5a1.25 1.25 0 0 1 1.25 1.25Z" />
+        </svg>
+      </button>
+
+      <div className="label-row__main">
+        <label className="field">
+          <span>Column Name</span>
+          <input
+            value={column.name}
+            onChange={(event) => onColumnNameChange(index, event.target.value)}
+          />
+        </label>
+      </div>
+
+      <div className="label-row__actions">
+        <label className="field">
+          <span>Status</span>
+          <select
+            value={column.statusKey || ""}
+            onChange={(event) => onStatusChange(index, event.target.value, column.rowId)}
+          >
+            <option value="">Select status...</option>
+            {availableStatuses.map((status) => (
+              <option key={status.key} value={status.key}>
+                {status.name}
+              </option>
+            ))}
+            <option value={NEW_STATUS_VALUE}>Create new status...</option>
+          </select>
+        </label>
+
+        <div className="field board-edit__column-action">
+          <span aria-hidden="true" className="board-edit__column-action-label">
+            Action
+          </span>
+          <button
+            className="ghost-button danger-button"
+            disabled={!canRemove}
+            type="button"
+            onClick={() => onRemove(index)}
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 export function BoardEditPage() {
@@ -56,6 +283,16 @@ export function BoardEditPage() {
   const queryClient = useQueryClient();
   const [formState, setFormState] = useState<BoardFormState>(emptyBoardFormState);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [statusModalValue, setStatusModalValue] = useState("");
+  const [statusModalError, setStatusModalError] = useState<string | null>(null);
+  const [statusModalRowId, setStatusModalRowId] = useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    }),
+  );
 
   const boardQuery = useQuery({
     enabled: !isCreateMode,
@@ -66,6 +303,11 @@ export function BoardEditPage() {
   const labelsQuery = useQuery({
     queryKey: ["labels"],
     queryFn: fetchLabels,
+  });
+
+  const statusesQuery = useQuery({
+    queryKey: ["statuses"],
+    queryFn: fetchStatuses,
   });
 
   useEffect(() => {
@@ -79,6 +321,7 @@ export function BoardEditPage() {
     onSuccess: async (board) => {
       await queryClient.invalidateQueries({ queryKey: ["boards"] });
       await queryClient.invalidateQueries({ queryKey: ["board"] });
+      await queryClient.invalidateQueries({ queryKey: ["statuses"] });
       navigate(`/boards/${board.slug}`);
     },
     onError: (error) => {
@@ -92,10 +335,35 @@ export function BoardEditPage() {
       await queryClient.invalidateQueries({ queryKey: ["boards"] });
       await queryClient.invalidateQueries({ queryKey: ["board"] });
       await queryClient.invalidateQueries({ queryKey: ["board-detail", boardSlug] });
+      await queryClient.invalidateQueries({ queryKey: ["statuses"] });
       navigate("/boards");
     },
     onError: (error) => {
       setErrorMessage(error instanceof Error ? error.message : "Failed to update board");
+    },
+  });
+
+  const createStatusMutation = useMutation({
+    mutationFn: createStatus,
+    onSuccess: async (status) => {
+      await queryClient.invalidateQueries({ queryKey: ["statuses"] });
+      setFormState((currentValue) => ({
+        ...currentValue,
+        columns: currentValue.columns.map((column) =>
+          column.rowId === statusModalRowId
+            ? {
+                ...column,
+                statusKey: status.key,
+              }
+            : column,
+        ),
+      }));
+      setStatusModalValue("");
+      setStatusModalError(null);
+      setStatusModalRowId(null);
+    },
+    onError: (error) => {
+      setStatusModalError(error instanceof Error ? error.message : "Failed to create status");
     },
   });
 
@@ -113,12 +381,50 @@ export function BoardEditPage() {
 
   const isBusy = createBoardMutation.isPending || updateBoardMutation.isPending || deleteBoardMutation.isPending;
   const labels = labelsQuery.data?.labels ?? [];
-  const duplicateStatuses = useMemo(
-    () => new Set(formState.columns.map((column) => column.statusKey)).size !== formState.columns.length,
-    [formState.columns],
+  const availableStatuses = useMemo(
+    () => uniqueStatuses(statusesQuery.data?.statuses ?? boardQuery.data?.availableStatuses ?? []),
+    [boardQuery.data?.availableStatuses, statusesQuery.data?.statuses],
   );
+  const duplicateStatuses = useMemo(() => {
+    const statusKeys = formState.columns
+      .map((column) => column.statusKey)
+      .filter(Boolean);
 
-  const canSubmit = formState.name.trim() && formState.columns.length > 0 && !duplicateStatuses;
+    return new Set(statusKeys).size !== statusKeys.length;
+  }, [formState.columns]);
+  const hasInvalidColumns = formState.columns.some((column) => !column.name.trim() || !column.statusKey);
+  const canSubmit = formState.name.trim() && formState.columns.length > 0 && !duplicateStatuses && !hasInvalidColumns;
+
+  function updateColumnAt(index: number, updater: (column: BoardColumnFormState) => BoardColumnFormState) {
+    setFormState((currentValue) => ({
+      ...currentValue,
+      columns: currentValue.columns.map((column, candidateIndex) =>
+        candidateIndex === index ? updater(column) : column,
+      ),
+    }));
+  }
+
+  function handleColumnDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    setFormState((currentValue) => {
+      const oldIndex = currentValue.columns.findIndex((column) => column.rowId === active.id);
+      const newIndex = currentValue.columns.findIndex((column) => column.rowId === over.id);
+
+      if (oldIndex < 0 || newIndex < 0) {
+        return currentValue;
+      }
+
+      return {
+        ...currentValue,
+        columns: arrayMove(currentValue.columns, oldIndex, newIndex),
+      };
+    });
+  }
 
   return (
     <main className="page-shell">
@@ -159,12 +465,20 @@ export function BoardEditPage() {
           {duplicateStatuses ? (
             <p className="labels-panel__error">Each column must map to a different status.</p>
           ) : null}
+          {hasInvalidColumns ? (
+            <p className="labels-panel__error">Each column must choose a status before saving.</p>
+          ) : null}
 
           <form
             className="modal-form"
             onSubmit={(event) => {
               event.preventDefault();
               setErrorMessage(null);
+
+              if (formState.columns.some((column) => !column.statusKey)) {
+                setErrorMessage("Select a status for each column before saving the board.");
+                return;
+              }
 
               const payload: CreateBoardInput = {
                 name: formState.name.trim(),
@@ -239,78 +553,56 @@ export function BoardEditPage() {
 
             <div className="filter-group">
               <span className="filter-group__title">Columns</span>
-              <div className="labels-list">
-                {formState.columns.map((column, index) => (
-                  <article key={`${column.statusKey}-${index}`} className="label-row">
-                    <div className="label-row__main">
-                      <label className="field">
-                        <span>Column Name</span>
-                        <input
-                          value={column.name}
-                          onChange={(event) =>
-                            setFormState((currentValue) => ({
-                              ...currentValue,
-                              columns: currentValue.columns.map((candidate, candidateIndex) =>
-                                candidateIndex === index
-                                  ? {
-                                      ...candidate,
-                                      name: event.target.value,
-                                    }
-                                  : candidate,
-                              ),
-                            }))
-                          }
-                        />
-                      </label>
-                    </div>
+              {availableStatuses.length > 0 ? (
+                <p className="muted-text">
+                  Existing statuses: {availableStatuses.map((status) => status.name).join(", ")}
+                </p>
+              ) : null}
 
-                    <div className="label-row__actions">
-                      <label className="field">
-                        <span>Status</span>
-                        <select
-                          value={column.statusKey}
-                          onChange={(event) =>
-                            setFormState((currentValue) => ({
-                              ...currentValue,
-                              columns: currentValue.columns.map((candidate, candidateIndex) =>
-                                candidateIndex === index
-                                  ? {
-                                      ...candidate,
-                                      statusKey: event.target.value as TicketStatus,
-                                    }
-                                  : candidate,
-                              ),
-                            }))
-                          }
-                        >
-                          {STATUS_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-
-                      <button
-                        className="ghost-button danger-button"
-                        disabled={formState.columns.length <= 1}
-                        type="button"
-                        onClick={() =>
+              <DndContext collisionDetection={closestCenter} onDragEnd={handleColumnDragEnd} sensors={sensors}>
+                <SortableContext
+                  items={formState.columns.map((column) => column.rowId)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="labels-list">
+                    {formState.columns.map((column, index) => (
+                      <SortableBoardColumnRow
+                        key={column.rowId}
+                        availableStatuses={availableStatuses}
+                        canRemove={formState.columns.length > 1}
+                        column={column}
+                        index={index}
+                        onColumnNameChange={(candidateIndex, value) =>
+                          updateColumnAt(candidateIndex, (candidate) => ({
+                            ...candidate,
+                            name: value,
+                          }))}
+                        onRemove={(candidateIndex) =>
                           setFormState((currentValue) => ({
                             ...currentValue,
-                            columns: currentValue.columns.filter((_, candidateIndex) => candidateIndex !== index),
-                          }))
-                        }
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
+                            columns: currentValue.columns.filter((_, rowIndex) => rowIndex !== candidateIndex),
+                          }))}
+                        onStatusChange={(candidateIndex, value, rowId) => {
+                          if (value === NEW_STATUS_VALUE) {
+                            setStatusModalError(null);
+                            setStatusModalValue("");
+                            setStatusModalRowId(rowId);
+                            return;
+                          }
+
+                          updateColumnAt(candidateIndex, (candidate) => ({
+                            ...candidate,
+                            statusKey: value,
+                          }));
+                        }}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
 
               <button
-                className="ghost-button"
+                className="ghost-button board-edit__add-column"
                 type="button"
                 onClick={() =>
                   setFormState((currentValue) => ({
@@ -318,8 +610,9 @@ export function BoardEditPage() {
                     columns: [
                       ...currentValue.columns,
                       {
+                        rowId: createRowId(),
                         name: "New Column",
-                        statusKey: "todo",
+                        statusKey: "",
                       },
                     ],
                   }))
@@ -390,6 +683,26 @@ export function BoardEditPage() {
             </div>
           </form>
         </section>
+      ) : null}
+
+      {statusModalRowId ? (
+        <CreateStatusModal
+          errorMessage={statusModalError}
+          isBusy={createStatusMutation.isPending}
+          value={statusModalValue}
+          onChange={setStatusModalValue}
+          onClose={() => {
+            setStatusModalError(null);
+            setStatusModalValue("");
+            setStatusModalRowId(null);
+          }}
+          onSubmit={() => {
+            setStatusModalError(null);
+            void createStatusMutation.mutateAsync({
+              name: statusModalValue.trim(),
+            });
+          }}
+        />
       ) : null}
     </main>
   );

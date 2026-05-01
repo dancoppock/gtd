@@ -63,6 +63,40 @@ describe("API routes", () => {
     });
   });
 
+  it("lists the seeded global statuses", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/statuses",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      statuses: [
+        expect.objectContaining({ key: "done", name: "Done", category: "completed", isSystem: true }),
+        expect.objectContaining({ key: "in_progress", name: "In Progress", category: "active", isSystem: true }),
+        expect.objectContaining({ key: "todo", name: "Todo", category: "active", isSystem: true }),
+      ],
+    });
+  });
+
+  it("creates a new global status immediately", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/statuses",
+      payload: {
+        name: "Blocked",
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual({
+      key: "blocked",
+      name: "Blocked",
+      category: "active",
+      isSystem: false,
+    });
+  });
+
   it("lists labels globally", async () => {
     const response = await app.inject({
       method: "GET",
@@ -192,6 +226,63 @@ describe("API routes", () => {
         expect.objectContaining({ statusKey: "in_progress", name: "Doing" }),
         expect.objectContaining({ statusKey: "done", name: "Done" }),
       ],
+    });
+  });
+
+  it("creates a board with a brand-new status and exposes it globally", async () => {
+    const createResponse = await app.inject({
+      method: "POST",
+      url: "/api/boards",
+      payload: {
+        name: "Support",
+        description: "Support workflow",
+        isDefault: false,
+        columns: [
+          { name: "Todo", statusKey: "todo" },
+          { name: "Blocked", statusKey: "blocked", statusName: "Blocked" },
+          { name: "Done", statusKey: "done" },
+        ],
+        filterLabelIds: [],
+      },
+    });
+
+    expect(createResponse.statusCode).toBe(201);
+    expect(createResponse.json()).toMatchObject({
+      columns: [
+        expect.objectContaining({ statusKey: "todo", statusName: "Todo", statusCategory: "active" }),
+        expect.objectContaining({ statusKey: "blocked", statusName: "Blocked", statusCategory: "active" }),
+        expect.objectContaining({ statusKey: "done", statusName: "Done", statusCategory: "completed" }),
+      ],
+    });
+
+    const statusesResponse = await app.inject({
+      method: "GET",
+      url: "/api/statuses",
+    });
+
+    expect(statusesResponse.statusCode).toBe(200);
+    expect(statusesResponse.json()).toEqual({
+      statuses: expect.arrayContaining([
+        expect.objectContaining({ key: "blocked", name: "Blocked", category: "active", isSystem: false }),
+      ]),
+    });
+
+    const ticketResponse = await app.inject({
+      method: "POST",
+      url: `/api/boards/${createResponse.json().id}/tickets`,
+      payload: {
+        statusKey: "blocked",
+        title: "Escalated case",
+        description: "Waiting on external dependency.",
+        priority: "high",
+        labels: [],
+      },
+    });
+
+    expect(ticketResponse.statusCode).toBe(201);
+    expect(ticketResponse.json()).toMatchObject({
+      statusKey: "blocked",
+      title: "Escalated case",
     });
   });
 

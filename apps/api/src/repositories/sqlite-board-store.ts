@@ -5,10 +5,12 @@ import type {
   BoardDetail,
   BoardFilters,
   Column,
+  CreateStatusInput,
   CreateBoardInput,
   CreateTicketInput,
   Label,
   RepositionTicketInput,
+  Status,
   Ticket,
   UpdateBoardInput,
   UpdateLabelInput,
@@ -35,8 +37,17 @@ type ColumnRow = {
   id: string;
   board_id: string;
   key: Column["statusKey"];
+  status_name: string;
+  status_category: Column["statusCategory"];
   name: string;
   position: number;
+};
+
+type StatusRow = {
+  key: string;
+  name: string;
+  category: Status["category"];
+  is_system: number;
 };
 
 type LabelRow = {
@@ -85,6 +96,24 @@ function slugify(value: string) {
     .slice(0, 60) || "board";
 }
 
+function statusKeyFromName(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80) || "status";
+}
+
+function humanizeStatusKey(value: string) {
+  return value
+    .trim()
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ") || "Status";
+}
+
 function toIsoString(timestamp: number | null) {
   return timestamp === null ? null : new Date(timestamp).toISOString();
 }
@@ -121,6 +150,18 @@ export class SqliteBoardStore {
     return rows.map((row) => this.toBoard(row));
   }
 
+  listStatuses() {
+    const rows = this.sqlite
+      .prepare("select * from statuses order by name asc")
+      .all() as StatusRow[];
+
+    return rows.map((row) => this.toStatus(row));
+  }
+
+  createStatus(input: CreateStatusInput) {
+    return this.getOrCreateStatus(statusKeyFromName(input.name), input.name);
+  }
+
   getDefaultBoard() {
     const row = this.sqlite
       .prepare("select * from boards where is_default = 1 limit 1")
@@ -155,6 +196,7 @@ export class SqliteBoardStore {
       ...board,
       columns: this.getColumnsForBoard(boardId),
       availableLabels: this.getAllLabels(),
+      availableStatuses: this.listStatuses(),
       filterLabels: this.getBoardFilterLabels(boardId),
     };
   }
@@ -433,8 +475,14 @@ export class SqliteBoardStore {
       return null;
     }
 
+    const completedStatusKeys = new Set(
+      this.getColumnsForBoard(boardId)
+        .filter((column) => column.statusCategory === "completed")
+        .map((column) => column.statusKey),
+    );
+
     const visibleDoneIds = this.selectVisibleTicketRows(boardId, emptyFilters)
-      .filter((ticket) => ticket.status_key === "done")
+      .filter((ticket) => completedStatusKeys.has(ticket.status_key))
       .map((ticket) => ticket.id);
 
     if (visibleDoneIds.length === 0) {
@@ -532,6 +580,10 @@ export class SqliteBoardStore {
         insert or ignore into boards (id, slug, name, description, is_default, is_system, created_at, updated_at)
         values (?, ?, ?, ?, ?, ?, ?, ?)
       `);
+      const insertStatus = this.sqlite.prepare(`
+        insert or ignore into statuses (key, name, category, is_system)
+        values (?, ?, ?, ?)
+      `);
       const insertColumn = this.sqlite.prepare(`
         insert or ignore into columns (id, board_id, key, name, position)
         values (?, ?, ?, ?, ?)
@@ -563,6 +615,15 @@ export class SqliteBoardStore {
           board.isSystem ? 1 : 0,
           Date.parse(board.createdAt),
           Date.parse(board.updatedAt),
+        );
+      });
+
+      seed.statuses.forEach((status) => {
+        insertStatus.run(
+          status.key,
+          status.name,
+          status.category,
+          status.isSystem ? 1 : 0,
         );
       });
 
@@ -607,7 +668,12 @@ export class SqliteBoardStore {
   private getColumnsForBoard(boardId: string) {
     const rows = this.sqlite
       .prepare(`
-        select * from columns
+        select
+          columns.*,
+          statuses.name as status_name,
+          statuses.category as status_category
+        from columns
+        inner join statuses on statuses.key = columns.key
         where board_id = ?
         order by position asc
       `)
@@ -823,10 +889,11 @@ export class SqliteBoardStore {
     `);
 
     columnsInput.forEach((column, index) => {
+      const status = this.getOrCreateStatus(column.statusKey, column.statusName);
       insert.run(
         `col_${crypto.randomUUID()}`,
         boardId,
-        column.statusKey,
+        status.key,
         column.name,
         index,
       );
@@ -931,6 +998,33 @@ export class SqliteBoardStore {
       .run(nextDefaultBoardId);
   }
 
+  private getOrCreateStatus(statusKey: string, statusName?: string) {
+    const normalizedKey = statusKeyFromName(statusKey);
+    const existingStatus = this.sqlite
+      .prepare("select * from statuses where key = ? limit 1")
+      .get(normalizedKey) as StatusRow | undefined;
+
+    if (existingStatus) {
+      return this.toStatus(existingStatus);
+    }
+
+    const status: Status = {
+      key: normalizedKey,
+      name: statusName?.trim() || humanizeStatusKey(normalizedKey),
+      category: normalizedKey === "done" ? "completed" : "active",
+      isSystem: normalizedKey === "todo" || normalizedKey === "in_progress" || normalizedKey === "done",
+    };
+
+    this.sqlite
+      .prepare(`
+        insert into statuses (key, name, category, is_system)
+        values (?, ?, ?, ?)
+      `)
+      .run(status.key, status.name, status.category, status.isSystem ? 1 : 0);
+
+    return status;
+  }
+
   private createUniqueSlug(name: string) {
     const base = slugify(name);
     const rows = this.sqlite
@@ -969,7 +1063,18 @@ export class SqliteBoardStore {
       boardId: row.board_id,
       name: row.name,
       statusKey: row.key,
+      statusName: row.status_name,
+      statusCategory: row.status_category,
       position: row.position,
+    };
+  }
+
+  private toStatus(row: StatusRow): Status {
+    return {
+      key: row.key,
+      name: row.name,
+      category: row.category,
+      isSystem: Boolean(row.is_system),
     };
   }
 

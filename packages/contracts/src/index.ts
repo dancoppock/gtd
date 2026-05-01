@@ -1,7 +1,15 @@
 import { z } from "zod";
 
 export const ticketPrioritySchema = z.enum(["highest", "high", "medium", "low"]);
-export const ticketStatusSchema = z.enum(["todo", "in_progress", "done"]);
+export const statusCategorySchema = z.enum(["active", "completed"]);
+export const ticketStatusSchema = z.string().trim().min(1).max(80);
+
+export const statusSchema = z.object({
+  key: ticketStatusSchema,
+  name: z.string().min(1),
+  category: statusCategorySchema,
+  isSystem: z.boolean(),
+});
 
 export const labelSchema = z.object({
   id: z.string().min(1),
@@ -30,6 +38,8 @@ export const columnSchema = z.object({
   boardId: z.string().min(1),
   name: z.string().min(1),
   statusKey: ticketStatusSchema,
+  statusName: z.string().min(1),
+  statusCategory: statusCategorySchema,
   position: z.number().int().nonnegative(),
 });
 
@@ -55,6 +65,7 @@ export const boardFiltersSchema = z.object({
 export const boardDetailSchema = boardSchema.extend({
   columns: z.array(columnSchema),
   availableLabels: z.array(labelSchema),
+  availableStatuses: z.array(statusSchema),
   filterLabels: z.array(labelSchema),
 });
 
@@ -68,9 +79,18 @@ export const listLabelsResponseSchema = z.object({
   labels: z.array(labelUsageSchema),
 });
 
+export const listStatusesResponseSchema = z.object({
+  statuses: z.array(statusSchema),
+});
+
+export const createStatusInputSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+});
+
 export const boardColumnInputSchema = z.object({
   name: z.string().trim().min(1).max(60),
   statusKey: ticketStatusSchema,
+  statusName: z.string().trim().min(1).max(60).optional(),
 });
 
 export const createBoardInputSchema = z.object({
@@ -114,7 +134,9 @@ export const archiveDoneTicketsResponseSchema = z.object({
 });
 
 export type TicketPriority = z.infer<typeof ticketPrioritySchema>;
+export type StatusCategory = z.infer<typeof statusCategorySchema>;
 export type TicketStatus = z.infer<typeof ticketStatusSchema>;
+export type Status = z.infer<typeof statusSchema>;
 export type Label = z.infer<typeof labelSchema>;
 export type LabelUsage = z.infer<typeof labelUsageSchema>;
 export type Board = z.infer<typeof boardSchema>;
@@ -124,6 +146,8 @@ export type BoardFilters = z.infer<typeof boardFiltersSchema>;
 export type BoardDetail = z.infer<typeof boardDetailSchema>;
 export type ListTicketsResponse = z.infer<typeof listTicketsResponseSchema>;
 export type ListLabelsResponse = z.infer<typeof listLabelsResponseSchema>;
+export type ListStatusesResponse = z.infer<typeof listStatusesResponseSchema>;
+export type CreateStatusInput = z.infer<typeof createStatusInputSchema>;
 export type BoardColumnInput = z.infer<typeof boardColumnInputSchema>;
 export type CreateBoardInput = z.infer<typeof createBoardInputSchema>;
 export type UpdateBoardInput = z.infer<typeof updateBoardInputSchema>;

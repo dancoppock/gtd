@@ -76,6 +76,74 @@ function ensureBoardFields(sqlite: Database.Database) {
   }
 }
 
+function humanizeStatusKey(statusKey: string) {
+  return statusKey
+    .trim()
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ") || "Status";
+}
+
+function ensureStatusesTable(sqlite: Database.Database) {
+  sqlite.exec(`
+    create table if not exists statuses (
+      key text primary key not null,
+      name text not null,
+      category text not null default 'active',
+      is_system integer not null default 0
+    );
+    create unique index if not exists statuses_name_unique on statuses (name);
+  `);
+
+  if (!hasColumn(sqlite, "statuses", "category")) {
+    sqlite.exec("alter table statuses add column category text not null default 'active'");
+  }
+
+  if (!hasColumn(sqlite, "statuses", "is_system")) {
+    sqlite.exec("alter table statuses add column is_system integer not null default 0");
+  }
+}
+
+function ensureStatusesData(sqlite: Database.Database) {
+  ensureStatusesTable(sqlite);
+
+  sqlite.exec(`
+    insert or ignore into statuses (key, name, category, is_system)
+    values
+      ('todo', 'Todo', 'active', 1),
+      ('in_progress', 'In Progress', 'active', 1),
+      ('done', 'Done', 'completed', 1);
+  `);
+
+  sqlite.exec(`
+    update statuses
+    set
+      category = case when key = 'done' then 'completed' else coalesce(category, 'active') end,
+      is_system = case when key in ('todo', 'in_progress', 'done') then 1 else is_system end
+    where key in ('todo', 'in_progress', 'done');
+  `);
+
+  const statusRows = sqlite.prepare(`
+    select distinct status_key as key
+    from tickets
+    where status_key is not null and trim(status_key) != ''
+    union
+    select distinct key
+    from columns
+    where key is not null and trim(key) != ''
+  `).all() as Array<{ key: string }>;
+
+  const insert = sqlite.prepare(`
+    insert or ignore into statuses (key, name, category, is_system)
+    values (?, ?, ?, 0)
+  `);
+
+  statusRows.forEach(({ key }) => {
+    insert.run(key, humanizeStatusKey(key), key === "done" ? "completed" : "active");
+  });
+}
+
 function createBoardLabelFilters(sqlite: Database.Database) {
   sqlite.exec(`
     create table if not exists board_label_filters (
@@ -225,6 +293,7 @@ function migrateLegacyDataModel(sqlite: Database.Database) {
 function ensureCurrentIndexes(sqlite: Database.Database) {
   sqlite.exec(`
     create unique index if not exists boards_slug_unique on boards (slug);
+    create unique index if not exists statuses_name_unique on statuses (name);
     create unique index if not exists columns_board_position_unique on columns (board_id, position);
     create unique index if not exists columns_board_key_unique on columns (board_id, key);
     create unique index if not exists labels_normalized_name_unique on labels (normalized_name);
@@ -246,6 +315,7 @@ function ensureDatabaseSchema(sqlite: Database.Database) {
 
   ensureBoardFields(sqlite);
   migrateLegacyDataModel(sqlite);
+  ensureStatusesData(sqlite);
   createBoardLabelFilters(sqlite);
   ensureCurrentIndexes(sqlite);
 }

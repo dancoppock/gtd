@@ -2,6 +2,7 @@ import type {
   Board,
   Column,
   Label,
+  Status,
   Ticket,
   TicketPriority,
   TicketStatus,
@@ -13,6 +14,7 @@ export type SeedTicketRecord = Omit<Ticket, "labels"> & {
 
 export type SeedData = {
   boards: Board[];
+  statuses: Status[];
   columns: Column[];
   labels: Label[];
   boardLabelFilters: Array<{
@@ -58,11 +60,34 @@ export function createSeedData(): SeedData {
     },
   ];
 
+  const statuses: Status[] = [
+    {
+      key: "todo",
+      name: "Todo",
+      category: "active",
+      isSystem: true,
+    },
+    {
+      key: "in_progress",
+      name: "In Progress",
+      category: "active",
+      isSystem: true,
+    },
+    {
+      key: "done",
+      name: "Done",
+      category: "completed",
+      isSystem: true,
+    },
+  ];
+
   const columns: Column[] = [
     {
       id: "col_todo",
       boardId,
       statusKey: "todo",
+      statusName: "Todo",
+      statusCategory: "active",
       name: "Todo",
       position: 0,
     },
@@ -70,6 +95,8 @@ export function createSeedData(): SeedData {
       id: "col_in_progress",
       boardId,
       statusKey: "in_progress",
+      statusName: "In Progress",
+      statusCategory: "active",
       name: "In Progress",
       position: 1,
     },
@@ -77,6 +104,8 @@ export function createSeedData(): SeedData {
       id: "col_done",
       boardId,
       statusKey: "done",
+      statusName: "Done",
+      statusCategory: "completed",
       name: "Done",
       position: 2,
     },
@@ -132,6 +161,7 @@ export function createSeedData(): SeedData {
 
   return {
     boards,
+    statuses,
     columns,
     labels,
     boardLabelFilters: [],

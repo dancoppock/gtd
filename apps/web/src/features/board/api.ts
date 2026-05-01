@@ -2,12 +2,15 @@ import type {
   ArchiveDoneTicketsResponse,
   Board,
   BoardDetail,
+  CreateStatusInput,
   CreateBoardInput,
   CreateTicketInput,
   Label,
   ListLabelsResponse,
+  ListStatusesResponse,
   ListTicketsResponse,
   RepositionTicketInput,
+  Status,
   Ticket,
   UpdateBoardInput,
   UpdateLabelInput,
@@ -94,6 +97,20 @@ export async function deleteBoard(boardId: string) {
 
 export async function fetchLabels() {
   return fetch("/api/labels").then((response) => readJson<ListLabelsResponse>(response));
+}
+
+export async function fetchStatuses() {
+  return fetch("/api/statuses").then((response) => readJson<ListStatusesResponse>(response));
+}
+
+export async function createStatus(input: CreateStatusInput) {
+  return fetch("/api/statuses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  }).then((response) => readJson<Status>(response));
 }
 
 export async function createTicket(boardId: string, input: CreateTicketInput) {

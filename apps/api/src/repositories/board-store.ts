@@ -3,11 +3,13 @@ import type {
   Board,
   BoardDetail,
   BoardFilters,
+  CreateStatusInput,
   CreateBoardInput,
   CreateTicketInput,
   Label,
   LabelUsage,
   RepositionTicketInput,
+  Status,
   Ticket,
   UpdateBoardInput,
   UpdateLabelInput,
@@ -18,6 +20,8 @@ import { SqliteBoardStore } from "./sqlite-board-store.js";
 
 export type BoardStore = {
   listBoards(): Board[];
+  listStatuses(): Status[];
+  createStatus(input: CreateStatusInput): Status;
   getDefaultBoard(): Board | null;
   getBoardById(boardId: string): Board | null;
   getBoardBySlug(slug: string): Board | null;

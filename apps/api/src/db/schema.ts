@@ -20,6 +20,15 @@ export const boards = sqliteTable("boards", {
   slugUnique: uniqueIndex("boards_slug_unique").on(table.slug),
 }));
 
+export const statuses = sqliteTable("statuses", {
+  key: text("key").primaryKey(),
+  name: text("name").notNull(),
+  category: text("category").notNull().default("active"),
+  isSystem: integer("is_system", { mode: "boolean" }).notNull().default(false),
+}, (table) => ({
+  nameUnique: uniqueIndex("statuses_name_unique").on(table.name),
+}));
+
 export const columns = sqliteTable("columns", {
   id: text("id").primaryKey(),
   boardId: text("board_id")

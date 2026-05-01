@@ -3,12 +3,14 @@ import type {
   Board,
   BoardDetail,
   BoardFilters,
+  CreateStatusInput,
   Column,
   CreateBoardInput,
   CreateTicketInput,
   Label,
   LabelUsage,
   RepositionTicketInput,
+  Status,
   Ticket,
   UpdateBoardInput,
   UpdateLabelInput,
@@ -42,6 +44,24 @@ function slugify(value: string) {
     .slice(0, 60) || "board";
 }
 
+function statusKeyFromName(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80) || "status";
+}
+
+function humanizeStatusKey(value: string) {
+  return value
+    .trim()
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ") || "Status";
+}
+
 function matchesText(ticket: SeedTicketRecord, query: string) {
   if (!query.trim()) {
     return true;
@@ -53,6 +73,7 @@ function matchesText(ticket: SeedTicketRecord, query: string) {
 
 export class InMemoryBoardStore {
   private boards = new Map<string, Board>();
+  private statuses = new Map<string, Status>();
   private columns = new Map<string, Column>();
   private labels = new Map<string, Label>();
   private tickets = new Map<string, SeedTicketRecord>();
@@ -63,6 +84,10 @@ export class InMemoryBoardStore {
 
     seed.boards.forEach((board) => {
       this.boards.set(board.id, board);
+    });
+
+    seed.statuses.forEach((status) => {
+      this.statuses.set(status.key, status);
     });
 
     seed.columns.forEach((column) => {
@@ -90,6 +115,16 @@ export class InMemoryBoardStore {
     );
   }
 
+  listStatuses() {
+    return Array.from(this.statuses.values()).sort((left, right) =>
+      left.name.localeCompare(right.name),
+    );
+  }
+
+  createStatus(input: CreateStatusInput) {
+    return this.getOrCreateStatus(statusKeyFromName(input.name), input.name);
+  }
+
   getDefaultBoard() {
     return this.listBoards().find((board) => board.isDefault) ?? null;
   }
@@ -112,6 +147,7 @@ export class InMemoryBoardStore {
       ...board,
       columns: this.getColumnsForBoard(boardId),
       availableLabels: this.getAllLabels(),
+      availableStatuses: this.listStatuses(),
       filterLabels: this.getBoardFilterLabels(boardId),
     };
   }
@@ -381,7 +417,7 @@ export class InMemoryBoardStore {
     }
 
     const visibleDoneTickets = this.getVisibleTicketRecordsForBoard(boardId).filter(
-      (ticket) => ticket.statusKey === "done",
+      (ticket) => this.statuses.get(ticket.statusKey)?.category === "completed",
     );
     const archivedAt = new Date().toISOString();
 
@@ -515,13 +551,16 @@ export class InMemoryBoardStore {
     });
 
     columnsInput.forEach((column, index) => {
+      const status = this.getOrCreateStatus(column.statusKey, column.statusName);
       const columnId = `col_${crypto.randomUUID()}`;
 
       this.columns.set(columnId, {
         id: columnId,
         boardId,
         name: column.name,
-        statusKey: column.statusKey,
+        statusKey: status.key,
+        statusName: status.name,
+        statusCategory: status.category,
         position: index,
       });
     });
@@ -631,6 +670,24 @@ export class InMemoryBoardStore {
     }
 
     return `${base}-${suffix}`;
+  }
+
+  private getOrCreateStatus(statusKey: string, statusName?: string) {
+    const normalizedKey = statusKeyFromName(statusKey);
+    const existingStatus = this.statuses.get(normalizedKey);
+    if (existingStatus) {
+      return existingStatus;
+    }
+
+    const status: Status = {
+      key: normalizedKey,
+      name: statusName?.trim() || humanizeStatusKey(normalizedKey),
+      category: normalizedKey === "done" ? "completed" : "active",
+      isSystem: normalizedKey === "todo" || normalizedKey === "in_progress" || normalizedKey === "done",
+    };
+
+    this.statuses.set(status.key, status);
+    return status;
   }
 
   private clearDefaultBoard(nextDefaultBoardId: string) {

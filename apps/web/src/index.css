@@ -792,6 +792,15 @@ button {
   border: 1px solid var(--ticket-border);
 }
 
+.board-edit__column-row {
+  align-items: stretch;
+}
+
+.board-edit__column-row--dragging {
+  opacity: 0.82;
+  box-shadow: 0 16px 28px rgba(76, 65, 36, 0.14);
+}
+
 .label-row__main {
   display: flex;
   flex-direction: column;
@@ -810,6 +819,47 @@ button {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.board-edit__drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  min-width: 42px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--field-surface);
+  color: var(--text-muted);
+  cursor: grab;
+  touch-action: none;
+}
+
+.board-edit__drag-handle:hover {
+  color: var(--text-strong);
+  border-color: var(--focus-border);
+}
+
+.board-edit__drag-handle:active {
+  cursor: grabbing;
+}
+
+.board-edit__drag-handle svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.board-edit__column-action {
+  justify-content: flex-end;
+}
+
+.board-edit__column-action-label {
+  visibility: hidden;
+}
+
+.board-edit__add-column {
+  margin-top: 5px;
 }
 
 .ticket-card {

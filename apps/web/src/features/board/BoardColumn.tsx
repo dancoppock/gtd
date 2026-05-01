@@ -42,13 +42,13 @@ export function BoardColumn({
             <p>{tickets.length} tickets</p>
           </div>
           <div className="board-column__header-actions">
-            {column.statusKey === "done" && onArchiveDoneTickets ? (
+            {column.statusCategory === "completed" && onArchiveDoneTickets ? (
               <button
-                aria-label="Archive done tickets"
+                aria-label={`Archive completed tickets in ${column.name}`}
                 className="board-column__archive-button"
-                data-testid="column-archive-done"
+                data-testid={`column-archive-${column.statusKey}`}
                 disabled={isArchiving || tickets.length === 0}
-                title="Archive done tickets"
+                title="Archive completed tickets"
                 type="button"
                 onClick={onArchiveDoneTickets}
               >
@@ -86,7 +86,7 @@ export function BoardColumn({
               <SortableTicketCard
                 key={ticket.id}
                 ticket={ticket}
-                tone={column.statusKey === "done" ? "done" : "default"}
+                tone={column.statusCategory === "completed" ? "done" : "default"}
                 onEdit={() => onEditTicket(ticket)}
                 onTitleUpdate={(nextTitle) => onInlineTitleUpdate(ticket, nextTitle)}
                 viewMode={viewMode}

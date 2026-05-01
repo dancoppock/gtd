@@ -72,8 +72,10 @@ function writeFilters(nextFilters: BoardFilters) {
   return params;
 }
 
-function resolveTicketTone(ticket: Ticket) {
-  return ticket.statusKey === "done" ? "done" : "default";
+function resolveTicketTone(columns: Array<{ statusKey: string; statusCategory: string }>, ticket: Ticket) {
+  return columns.find((column) => column.statusKey === ticket.statusKey)?.statusCategory === "completed"
+    ? "done"
+    : "default";
 }
 
 export function BoardPage() {
@@ -347,7 +349,7 @@ export function BoardPage() {
                   <BoardColumn
                     key={column.id}
                     column={column}
-                    isArchiving={archiveDoneTicketsMutation.isPending && column.statusKey === "done"}
+                    isArchiving={archiveDoneTicketsMutation.isPending && column.statusCategory === "completed"}
                     tickets={tickets}
                     onArchiveDoneTickets={() => {
                       void archiveDoneTicketsMutation.mutateAsync(data.board.id);
@@ -365,7 +367,7 @@ export function BoardPage() {
               {activeTicket ? (
                 <TicketCard
                   ticket={activeTicket}
-                  tone={resolveTicketTone(activeTicket)}
+                  tone={resolveTicketTone(data.board.columns, activeTicket)}
                   onEdit={() => undefined}
                   onTitleUpdate={async () => undefined}
                   viewMode={ticketViewMode}

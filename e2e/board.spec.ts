@@ -160,3 +160,23 @@ test("uses the selected default board for Home navigation", async ({ page }) => 
   await expect(page).toHaveURL(/\/boards\/operations$/);
   await expect(page.getByRole("heading", { name: "Operations" })).toBeVisible();
 });
+
+test("creates a board with a brand-new custom status", async ({ page }) => {
+  await page.getByRole("link", { name: "Boards" }).click();
+  await page.getByRole("link", { name: "Create Board" }).click();
+
+  await page.getByTestId("board-name-input").fill("Support");
+  await page.getByTestId("board-description-input").fill("Support workflow");
+  await page.getByRole("button", { name: "Add Column" }).click();
+
+  await page.getByLabel("Status").nth(3).selectOption({ label: "Create new status..." });
+  await expect(page.getByRole("dialog", { name: "Create Status" })).toBeVisible();
+  await page.getByTestId("status-modal-name-input").fill("Blocked");
+  await page.getByTestId("status-modal-submit").click();
+
+  await page.getByRole("button", { name: "Create Board" }).click();
+
+  await expect(page).toHaveURL(/\/boards\/support$/);
+  await expect(page.getByRole("heading", { name: "Support" })).toBeVisible();
+  await expect(page.getByTestId("column-blocked")).toBeVisible();
+});

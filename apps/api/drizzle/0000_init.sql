@@ -14,6 +14,16 @@ CREATE TABLE `boards` (
 CREATE UNIQUE INDEX `boards_slug_unique`
   ON `boards` (`slug`);
 
+CREATE TABLE `statuses` (
+  `key` TEXT PRIMARY KEY NOT NULL,
+  `name` TEXT NOT NULL,
+  `category` TEXT NOT NULL DEFAULT 'active',
+  `is_system` INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE UNIQUE INDEX `statuses_name_unique`
+  ON `statuses` (`name`);
+
 CREATE TABLE `columns` (
   `id` TEXT PRIMARY KEY NOT NULL,
   `board_id` TEXT NOT NULL,
@@ -96,6 +106,12 @@ VALUES (
   CAST(strftime('%s', 'now') AS INTEGER) * 1000,
   CAST(strftime('%s', 'now') AS INTEGER) * 1000
 );
+
+INSERT INTO `statuses` (`key`, `name`, `category`, `is_system`)
+VALUES
+  ('todo', 'Todo', 'active', 1),
+  ('in_progress', 'In Progress', 'active', 1),
+  ('done', 'Done', 'completed', 1);
 
 INSERT INTO `columns` (`id`, `board_id`, `key`, `name`, `position`)
 VALUES
