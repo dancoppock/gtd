@@ -7,23 +7,27 @@ import { SortableTicketCard } from "../tickets/SortableTicketCard";
 
 type BoardColumnProps = {
   column: Column;
+  expandedTicketIds: ReadonlySet<string>;
   tickets: Ticket[];
   isArchiving?: boolean;
   onEditTicket: (ticket: Ticket) => void;
   onCreateTicket: (statusKey: Column["statusKey"]) => void;
   onArchiveDoneTickets?: () => void;
   onInlineTitleUpdate: (ticket: Ticket, nextTitle: string) => Promise<void>;
+  onToggleTicketExpanded: (ticketId: string) => void;
   viewMode: TicketViewMode;
 };
 
 export function BoardColumn({
   column,
+  expandedTicketIds,
   tickets,
   isArchiving = false,
   onEditTicket,
   onCreateTicket,
   onArchiveDoneTickets,
   onInlineTitleUpdate,
+  onToggleTicketExpanded,
   viewMode,
 }: BoardColumnProps) {
   const { isOver, setNodeRef } = useDroppable({
@@ -85,9 +89,11 @@ export function BoardColumn({
             tickets.map((ticket) => (
               <SortableTicketCard
                 key={ticket.id}
+                isExpanded={expandedTicketIds.has(ticket.id)}
                 ticket={ticket}
                 tone={column.statusCategory === "completed" ? "done" : "default"}
                 onEdit={() => onEditTicket(ticket)}
+                onToggleExpanded={() => onToggleTicketExpanded(ticket.id)}
                 onTitleUpdate={(nextTitle) => onInlineTitleUpdate(ticket, nextTitle)}
                 viewMode={viewMode}
               />
@@ -98,6 +104,12 @@ export function BoardColumn({
             </div>
           )}
         </SortableContext>
+
+        <div
+          className="board-column__tail"
+          data-testid={`column-tail-${column.statusKey}`}
+          onDoubleClick={() => onCreateTicket(column.statusKey)}
+        />
       </div>
     </section>
   );

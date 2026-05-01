@@ -13,11 +13,14 @@
   --page-text: #17202a;
   --panel: rgba(255, 252, 245, 0.88);
   --panel-strong: #fffaf1;
+  --ticket-surface: #fffdf8;
+  --ticket-rail-surface: #fcf8f1;
+  --done-ticket-surface: #faf5ed;
   --border: rgba(50, 70, 84, 0.12);
   --border-strong: rgba(34, 53, 65, 0.24);
   --text-muted: #5d6972;
-  --done-ticket-text: #49555f;
-  --done-ticket-description: #7f8a91;
+  --done-ticket-text: #64707a;
+  --done-ticket-description: #8e989f;
   --column-heading-text: #49555f;
   --accent: #0d7c86;
   --accent-strong: #09555c;
@@ -51,11 +54,14 @@
   --page-text: #122430;
   --panel: rgba(246, 252, 255, 0.9);
   --panel-strong: #f9fdff;
+  --ticket-surface: #ffffff;
+  --ticket-rail-surface: #f6fafc;
+  --done-ticket-surface: #f3f8fb;
   --border: rgba(31, 74, 92, 0.12);
   --border-strong: rgba(18, 52, 66, 0.22);
   --text-muted: #536b76;
-  --done-ticket-text: #48616c;
-  --done-ticket-description: #708790;
+  --done-ticket-text: #637983;
+  --done-ticket-description: #8699a2;
   --column-heading-text: #48616c;
   --accent: #0a6f7d;
   --accent-strong: #104e61;
@@ -79,11 +85,14 @@
   --page-text: #18241c;
   --panel: rgba(250, 253, 247, 0.9);
   --panel-strong: #fcfef9;
+  --ticket-surface: #fffffd;
+  --ticket-rail-surface: #f7faf4;
+  --done-ticket-surface: #f4f8f0;
   --border: rgba(52, 88, 61, 0.12);
   --border-strong: rgba(31, 62, 39, 0.22);
   --text-muted: #5b6f60;
-  --done-ticket-text: #516657;
-  --done-ticket-description: #7b8a7f;
+  --done-ticket-text: #6b7d70;
+  --done-ticket-description: #8b9990;
   --column-heading-text: #516657;
   --accent: #2d7a52;
   --accent-strong: #24563e;
@@ -107,11 +116,14 @@
   --page-text: #241a1a;
   --panel: rgba(255, 248, 244, 0.9);
   --panel-strong: #fffaf7;
+  --ticket-surface: #fffdfb;
+  --ticket-rail-surface: #fcf5f1;
+  --done-ticket-surface: #faf2ee;
   --border: rgba(110, 64, 52, 0.12);
   --border-strong: rgba(81, 40, 30, 0.22);
   --text-muted: #75625d;
-  --done-ticket-text: #6a5853;
-  --done-ticket-description: #96817b;
+  --done-ticket-text: #7d6d67;
+  --done-ticket-description: #a18f89;
   --column-heading-text: #6a5853;
   --accent: #b95a35;
   --accent-strong: #7a3521;
@@ -146,11 +158,14 @@
   --page-text: #e8ecf3;
   --panel: rgba(31, 35, 44, 0.9);
   --panel-strong: #252a33;
+  --ticket-surface: var(--panel-strong);
+  --ticket-rail-surface: color-mix(in srgb, var(--ticket-surface) 72%, var(--button-surface) 28%);
+  --done-ticket-surface: color-mix(in srgb, var(--ticket-surface) 70%, var(--column-surface) 30%);
   --border: rgba(164, 172, 189, 0.14);
   --border-strong: rgba(199, 205, 219, 0.2);
   --text-muted: #a8b0c0;
-  --done-ticket-text: #96a0b1;
-  --done-ticket-description: #7c8596;
+  --done-ticket-text: #8a94a6;
+  --done-ticket-description: #727c8d;
   --column-heading-text: #96a0b1;
   --accent: #8fb4ff;
   --accent-strong: #b7ccff;
@@ -185,11 +200,14 @@
   --page-text: #f2d8d0;
   --panel: rgba(42, 29, 24, 0.9);
   --panel-strong: #33231d;
+  --ticket-surface: var(--panel-strong);
+  --ticket-rail-surface: color-mix(in srgb, var(--ticket-surface) 72%, var(--button-surface) 28%);
+  --done-ticket-surface: color-mix(in srgb, var(--ticket-surface) 72%, var(--column-surface) 28%);
   --border: rgba(201, 150, 132, 0.16);
   --border-strong: rgba(237, 181, 166, 0.24);
   --text-muted: #c4a095;
-  --done-ticket-text: #bc9488;
-  --done-ticket-description: #9b7d75;
+  --done-ticket-text: #b08a7e;
+  --done-ticket-description: #947870;
   --column-heading-text: #bc9488;
   --accent: #d16d5b;
   --accent-strong: #f0a08c;
@@ -641,7 +659,7 @@ button {
 
 .board-column {
   display: flex;
-  flex: 0 0 min(340px, calc(100vw - 96px));
+  flex: 0 0 min(400px, calc(100vw - 96px));
   flex-direction: column;
   min-height: 440px;
   background: var(--column-surface);
@@ -737,6 +755,16 @@ button {
 
 .board-column__body--over {
   background: var(--drag-over-surface);
+}
+
+.board-column__tail {
+  flex: 1 0 84px;
+  min-height: 84px;
+  border-radius: 16px;
+}
+
+.board-column__tail:hover {
+  background: var(--button-surface);
 }
 
 .board-column__empty,
@@ -869,16 +897,21 @@ button {
 
 .ticket-card {
   position: relative;
-  background: var(--panel-strong);
+  background: var(--ticket-surface);
   border-radius: 20px;
   border: 1px solid var(--ticket-border);
-  padding: 16px;
+  overflow: hidden;
   box-shadow: 0 12px 24px rgba(76, 65, 36, 0.06);
 }
 
+.ticket-card--with-drag-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  align-items: stretch;
+}
+
 .ticket-card-shell {
-  touch-action: none;
-  cursor: grab;
+  position: relative;
 }
 
 .ticket-card-shell--dragging {
@@ -895,11 +928,17 @@ button {
   font-weight: 500;
 }
 
-.ticket-card--compact h3 {
-  margin-bottom: 0;
+.ticket-card__content {
+  min-width: 0;
+  padding: 16px 8px 16px 16px;
 }
 
-.ticket-card__header {
+.ticket-card__content--toggleable {
+  cursor: pointer;
+}
+
+.ticket-card--compact h3 {
+  margin-bottom: 0;
 }
 
 .ticket-card__heading {
@@ -919,15 +958,23 @@ button {
   min-width: 0;
 }
 
-.ticket-card__title-button {
-  display: block;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  text-align: left;
-  color: inherit;
+.ticket-card__title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
   cursor: text;
+}
+
+.ticket-card__title-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ticket-card__toggle-hint {
+  color: var(--text-muted);
+  font-weight: 400;
+  letter-spacing: 0.02em;
 }
 
 .ticket-card__title-editor {
@@ -954,18 +1001,21 @@ button {
   color: var(--error-text);
 }
 
-.ticket-card > p {
+.ticket-card__content > p {
   margin: 12px 0 14px;
   color: var(--text-muted);
 }
 
 .ticket-card--done h3,
-.ticket-card--done .ticket-card__title-button,
-.ticket-card--done .ticket-card__title-button:visited {
+.ticket-card--done .ticket-card__title {
   color: var(--done-ticket-text);
 }
 
-.ticket-card--done > p {
+.ticket-card--done {
+  background: var(--done-ticket-surface);
+}
+
+.ticket-card--done .ticket-card__content > p {
   color: var(--done-ticket-description);
 }
 
@@ -993,12 +1043,46 @@ button {
   margin-left: 0;
 }
 
-.ticket-card__actions {
+.ticket-card__rail {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  border-left: 1px solid var(--ticket-border);
+  background: var(--ticket-rail-surface);
+  color: var(--text-muted);
+  cursor: grab;
+  touch-action: none;
+}
+
+.ticket-card__edit-icon {
+  display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: center;
+  align-self: flex-end;
+  width: 32px;
+  height: 32px;
+  margin: 4px 4px 0 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ticket-card__rail:hover,
+.ticket-card__edit-icon:hover {
+  background: var(--button-surface);
+}
+
+.ticket-card__edit-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.ticket-card__rail:active {
+  cursor: grabbing;
 }
 
 .priority-badge {

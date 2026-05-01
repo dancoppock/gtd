@@ -85,6 +85,7 @@ export function BoardPage() {
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [createStatusKey, setCreateStatusKey] = useState<Ticket["statusKey"] | null>(null);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+  const [expandedTicketIds, setExpandedTicketIds] = useState<Set<string>>(() => new Set());
   const [ticketViewMode, setTicketViewMode] = useState<TicketViewMode>("compact");
   const { theme, setTheme } = useBoardTheme();
   const [visibleTickets, setVisibleTickets] = useState<Ticket[]>([]);
@@ -314,6 +315,20 @@ export function BoardPage() {
     }
   }
 
+  function handleToggleTicketExpanded(ticketId: string) {
+    setExpandedTicketIds((currentExpandedTicketIds) => {
+      const nextExpandedTicketIds = new Set(currentExpandedTicketIds);
+
+      if (nextExpandedTicketIds.has(ticketId)) {
+        nextExpandedTicketIds.delete(ticketId);
+      } else {
+        nextExpandedTicketIds.add(ticketId);
+      }
+
+      return nextExpandedTicketIds;
+    });
+  }
+
   return (
     <main className="page-shell">
       <AppHeader
@@ -381,6 +396,7 @@ export function BoardPage() {
                   <BoardColumn
                     key={column.id}
                     column={column}
+                    expandedTicketIds={expandedTicketIds}
                     isArchiving={archiveDoneTicketsMutation.isPending && column.statusCategory === "completed"}
                     tickets={tickets}
                     onArchiveDoneTickets={() => {
@@ -389,6 +405,7 @@ export function BoardPage() {
                     onEditTicket={setEditingTicket}
                     onCreateTicket={setCreateStatusKey}
                     onInlineTitleUpdate={handleInlineTitleUpdate}
+                    onToggleTicketExpanded={handleToggleTicketExpanded}
                     viewMode={ticketViewMode}
                   />
                 );
@@ -398,6 +415,7 @@ export function BoardPage() {
             <DragOverlay>
               {activeTicket ? (
                 <TicketCard
+                  isExpanded={expandedTicketIds.has(activeTicket.id)}
                   ticket={activeTicket}
                   tone={resolveTicketTone(data.board.columns, activeTicket)}
                   onEdit={() => undefined}

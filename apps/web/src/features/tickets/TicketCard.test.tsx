@@ -1,6 +1,7 @@
 import type { Ticket } from "@gtd/contracts";
+import type { DraggableAttributes } from "@dnd-kit/core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TicketCard } from "./TicketCard";
 
@@ -28,6 +29,19 @@ const ticket: Ticket = {
   updatedAt: "2026-04-30T00:00:00.000Z",
 };
 
+const dragHandleAttributes: DraggableAttributes = {
+  role: "button",
+  tabIndex: 0,
+  "aria-disabled": false,
+  "aria-pressed": false,
+  "aria-roledescription": "sortable",
+  "aria-describedby": "ticket-drag-description",
+};
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe("TicketCard", () => {
   it("renders description and labels in full mode", () => {
     render(<TicketCard ticket={ticket} onEdit={vi.fn()} viewMode="full" />);
@@ -42,11 +56,82 @@ describe("TicketCard", () => {
     render(<TicketCard ticket={ticket} onEdit={vi.fn()} viewMode="compact" />);
 
     expect(screen.getByText("Refine compact ticket card")).toBeInTheDocument();
+    expect(screen.getByText("[...]")).toBeInTheDocument();
     expect(
       screen.queryByText("Hide lower-priority metadata in compact mode."),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("frontend")).not.toBeInTheDocument();
     expect(screen.queryByText("ux")).not.toBeInTheDocument();
+  });
+
+  it("shows description and labels when a compact card is expanded", () => {
+    render(<TicketCard ticket={ticket} isExpanded onEdit={vi.fn()} viewMode="compact" />);
+
+    expect(screen.getByText("Hide lower-priority metadata in compact mode.")).toBeInTheDocument();
+    expect(screen.getByText("frontend")).toBeInTheDocument();
+    expect(screen.getByText("ux")).toBeInTheDocument();
+    expect(screen.queryByText("[...]")).not.toBeInTheDocument();
+  });
+
+  it("toggles expanded state when compact card content is clicked", () => {
+    const onToggleExpanded = vi.fn();
+
+    render(
+      <TicketCard
+        dragHandleProps={{
+          attributes: dragHandleAttributes,
+          listeners: undefined,
+        }}
+        ticket={ticket}
+        onEdit={vi.fn()}
+        onToggleExpanded={onToggleExpanded}
+        viewMode="compact"
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("ticket-content-ticket_1"));
+
+    expect(onToggleExpanded).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggles expanded state when the compact card title is single clicked", () => {
+    vi.useFakeTimers();
+    const onToggleExpanded = vi.fn();
+
+    render(
+      <TicketCard
+        ticket={ticket}
+        onEdit={vi.fn()}
+        onToggleExpanded={onToggleExpanded}
+        viewMode="compact"
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("ticket-title-ticket_1"));
+    vi.advanceTimersByTime(250);
+
+    expect(onToggleExpanded).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not toggle expanded state when edit is clicked", () => {
+    const onToggleExpanded = vi.fn();
+
+    render(
+      <TicketCard
+        dragHandleProps={{
+          attributes: dragHandleAttributes,
+          listeners: undefined,
+        }}
+        ticket={ticket}
+        onEdit={vi.fn()}
+        onToggleExpanded={onToggleExpanded}
+        viewMode="compact"
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("ticket-edit-ticket_1"));
+
+    expect(onToggleExpanded).not.toHaveBeenCalled();
   });
 
   it("applies the done tone styling class when rendered in the done column", () => {

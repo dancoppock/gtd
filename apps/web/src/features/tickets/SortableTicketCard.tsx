@@ -12,6 +12,8 @@ type SortableTicketCardProps = {
   tone: TicketCardTone;
   onEdit: () => void;
   onTitleUpdate: (nextTitle: string) => Promise<void>;
+  isExpanded?: boolean;
+  onToggleExpanded?: () => void;
   viewMode: TicketViewMode;
 };
 
@@ -20,6 +22,8 @@ export function SortableTicketCard({
   tone,
   onEdit,
   onTitleUpdate,
+  isExpanded = false,
+  onToggleExpanded,
   viewMode,
 }: SortableTicketCardProps) {
   const {
@@ -41,13 +45,17 @@ export function SortableTicketCard({
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      {...attributes}
-      {...listeners}
     >
       <TicketCard
+        dragHandleProps={{
+          attributes,
+          listeners,
+        }}
+        isExpanded={isExpanded}
         ticket={ticket}
         tone={tone}
         onEdit={onEdit}
+        onToggleExpanded={onToggleExpanded}
         onTitleUpdate={onTitleUpdate}
         isDragging={isDragging}
         viewMode={viewMode}
