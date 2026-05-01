@@ -91,9 +91,20 @@ export const registerBoardRoutes: FastifyPluginAsync<BoardRouteOptions> = async 
   app.patch("/boards/:boardId", async (request, reply) => {
     const { boardId } = boardIdParamsSchema.parse(request.params);
     const input = updateBoardInputSchema.parse(request.body);
+    const existingBoard = boardStore.getBoardById(boardId);
+
+    if (!existingBoard) {
+      return reply.status(404).send(notFound("Board not found"));
+    }
 
     if (!validateUniqueColumnStatuses(input.columns.map((column) => column.statusKey))) {
       return reply.status(400).send(badRequest("Each board column must map to a unique status"));
+    }
+
+    if (existingBoard.isDefault && !input.isDefault) {
+      return reply.status(400).send(
+        badRequest("Choose another default board before clearing this one"),
+      );
     }
 
     const board = boardStore.updateBoard(boardId, input);
@@ -115,6 +126,12 @@ export const registerBoardRoutes: FastifyPluginAsync<BoardRouteOptions> = async 
 
     if (board.isSystem) {
       return reply.status(400).send(badRequest("System boards cannot be deleted"));
+    }
+
+    if (board.isDefault) {
+      return reply.status(400).send(
+        badRequest("Default boards cannot be deleted. Choose another default board first"),
+      );
     }
 
     boardStore.deleteBoard(boardId);

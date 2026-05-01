@@ -61,7 +61,7 @@ export function AppHeader({
             <p>{description}</p>
 
             <nav aria-label="Primary navigation" className="app-nav">
-              <Link className={navClass(activeNav, "home")} to="/boards/default">
+              <Link className={navClass(activeNav, "home")} to="/">
                 Home
               </Link>
               <Link className={navClass(activeNav, "boards")} to="/boards">

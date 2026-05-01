@@ -22,6 +22,7 @@ function disposeBoardStore(store: BoardStore) {
 function createBoardStoreProxy(getBoardStore: () => BoardStore): BoardStore {
   return {
     listBoards: () => getBoardStore().listBoards(),
+    getDefaultBoard: () => getBoardStore().getDefaultBoard(),
     getBoardById: (boardId) => getBoardStore().getBoardById(boardId),
     getBoardBySlug: (slug) => getBoardStore().getBoardBySlug(slug),
     getBoardDetail: (boardId) => getBoardStore().getBoardDetail(boardId),

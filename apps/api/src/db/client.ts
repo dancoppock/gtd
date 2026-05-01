@@ -40,11 +40,40 @@ function ensureBoardFields(sqlite: Database.Database) {
     sqlite.exec("alter table boards add column description text not null default ''");
   }
 
+  if (!hasColumn(sqlite, "boards", "is_default")) {
+    sqlite.exec("alter table boards add column is_default integer not null default 0");
+  }
+
   if (!hasColumn(sqlite, "boards", "is_system")) {
     sqlite.exec("alter table boards add column is_system integer not null default 0");
   }
 
   sqlite.exec("update boards set is_system = 1 where slug = 'default'");
+
+  const firstDefaultRow = sqlite
+    .prepare(`
+      select id
+      from boards
+      where is_default = 1
+      order by created_at asc, name asc
+      limit 1
+    `)
+    .get() as { id: string } | undefined;
+
+  const fallbackDefaultRow = firstDefaultRow ?? sqlite
+    .prepare(`
+      select id
+      from boards
+      order by case when slug = 'default' then 0 else 1 end, created_at asc, name asc
+      limit 1
+    `)
+    .get() as { id: string } | undefined;
+
+  if (fallbackDefaultRow) {
+    sqlite.prepare("update boards set is_default = case when id = ? then 1 else 0 end").run(
+      fallbackDefaultRow.id,
+    );
+  }
 }
 
 function createBoardLabelFilters(sqlite: Database.Database) {

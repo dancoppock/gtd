@@ -51,6 +51,7 @@ export function createSeedData(): SeedData {
       slug: "default",
       name: "My Board",
       description: "Default kanban board",
+      isDefault: true,
       isSystem: true,
       createdAt: now,
       updatedAt: now,

@@ -283,7 +283,7 @@ export function BoardPage() {
   return (
     <main className="page-shell">
       <AppHeader
-        activeNav={boardSlug === "default" ? "home" : "boards"}
+        activeNav={data?.board.isDefault ? "home" : "boards"}
         actions={
           <>
             <TicketViewToggle value={ticketViewMode} onChange={setTicketViewMode} />

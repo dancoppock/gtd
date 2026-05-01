@@ -25,6 +25,7 @@ function emptyBoardFormState(): BoardFormState {
   return {
     name: "",
     description: "",
+    isDefault: false,
     columns: [
       { name: "Todo", statusKey: "todo" },
       { name: "In Progress", statusKey: "in_progress" },
@@ -38,6 +39,7 @@ function toBoardFormState(board: BoardDetail): BoardFormState {
   return {
     name: board.name,
     description: board.description,
+    isDefault: board.isDefault,
     columns: board.columns.map((column) => ({
       name: column.name,
       statusKey: column.statusKey,
@@ -86,11 +88,11 @@ export function BoardEditPage() {
 
   const updateBoardMutation = useMutation({
     mutationFn: (args: { boardId: string; input: CreateBoardInput }) => updateBoard(args.boardId, args.input),
-    onSuccess: async (board) => {
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["boards"] });
       await queryClient.invalidateQueries({ queryKey: ["board"] });
       await queryClient.invalidateQueries({ queryKey: ["board-detail", boardSlug] });
-      navigate(`/boards/${board.slug}`);
+      navigate("/boards");
     },
     onError: (error) => {
       setErrorMessage(error instanceof Error ? error.message : "Failed to update board");
@@ -167,6 +169,7 @@ export function BoardEditPage() {
               const payload: CreateBoardInput = {
                 name: formState.name.trim(),
                 description: formState.description.trim(),
+                isDefault: formState.isDefault,
                 columns: formState.columns.map((column) => ({
                   name: column.name.trim(),
                   statusKey: column.statusKey,
@@ -218,6 +221,20 @@ export function BoardEditPage() {
                   }))
                 }
               />
+            </label>
+
+            <label className="chip-toggle">
+              <input
+                checked={formState.isDefault}
+                type="checkbox"
+                onChange={(event) =>
+                  setFormState((currentValue) => ({
+                    ...currentValue,
+                    isDefault: event.target.checked,
+                  }))
+                }
+              />
+              <span>Make this the default board</span>
             </label>
 
             <div className="filter-group">

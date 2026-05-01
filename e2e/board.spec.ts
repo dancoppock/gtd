@@ -14,7 +14,7 @@ async function resetBoardState() {
 
 test.beforeEach(async ({ page }) => {
   await resetBoardState();
-  await page.goto("/boards/default");
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: "My Board" })).toBeVisible();
 });
 
@@ -140,4 +140,23 @@ test("creates a filtered board from the boards page", async ({ page }) => {
   await expect(page.getByTestId("column-todo")).toContainText("Design ticket modal");
   await expect(page.getByTestId("column-in_progress")).not.toContainText("Build board API route");
   await expect(page.getByTestId("column-done")).not.toContainText("Seed default board");
+});
+
+test("uses the selected default board for Home navigation", async ({ page }) => {
+  await page.getByRole("link", { name: "Boards" }).click();
+  await page.getByRole("link", { name: "Create Board" }).click();
+
+  await page.getByTestId("board-name-input").fill("Operations");
+  await page.getByTestId("board-description-input").fill("Ops queue");
+  await page.getByRole("checkbox", { name: "Make this the default board" }).check({ force: true });
+  await page.getByRole("button", { name: "Create Board" }).click();
+
+  await expect(page).toHaveURL(/\/boards\/operations$/);
+  await expect(page.getByRole("heading", { name: "Operations" })).toBeVisible();
+
+  await page.getByRole("link", { name: "Boards" }).click();
+  await page.getByRole("link", { name: "Home" }).click();
+
+  await expect(page).toHaveURL(/\/boards\/operations$/);
+  await expect(page.getByRole("heading", { name: "Operations" })).toBeVisible();
 });

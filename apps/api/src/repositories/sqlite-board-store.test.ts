@@ -133,6 +133,7 @@ describe("SqliteBoardStore", () => {
     const board = store.createBoard({
       name: "Frontend Work",
       description: "Only frontend-tagged tickets",
+      isDefault: false,
       columns: [
         { name: "Todo", statusKey: "todo" },
         { name: "In Progress", statusKey: "in_progress" },
@@ -152,6 +153,7 @@ describe("SqliteBoardStore", () => {
     const board = store.createBoard({
       name: "Frontend Work",
       description: "Only frontend-tagged tickets",
+      isDefault: false,
       columns: [
         { name: "Todo", statusKey: "todo" },
         { name: "In Progress", statusKey: "in_progress" },

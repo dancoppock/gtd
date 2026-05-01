@@ -18,6 +18,7 @@ import { SqliteBoardStore } from "./sqlite-board-store.js";
 
 export type BoardStore = {
   listBoards(): Board[];
+  getDefaultBoard(): Board | null;
   getBoardById(boardId: string): Board | null;
   getBoardBySlug(slug: string): Board | null;
   getBoardDetail(boardId: string): BoardDetail | null;

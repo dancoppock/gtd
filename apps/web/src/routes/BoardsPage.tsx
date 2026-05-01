@@ -57,11 +57,10 @@ export function BoardsPage() {
               {boards.map((board) => (
                 <article key={board.id} className="label-row">
                   <div className="label-row__main">
-                    <strong>{board.name}</strong>
-                    <span className="muted-text">
-                      {board.slug}
-                      {board.isSystem ? " • system board" : ""}
-                    </span>
+                    <div>
+                      <strong>{board.name}</strong>
+                      {board.isDefault ? <span className="muted-text"> default</span> : null}
+                    </div>
                     {board.description ? <span className="muted-text">{board.description}</span> : null}
                   </div>
 

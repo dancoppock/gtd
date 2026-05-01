@@ -39,6 +39,7 @@ describe("API routes", () => {
       id: "board_default",
       slug: "default",
       name: "My Board",
+      isDefault: true,
       isSystem: true,
     });
   });
@@ -53,6 +54,7 @@ describe("API routes", () => {
     expect(response.json()).toMatchObject({
       id: "board_default",
       slug: "default",
+      isDefault: true,
       columns: [
         expect.objectContaining({ statusKey: "todo" }),
         expect.objectContaining({ statusKey: "in_progress" }),
@@ -142,6 +144,7 @@ describe("API routes", () => {
       payload: {
         name: "Frontend Work",
         description: "Only frontend-tagged tickets",
+        isDefault: false,
         columns: [
           { name: "Todo", statusKey: "todo" },
           { name: "In Progress", statusKey: "in_progress" },
@@ -173,6 +176,7 @@ describe("API routes", () => {
       payload: {
         name: "Frontend Delivery",
         description: "Filtered frontend board",
+        isDefault: false,
         columns: [
           { name: "Doing", statusKey: "in_progress" },
           { name: "Done", statusKey: "done" },
@@ -188,6 +192,76 @@ describe("API routes", () => {
         expect.objectContaining({ statusKey: "in_progress", name: "Doing" }),
         expect.objectContaining({ statusKey: "done", name: "Done" }),
       ],
+    });
+  });
+
+  it("switches the default board when a board is created as default", async () => {
+    const createResponse = await app.inject({
+      method: "POST",
+      url: "/api/boards",
+      payload: {
+        name: "Operations",
+        description: "Ops work",
+        isDefault: true,
+        columns: [
+          { name: "Todo", statusKey: "todo" },
+          { name: "In Progress", statusKey: "in_progress" },
+          { name: "Done", statusKey: "done" },
+        ],
+        filterLabelIds: [],
+      },
+    });
+
+    expect(createResponse.statusCode).toBe(201);
+    expect(createResponse.json()).toMatchObject({
+      slug: "operations",
+      isDefault: true,
+    });
+
+    const boardsResponse = await app.inject({
+      method: "GET",
+      url: "/api/boards",
+    });
+
+    expect(boardsResponse.statusCode).toBe(200);
+    expect(boardsResponse.json()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ slug: "default", isDefault: false }),
+        expect.objectContaining({ slug: "operations", isDefault: true }),
+      ]),
+    );
+  });
+
+  it("prevents clearing or deleting the current default board", async () => {
+    const updateResponse = await app.inject({
+      method: "PATCH",
+      url: "/api/boards/board_default",
+      payload: {
+        name: "My Board",
+        description: "Default kanban board",
+        isDefault: false,
+        columns: [
+          { name: "Todo", statusKey: "todo" },
+          { name: "In Progress", statusKey: "in_progress" },
+          { name: "Done", statusKey: "done" },
+        ],
+        filterLabelIds: [],
+      },
+    });
+
+    expect(updateResponse.statusCode).toBe(400);
+    expect(updateResponse.json()).toEqual({
+      message: "Choose another default board before clearing this one",
+    });
+
+    const deleteResponse = await app.inject({
+      method: "DELETE",
+      url: "/api/boards/board_default",
+    });
+
+    expect(deleteResponse.statusCode).toBe(400);
+    expect(deleteResponse.json()).toEqual({
+      message: "System boards cannot be deleted",
     });
   });
 

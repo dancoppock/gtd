@@ -25,6 +25,7 @@ type BoardRow = {
   slug: string;
   name: string;
   description: string;
+  is_default: number;
   is_system: number;
   created_at: number;
   updated_at: number;
@@ -120,6 +121,14 @@ export class SqliteBoardStore {
     return rows.map((row) => this.toBoard(row));
   }
 
+  getDefaultBoard() {
+    const row = this.sqlite
+      .prepare("select * from boards where is_default = 1 limit 1")
+      .get() as BoardRow | undefined;
+
+    return row ? this.toBoard(row) : null;
+  }
+
   getBoardById(boardId: string) {
     const row = this.sqlite
       .prepare("select * from boards where id = ? limit 1")
@@ -156,13 +165,18 @@ export class SqliteBoardStore {
 
     this.sqlite.transaction(() => {
       const slug = this.createUniqueSlug(input.name);
+      const isDefault = input.isDefault || this.getDefaultBoard() === null;
+
+      if (isDefault) {
+        this.clearDefaultBoard(boardId);
+      }
 
       this.sqlite
         .prepare(`
-          insert into boards (id, slug, name, description, is_system, created_at, updated_at)
-          values (?, ?, ?, ?, 0, ?, ?)
+          insert into boards (id, slug, name, description, is_default, is_system, created_at, updated_at)
+          values (?, ?, ?, ?, ?, 0, ?, ?)
         `)
-        .run(boardId, slug, input.name, input.description, now, now);
+        .run(boardId, slug, input.name, input.description, isDefault ? 1 : 0, now, now);
 
       this.replaceBoardColumns(boardId, input.columns);
       this.replaceBoardLabelFilters(boardId, input.filterLabelIds);
@@ -180,13 +194,20 @@ export class SqliteBoardStore {
     const updatedAt = Date.now();
 
     this.sqlite.transaction(() => {
+      const shouldStayDefault = input.isDefault
+        || (existingBoard.isDefault && this.getDefaultBoard()?.id === boardId);
+
+      if (input.isDefault) {
+        this.clearDefaultBoard(boardId);
+      }
+
       this.sqlite
         .prepare(`
           update boards
-          set name = ?, description = ?, updated_at = ?
+          set name = ?, description = ?, is_default = ?, updated_at = ?
           where id = ?
         `)
-        .run(input.name, input.description, updatedAt, boardId);
+        .run(input.name, input.description, shouldStayDefault ? 1 : 0, updatedAt, boardId);
 
       this.replaceBoardColumns(boardId, input.columns);
       this.replaceBoardLabelFilters(boardId, input.filterLabelIds);
@@ -197,7 +218,7 @@ export class SqliteBoardStore {
 
   deleteBoard(boardId: string) {
     const existingBoard = this.getBoardById(boardId);
-    if (!existingBoard || existingBoard.isSystem) {
+    if (!existingBoard || existingBoard.isSystem || existingBoard.isDefault) {
       return false;
     }
 
@@ -508,8 +529,8 @@ export class SqliteBoardStore {
 
     this.sqlite.transaction(() => {
       const insertBoard = this.sqlite.prepare(`
-        insert or ignore into boards (id, slug, name, description, is_system, created_at, updated_at)
-        values (?, ?, ?, ?, ?, ?, ?)
+        insert or ignore into boards (id, slug, name, description, is_default, is_system, created_at, updated_at)
+        values (?, ?, ?, ?, ?, ?, ?, ?)
       `);
       const insertColumn = this.sqlite.prepare(`
         insert or ignore into columns (id, board_id, key, name, position)
@@ -538,6 +559,7 @@ export class SqliteBoardStore {
           board.slug,
           board.name,
           board.description,
+          board.isDefault ? 1 : 0,
           board.isSystem ? 1 : 0,
           Date.parse(board.createdAt),
           Date.parse(board.updatedAt),
@@ -903,6 +925,12 @@ export class SqliteBoardStore {
     this.sqlite.prepare("update boards set updated_at = ?").run(updatedAt);
   }
 
+  private clearDefaultBoard(nextDefaultBoardId: string) {
+    this.sqlite
+      .prepare("update boards set is_default = 0 where id != ?")
+      .run(nextDefaultBoardId);
+  }
+
   private createUniqueSlug(name: string) {
     const base = slugify(name);
     const rows = this.sqlite
@@ -928,6 +956,7 @@ export class SqliteBoardStore {
       slug: row.slug,
       name: row.name,
       description: row.description,
+      isDefault: Boolean(row.is_default),
       isSystem: Boolean(row.is_system),
       createdAt: toIsoString(row.created_at)!,
       updatedAt: toIsoString(row.updated_at)!,

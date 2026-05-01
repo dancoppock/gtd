@@ -90,6 +90,10 @@ export class InMemoryBoardStore {
     );
   }
 
+  getDefaultBoard() {
+    return this.listBoards().find((board) => board.isDefault) ?? null;
+  }
+
   getBoardById(boardId: string) {
     return this.boards.get(boardId) ?? null;
   }
@@ -120,10 +124,15 @@ export class InMemoryBoardStore {
       slug: this.createUniqueSlug(input.name),
       name: input.name,
       description: input.description,
+      isDefault: input.isDefault || this.getDefaultBoard() === null,
       isSystem: false,
       createdAt: now,
       updatedAt: now,
     };
+
+    if (board.isDefault) {
+      this.clearDefaultBoard(board.id);
+    }
 
     this.boards.set(board.id, board);
     this.replaceBoardColumns(board.id, input.columns);
@@ -142,8 +151,13 @@ export class InMemoryBoardStore {
       ...existingBoard,
       name: input.name,
       description: input.description,
+      isDefault: input.isDefault || (existingBoard.isDefault && this.getDefaultBoard()?.id === boardId),
       updatedAt: new Date().toISOString(),
     });
+
+    if (input.isDefault) {
+      this.clearDefaultBoard(boardId);
+    }
 
     this.replaceBoardColumns(boardId, input.columns);
     this.replaceBoardLabelFilters(boardId, input.filterLabelIds);
@@ -153,7 +167,7 @@ export class InMemoryBoardStore {
 
   deleteBoard(boardId: string) {
     const existingBoard = this.getBoardById(boardId);
-    if (!existingBoard || existingBoard.isSystem) {
+    if (!existingBoard || existingBoard.isSystem || existingBoard.isDefault) {
       return false;
     }
 
@@ -617,6 +631,17 @@ export class InMemoryBoardStore {
     }
 
     return `${base}-${suffix}`;
+  }
+
+  private clearDefaultBoard(nextDefaultBoardId: string) {
+    this.boards.forEach((board, boardId) => {
+      if (board.isDefault && boardId !== nextDefaultBoardId) {
+        this.boards.set(boardId, {
+          ...board,
+          isDefault: false,
+        });
+      }
+    });
   }
 }
 
