@@ -18,6 +18,7 @@ export type BoardStore = {
   listTickets(boardId: string, filters: BoardFilters): Ticket[];
   createTicket(boardId: string, input: CreateTicketInput): Ticket | null;
   updateTicket(ticketId: string, input: UpdateTicketInput): Ticket | null;
+  deleteTicket(ticketId: string): boolean;
   repositionTicket(ticketId: string, input: RepositionTicketInput): Ticket | null;
   dispose?(): void;
 };

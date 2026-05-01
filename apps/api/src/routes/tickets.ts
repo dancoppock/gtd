@@ -53,6 +53,17 @@ export const registerTicketRoutes: FastifyPluginAsync<TicketRouteOptions> = asyn
     return ticket;
   });
 
+  app.delete("/tickets/:ticketId", async (request, reply) => {
+    const { ticketId } = ticketIdParamsSchema.parse(request.params);
+    const didDelete = boardStore.deleteTicket(ticketId);
+
+    if (!didDelete) {
+      return reply.status(404).send(notFound("Ticket not found"));
+    }
+
+    return reply.status(204).send();
+  });
+
   app.post("/tickets/:ticketId/reposition", async (request, reply) => {
     const { ticketId } = ticketIdParamsSchema.parse(request.params);
     const input = repositionTicketInputSchema.parse(request.body);

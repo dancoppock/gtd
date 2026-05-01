@@ -269,6 +269,8 @@ export class SqliteBoardStore {
             )
             .run();
         }
+
+        this.deleteOrphanBoardLabels(tx, existingTicket.boardId);
       }
 
       tx.update(boards)
@@ -287,6 +289,33 @@ export class SqliteBoardStore {
       }
 
       return this.hydrateTickets([updatedTicket], tx)[0] ?? null;
+    });
+  }
+
+  deleteTicket(ticketId: string) {
+    return this.db.transaction((tx) => {
+      const existingTicket = tx
+        .select()
+        .from(tickets)
+        .where(eq(tickets.id, ticketId))
+        .all()[0];
+
+      if (!existingTicket) {
+        return false;
+      }
+
+      tx.delete(tickets)
+        .where(eq(tickets.id, ticketId))
+        .run();
+
+      this.deleteOrphanBoardLabels(tx, existingTicket.boardId);
+
+      tx.update(boards)
+        .set({ updatedAt: new Date() })
+        .where(eq(boards.id, existingTicket.boardId))
+        .run();
+
+      return true;
     });
   }
 
@@ -542,6 +571,22 @@ export class SqliteBoardStore {
         ),
       )
       .all();
+  }
+
+  private deleteOrphanBoardLabels(
+    executor: DatabaseClient["db"],
+    boardId: string,
+  ) {
+    executor.delete(labels)
+      .where(
+        sql`${labels.boardId} = ${boardId}
+          and not exists (
+            select 1
+            from ${ticketLabels}
+            where ${ticketLabels.labelId} = ${labels.id}
+          )`,
+      )
+      .run();
   }
 
   private computeOrder(previousOrder: number | null, nextOrder: number | null) {

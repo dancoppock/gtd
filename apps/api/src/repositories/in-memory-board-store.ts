@@ -160,9 +160,25 @@ export class InMemoryBoardStore {
     };
 
     this.tickets.set(ticketId, updatedRecord);
+    if (input.labels) {
+      this.deleteOrphanBoardLabels(record.boardId);
+    }
     this.touchBoard(record.boardId);
 
     return this.toTicket(updatedRecord);
+  }
+
+  deleteTicket(ticketId: string) {
+    const record = this.tickets.get(ticketId);
+    if (!record) {
+      return false;
+    }
+
+    this.tickets.delete(ticketId);
+    this.deleteOrphanBoardLabels(record.boardId);
+    this.touchBoard(record.boardId);
+
+    return true;
   }
 
   repositionTicket(ticketId: string, input: RepositionTicketInput) {
@@ -252,6 +268,18 @@ export class InMemoryBoardStore {
 
       this.labels.set(label.id, label);
       return label;
+    });
+  }
+
+  private deleteOrphanBoardLabels(boardId: string) {
+    const referencedLabelIds = new Set(
+      this.getTicketRecordsForBoard(boardId).flatMap((ticket) => ticket.labelIds),
+    );
+
+    this.getLabelsForBoard(boardId).forEach((label) => {
+      if (!referencedLabelIds.has(label.id)) {
+        this.labels.delete(label.id);
+      }
     });
   }
 

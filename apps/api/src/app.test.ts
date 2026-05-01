@@ -124,6 +124,50 @@ describe("API routes", () => {
     ]);
   });
 
+  it("removes orphan labels from board detail after ticket label updates", async () => {
+    const updateResponse = await app.inject({
+      method: "PATCH",
+      url: "/api/tickets/ticket_1",
+      payload: {
+        labels: ["backend"],
+      },
+    });
+
+    expect(updateResponse.statusCode).toBe(200);
+
+    const boardResponse = await app.inject({
+      method: "GET",
+      url: "/api/boards/slug/default/tickets",
+    });
+
+    expect(boardResponse.statusCode).toBe(200);
+    expect(boardResponse.json().board.labels.map((label: { normalizedName: string }) => label.normalizedName)).toEqual([
+      "backend",
+      "product",
+    ]);
+  });
+
+  it("deletes an existing ticket", async () => {
+    const deleteResponse = await app.inject({
+      method: "DELETE",
+      url: "/api/tickets/ticket_1",
+    });
+
+    expect(deleteResponse.statusCode).toBe(204);
+
+    const boardResponse = await app.inject({
+      method: "GET",
+      url: "/api/boards/slug/default/tickets",
+    });
+
+    expect(boardResponse.statusCode).toBe(200);
+    expect(boardResponse.json().tickets.map((ticket: { id: string }) => ticket.id)).not.toContain("ticket_1");
+    expect(boardResponse.json().board.labels.map((label: { normalizedName: string }) => label.normalizedName)).toEqual([
+      "backend",
+      "product",
+    ]);
+  });
+
   it("repositions a ticket into another column", async () => {
     const response = await app.inject({
       method: "POST",

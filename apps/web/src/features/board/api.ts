@@ -64,6 +64,16 @@ export async function updateTicket(ticketId: string, input: UpdateTicketInput) {
   }).then((response) => readJson<Ticket>(response));
 }
 
+export async function deleteTicket(ticketId: string) {
+  const response = await fetch(`/api/tickets/${encodeURIComponent(ticketId)}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    await readJson(response);
+  }
+}
+
 export async function repositionTicket(ticketId: string, input: RepositionTicketInput) {
   return fetch(`/api/tickets/${encodeURIComponent(ticketId)}/reposition`, {
     method: "POST",

@@ -103,6 +103,29 @@ describe("SqliteBoardStore", () => {
     expect(updatedTicket?.labels.map((label) => label.normalizedName)).toEqual(["backend"]);
   });
 
+  it("removes orphan labels after updating a ticket's labels", () => {
+    const updatedTicket = store.updateTicket("ticket_1", {
+      labels: ["backend"],
+    });
+
+    expect(updatedTicket).not.toBeNull();
+    expect(store.getBoardDetail(boardId)?.labels.map((label) => label.normalizedName)).toEqual([
+      "backend",
+      "product",
+    ]);
+  });
+
+  it("deletes a ticket from the board", () => {
+    const didDelete = store.deleteTicket("ticket_1");
+
+    expect(didDelete).toBe(true);
+    expect(store.listTickets(boardId, emptyFilters()).map((ticket) => ticket.id)).not.toContain("ticket_1");
+    expect(store.getBoardDetail(boardId)?.labels.map((label) => label.normalizedName)).toEqual([
+      "backend",
+      "product",
+    ]);
+  });
+
   it("rebalances the board when a reposition target has no numeric gap left", () => {
     const beforeA = store.createTicket(boardId, {
       columnId: "col_todo",

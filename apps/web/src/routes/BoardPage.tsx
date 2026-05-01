@@ -21,6 +21,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 
 import {
   createTicket,
+  deleteTicket,
   fetchBoardTickets,
   repositionTicket,
   updateTicket,
@@ -142,6 +143,14 @@ export function BoardPage() {
       ticketId: string;
       input: UpdateTicketInput;
     }) => updateTicket(args.ticketId, args.input),
+    onSuccess: async () => {
+      setEditingTicket(null);
+      await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
+    },
+  });
+
+  const deleteTicketMutation = useMutation({
+    mutationFn: (ticketId: string) => deleteTicket(ticketId),
     onSuccess: async () => {
       setEditingTicket(null);
       await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
@@ -429,6 +438,9 @@ export function BoardPage() {
           columns={data.board.columns}
           availableLabels={data.board.labels}
           onClose={() => setEditingTicket(null)}
+          onDelete={async () => {
+            await deleteTicketMutation.mutateAsync(editingTicket.id);
+          }}
           onSubmit={async (input) => {
             await updateTicketMutation.mutateAsync({
               ticketId: editingTicket.id,

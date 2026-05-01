@@ -1,5 +1,5 @@
 import type { Column, Label, Ticket, TicketPriority } from "@gtd/contracts";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
 type TicketModalProps = {
@@ -9,6 +9,7 @@ type TicketModalProps = {
   availableLabels: Label[];
   defaultColumnId?: string;
   onClose: () => void;
+  onDelete?: () => Promise<void>;
   onSubmit: (input: {
     columnId: string;
     title: string;
@@ -50,8 +51,10 @@ export function TicketModal({
   availableLabels,
   defaultColumnId,
   onClose,
+  onDelete,
   onSubmit,
 }: TicketModalProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
   const { formState, handleSubmit, register, reset } = useForm<TicketFormValues>({
     defaultValues: {
       columnId: defaultColumnId ?? columns[0]?.id ?? "",
@@ -88,6 +91,7 @@ export function TicketModal({
 
   const submitLabel = mode === "create" ? "Create Ticket" : "Save Changes";
   const title = mode === "create" ? "Create Ticket" : "Edit Ticket";
+  const isBusy = formState.isSubmitting || isDeleting;
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -180,17 +184,45 @@ export function TicketModal({
           </label>
 
           <div className="modal-card__actions">
-            <button className="ghost-button" data-testid="ticket-modal-cancel" type="button" onClick={onClose}>
-              Cancel
-            </button>
-            <button
-              className="primary-button"
-              data-testid="ticket-modal-submit"
-              type="submit"
-              disabled={formState.isSubmitting}
-            >
-              {formState.isSubmitting ? "Saving..." : submitLabel}
-            </button>
+            <div className="modal-card__actions-secondary">
+              {mode === "edit" && onDelete ? (
+                <button
+                  aria-label="Delete ticket"
+                  className="danger-icon-button"
+                  data-testid="ticket-modal-delete"
+                  disabled={isBusy}
+                  title="Delete ticket"
+                  type="button"
+                  onClick={async () => {
+                    setIsDeleting(true);
+
+                    try {
+                      await onDelete();
+                    } finally {
+                      setIsDeleting(false);
+                    }
+                  }}
+                >
+                  <svg aria-hidden="true" viewBox="0 0 20 20">
+                    <path d="M7.5 3.75A1.25 1.25 0 0 1 8.75 2.5h2.5A1.25 1.25 0 0 1 12.5 3.75v.5h2.75a.75.75 0 0 1 0 1.5h-.53l-.56 8.13A2 2 0 0 1 12.17 15.75H7.83a2 2 0 0 1-1.99-1.87l-.56-8.13h-.53a.75.75 0 0 1 0-1.5H7.5v-.5Zm1.5.5h2v-.25h-2v.25Zm-1.78 1.5.55 8.03a.5.5 0 0 0 .5.47h4.46a.5.5 0 0 0 .5-.47l.55-8.03H7.22Zm1.53 1.5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5a.75.75 0 0 1 .75-.75Zm2.5 0a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5a.75.75 0 0 1 .75-.75Z" />
+                  </svg>
+                </button>
+              ) : null}
+            </div>
+
+            <div className="modal-card__actions-main">
+              <button className="ghost-button" data-testid="ticket-modal-cancel" disabled={isBusy} type="button" onClick={onClose}>
+                Cancel
+              </button>
+              <button
+                className="primary-button"
+                data-testid="ticket-modal-submit"
+                type="submit"
+                disabled={isBusy}
+              >
+                {formState.isSubmitting ? "Saving..." : submitLabel}
+              </button>
+            </div>
           </div>
         </form>
       </div>

@@ -27,6 +27,7 @@ function createBoardStoreProxy(getBoardStore: () => BoardStore): BoardStore {
     listTickets: (boardId, filters) => getBoardStore().listTickets(boardId, filters),
     createTicket: (boardId, input) => getBoardStore().createTicket(boardId, input),
     updateTicket: (ticketId, input) => getBoardStore().updateTicket(ticketId, input),
+    deleteTicket: (ticketId) => getBoardStore().deleteTicket(ticketId),
     repositionTicket: (ticketId, input) => getBoardStore().repositionTicket(ticketId, input),
   };
 }

@@ -148,6 +148,41 @@ describe("TicketModal", () => {
     );
   });
 
+  it("shows a delete button in edit mode and calls onDelete when clicked", async () => {
+    const onDelete = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <TicketModal
+        mode="edit"
+        ticket={existingTicket}
+        columns={columns}
+        availableLabels={availableLabels}
+        onClose={vi.fn()}
+        onDelete={onDelete}
+        onSubmit={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete ticket" }));
+
+    await waitFor(() => expect(onDelete).toHaveBeenCalledTimes(1));
+  });
+
+  it("does not show a delete button in create mode", () => {
+    render(
+      <TicketModal
+        mode="create"
+        ticket={null}
+        columns={columns}
+        availableLabels={availableLabels}
+        onClose={vi.fn()}
+        onSubmit={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Delete ticket" })).not.toBeInTheDocument();
+  });
+
   it("closes on backdrop and action button clicks", () => {
     const onClose = vi.fn();
 
