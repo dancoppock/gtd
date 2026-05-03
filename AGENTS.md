@@ -14,21 +14,21 @@ Detailed project knowledge should live in the canonical docs rather than being d
 
 ## Read These First
 
-- [README.md](/Users/dcoppock/Sync/Work/Projects/gtd/README.md): repo overview, stack, routes, run/test commands
-- [docs/architecture.md](/Users/dcoppock/Sync/Work/Projects/gtd/docs/architecture.md): current architecture and domain model
-- [docs/onboarding.md](/Users/dcoppock/Sync/Work/Projects/gtd/docs/onboarding.md): setup, dependency install notes, troubleshooting
-- [apps/web/README.md](/Users/dcoppock/Sync/Work/Projects/gtd/apps/web/README.md): frontend responsibilities and interaction model
+- [README.md](README.md): repo overview, stack, routes, run/test commands
+- [docs/architecture.md](docs/architecture.md): current architecture and domain model
+- [docs/onboarding.md](docs/onboarding.md): setup, dependency install notes, troubleshooting
+- [apps/web/README.md](apps/web/README.md): frontend responsibilities and interaction model
 
 ## Code Entry Points
 
-- [packages/contracts/src/index.ts](/Users/dcoppock/Sync/Work/Projects/gtd/packages/contracts/src/index.ts): shared contracts and constants
-- [apps/api/src/db/client.ts](/Users/dcoppock/Sync/Work/Projects/gtd/apps/api/src/db/client.ts): SQLite bootstrap and migration logic
-- [apps/api/src/repositories/sqlite-board-store.ts](/Users/dcoppock/Sync/Work/Projects/gtd/apps/api/src/repositories/sqlite-board-store.ts): main persistence logic
-- [apps/api/src/app.test.ts](/Users/dcoppock/Sync/Work/Projects/gtd/apps/api/src/app.test.ts): API behavior coverage
-- [apps/web/src/routes/BoardPage.tsx](/Users/dcoppock/Sync/Work/Projects/gtd/apps/web/src/routes/BoardPage.tsx): board page orchestration
-- [apps/web/src/routes/BoardEditPage.tsx](/Users/dcoppock/Sync/Work/Projects/gtd/apps/web/src/routes/BoardEditPage.tsx): board create/edit flow
-- [apps/web/src/features/board/drag.ts](/Users/dcoppock/Sync/Work/Projects/gtd/apps/web/src/features/board/drag.ts): drag/reorder behavior
-- [e2e/board.spec.ts](/Users/dcoppock/Sync/Work/Projects/gtd/e2e/board.spec.ts): main browser smoke coverage
+- [packages/contracts/src/index.ts](packages/contracts/src/index.ts): shared contracts and constants
+- [apps/api/src/db/client.ts](apps/api/src/db/client.ts): SQLite bootstrap and migration logic
+- [apps/api/src/repositories/sqlite-board-store.ts](apps/api/src/repositories/sqlite-board-store.ts): main persistence logic
+- [apps/api/src/app.test.ts](apps/api/src/app.test.ts): API behavior coverage
+- [apps/web/src/routes/BoardPage.tsx](apps/web/src/routes/BoardPage.tsx): board page orchestration
+- [apps/web/src/routes/BoardEditPage.tsx](apps/web/src/routes/BoardEditPage.tsx): board create/edit flow
+- [apps/web/src/features/board/drag.ts](apps/web/src/features/board/drag.ts): drag/reorder behavior
+- [e2e/board.spec.ts](e2e/board.spec.ts): main browser smoke coverage
 
 ## Agent Notes
 

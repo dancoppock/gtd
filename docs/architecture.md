@@ -139,6 +139,15 @@ Important implementation detail:
 - `PATCH /api/labels/:labelId`
 - `DELETE /api/labels/:labelId`
 
+### Statuses
+
+- `GET /api/statuses`
+- `POST /api/statuses`
+
+### Insights
+
+- `GET /api/insights`
+
 ### Tickets
 
 - `PATCH /api/tickets/:ticketId`

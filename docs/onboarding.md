@@ -10,10 +10,14 @@ Expected tools:
 - Node `20.20.0`
 - `pnpm`
 
-Confirm Node:
+Activate the project Node version and make sure Corepack exposes `pnpm` for that Node install:
 
 ```bash
+source ~/.nvm/nvm.sh
+nvm use 20.20.0
+corepack enable
 node -v
+pnpm -v
 ```
 
 ## 2. Dependency Install
@@ -33,8 +37,9 @@ pnpm install
 ## 3. Native SQLite Build
 
 The API uses `better-sqlite3`, which needs a native module.
+The workspace allows the required build scripts for `better-sqlite3` and `esbuild`, so a normal `pnpm install` should build the native pieces.
 
-If the API fails with a missing `better_sqlite3.node` binding, rebuild it like this:
+If the API fails with a missing `better_sqlite3.node` binding, or if the install cannot fetch Node headers through the network/proxy, rebuild it against the local `nvm` Node headers:
 
 ```bash
 cd node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3

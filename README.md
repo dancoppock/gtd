@@ -88,6 +88,9 @@ On first run, the API seeds:
 - `GET /api/labels`
 - `PATCH /api/labels/:labelId`
 - `DELETE /api/labels/:labelId`
+- `GET /api/statuses`
+- `POST /api/statuses`
+- `GET /api/insights`
 - `PATCH /api/tickets/:ticketId`
 - `DELETE /api/tickets/:ticketId`
 - `POST /api/tickets/:ticketId/reposition`
@@ -105,13 +108,23 @@ Expected local tooling:
 - Node `20.20.0`
 - `pnpm`
 
+With `nvm`, make sure the active Node install exposes a `pnpm` shim:
+
+```bash
+source ~/.nvm/nvm.sh
+nvm use 20.20.0
+corepack enable
+pnpm -v
+```
+
 When installing dependencies in this environment:
 
 1. make sure VPN is connected
 2. run `proxyOn` in the current terminal
 3. run `pnpm install`
 
-If the SQLite native binding is missing after install, rebuild it under the active Node version:
+The workspace allows the required package build scripts for `better-sqlite3` and `esbuild`.
+If the SQLite native binding is still missing after install, rebuild it under the active Node version:
 
 ```bash
 cd node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3

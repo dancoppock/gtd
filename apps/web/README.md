@@ -42,12 +42,6 @@ This package contains the React frontend for the kanban app.
 Start the frontend from the repo root:
 
 ```bash
-npm run dev:web
-```
-
-Or:
-
-```bash
 pnpm dev:web
 ```
 
