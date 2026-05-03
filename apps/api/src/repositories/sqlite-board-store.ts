@@ -28,11 +28,6 @@ import { createSeedData } from "../data/seed.js";
 import { createDatabaseClient, type DatabaseClient } from "../db/client.js";
 
 const ORDER_STEP = 1_000_000;
-const SYSTEM_BOARD_COLUMNS: CreateBoardInput["columns"] = [
-  { name: "Active", statusKey: "todo" },
-  { name: "Done", statusKey: "done" },
-];
-
 function buildSystemBoardColumns(boardId: string): Column[] {
   return [
     {

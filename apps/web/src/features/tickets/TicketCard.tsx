@@ -1,5 +1,5 @@
 import type { Ticket } from "@gtd/contracts";
-import { useSortable } from "@dnd-kit/sortable";
+import type { useSortable } from "@dnd-kit/sortable";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
