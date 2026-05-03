@@ -1,0 +1,26 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: gtd-api
+    environment:
+      GTD_DATABASE_FILENAME: /data/gtd.sqlite
+      NODE_ENV: production
+      PORT: 3001
+    ports:
+      - "${GTD_API_PORT:-3001}:3001"
+    restart: unless-stopped
+    volumes:
+      - ${GTD_DOCKER_ROOT:-/opt/docker/gtd}/api/data:/data
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    container_name: gtd-web
+    depends_on:
+      - api
+    ports:
+      - "${GTD_WEB_PORT:-3000}:80"
+    restart: unless-stopped

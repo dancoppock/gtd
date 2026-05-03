@@ -154,6 +154,58 @@ pnpm stop:api
 pnpm stop:web
 ```
 
+## Running With Docker Compose
+
+The Docker stack runs the API and web app as separate containers. The web container serves the built React app with Nginx and proxies `/api` to the API container.
+
+Persistent container data is stored under `/opt/docker/gtd`:
+
+- `/opt/docker/gtd/api/data/gtd.sqlite`
+- `/opt/docker/gtd/api/data/gtd.sqlite-shm`
+- `/opt/docker/gtd/api/data/gtd.sqlite-wal`
+
+Docker Compose reads the committed `.env` file by default:
+
+```bash
+GTD_DOCKER_ROOT=/opt/docker/gtd
+GTD_WEB_PORT=3000
+GTD_API_PORT=3001
+```
+
+Override these values in your shell when you need different local ports or a different data root:
+
+```bash
+GTD_WEB_PORT=8080 GTD_API_PORT=8081 pnpm docker:up
+```
+
+On the Linux server, create the data directory first:
+
+```bash
+sudo mkdir -p /opt/docker/gtd/api/data
+```
+
+Then build and start the stack from the repo root:
+
+```bash
+pnpm docker:build
+pnpm docker:up
+```
+
+The app is served at `http://<server-host>:${GTD_WEB_PORT}`. With the default `.env`, that is `http://<server-host>:3000`.
+
+For local Docker Desktop testing on macOS, `/opt` may need to be added in Docker Desktop's file sharing settings. Alternatively, use a Docker-shared path while keeping the Linux server default unchanged:
+
+```bash
+mkdir -p /private/tmp/gtd/api/data
+GTD_DOCKER_ROOT=/private/tmp/gtd pnpm docker:up
+```
+
+To stop the stack:
+
+```bash
+pnpm docker:down
+```
+
 ## Testing
 
 From the repo root:

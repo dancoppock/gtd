@@ -47,3 +47,8 @@ pnpm dev:web
 
 `pnpm dev:web` always frees port `3000` first, then starts Vite on `http://localhost:3000`.
 If something else was already bound to that port, it will be stopped before Vite starts.
+
+## Docker Runtime
+
+In the Docker Compose stack, the web app is built with Vite and served by Nginx.
+The Nginx container proxies `/api` to the API service on the internal Compose network, so browser requests can continue to use relative `/api` URLs.

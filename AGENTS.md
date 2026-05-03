@@ -35,7 +35,7 @@ Detailed project knowledge should live in the canonical docs rather than being d
 - prefer the docs above as the source of truth; if behavior changes, update those docs rather than expanding this file
 - do not commit `apps/api/data/gtd.sqlite`; it is runtime state
 - installs in this environment typically require VPN plus `proxyOn` in the current terminal
-- stable local ports are `3000` for web and `3001` for API
+- dev ports are `3000` for web and `3001` for API; Docker host ports can be overridden with `.env` / shell variables
 
 ## Current Cautions
 

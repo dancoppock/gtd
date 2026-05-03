@@ -23,6 +23,12 @@ The app is a small monorepo with a browser frontend, a local API, and a shared c
 │           ├── features
 │           └── routes
 ├── docs
+├── docker
+│   ├── api.Dockerfile
+│   ├── web.Dockerfile
+│   └── web
+│       └── nginx.conf
+├── docker-compose.yml
 ├── packages
 │   └── contracts
 └── e2e
@@ -58,6 +64,14 @@ The app is a small monorepo with a browser frontend, a local API, and a shared c
 - disposable SQLite databases for backend repository tests
 - Fastify route tests via `app.inject()`
 - Playwright for browser smoke tests
+
+### Container Runtime
+
+- Docker Compose runs the API and web app as separate services.
+- `docker/api.Dockerfile` runs the Fastify API with Node `20.20.0`.
+- `docker/web.Dockerfile` builds the Vite app and serves static assets from Nginx.
+- `docker/web/nginx.conf` proxies `/api` from the web container to the API service on the internal Compose network.
+- Compose reads `.env` by default for host port and data-root settings.
 
 ## Core Domain Model
 
@@ -117,6 +131,12 @@ Important implementation detail:
 - old single-board data is migrated forward in `apps/api/src/db/client.ts`
 - legacy `tickets.board_id` / `tickets.column_id` data is converted into global `tickets.status_key`
 - legacy board-scoped labels are merged into global labels by normalized name
+
+Runtime database locations:
+
+- local dev default: `apps/api/data/gtd.sqlite`
+- Playwright default: `apps/api/data/gtd.e2e.sqlite`
+- Docker default: `/opt/docker/gtd/api/data/gtd.sqlite` mounted into the API container at `/data/gtd.sqlite`
 
 ## API Shape
 
@@ -206,3 +226,5 @@ Notable board-view behaviors:
 - default frontend URL: `http://localhost:3000`
 - dev scripts keep those ports stable by stopping existing listeners first
 - Playwright uses `apps/api/data/gtd.e2e.sqlite` so local dev data is not touched
+- Docker Compose defaults to web port `3000`, API port `3001`, and data root `/opt/docker/gtd`
+- Docker host ports and data root can be overridden with `GTD_WEB_PORT`, `GTD_API_PORT`, and `GTD_DOCKER_ROOT`

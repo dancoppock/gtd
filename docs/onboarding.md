@@ -74,7 +74,52 @@ pnpm stop:api
 pnpm stop:web
 ```
 
-## 6. Useful Checks
+## 6. Docker Compose Runtime
+
+The repo includes a Docker Compose stack for running the API and built web app as containers.
+Compose automatically reads the committed `.env` file:
+
+```bash
+GTD_DOCKER_ROOT=/opt/docker/gtd
+GTD_WEB_PORT=3000
+GTD_API_PORT=3001
+```
+
+On a Linux server, create the persistent data directory before starting the stack:
+
+```bash
+sudo mkdir -p /opt/docker/gtd/api/data
+```
+
+Then build and start from the repo root:
+
+```bash
+pnpm docker:build
+pnpm docker:up
+```
+
+The web container serves the app at `http://<server-host>:${GTD_WEB_PORT}` and proxies `/api` to the API container. The API is also exposed directly on `${GTD_API_PORT}`.
+
+Override defaults in your shell when needed:
+
+```bash
+GTD_WEB_PORT=8080 GTD_API_PORT=8081 pnpm docker:up
+```
+
+For local Docker Desktop testing on macOS, `/opt` may need to be shared in Docker Desktop settings. A temporary shared path works for local testing:
+
+```bash
+mkdir -p /private/tmp/gtd/api/data
+GTD_DOCKER_ROOT=/private/tmp/gtd pnpm docker:up
+```
+
+Stop the stack with:
+
+```bash
+pnpm docker:down
+```
+
+## 7. Useful Checks
 
 Typecheck:
 
@@ -149,7 +194,7 @@ Global labels:
 curl http://127.0.0.1:3001/api/labels
 ```
 
-## 7. Current Product Model
+## 8. Current Product Model
 
 - tickets are global
 - statuses are global and can be extended
@@ -161,7 +206,7 @@ curl http://127.0.0.1:3001/api/labels
 - ticket ordering is global and persisted through `uiOrder`
 - drag/drop on filtered boards reorders against the visible subset only
 
-## 8. Common Problems
+## 9. Common Problems
 
 ### Installs hang or fail
 
@@ -185,3 +230,16 @@ Rebuild `better-sqlite3` using the command in section 3.
 
 There may still be an older API or Vite process running.
 Run `pnpm stop:api` or `pnpm stop:web`, then restart the relevant dev command.
+
+### Docker Desktop refuses the data mount
+
+Docker Desktop on macOS may reject `/opt/docker/gtd` until `/opt` is added in Docker Desktop file sharing settings.
+Use `GTD_DOCKER_ROOT=/private/tmp/gtd` for local smoke tests, or add `/opt/docker/gtd` to shared paths.
+
+### Docker ports are already in use
+
+Override the host ports when starting the stack:
+
+```bash
+GTD_WEB_PORT=8080 GTD_API_PORT=8081 pnpm docker:up
+```
