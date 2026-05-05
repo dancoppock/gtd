@@ -83,6 +83,8 @@ Compose automatically reads the committed `.env` file:
 GTD_DOCKER_ROOT=/opt/docker/gtd
 GTD_WEB_PORT=3000
 GTD_API_PORT=3001
+GTD_BASIC_AUTH_USER=admin
+GTD_BASIC_AUTH_PASSWORD=admin
 ```
 
 On a Linux server, create the persistent data directory before starting the stack:
@@ -98,12 +100,14 @@ pnpm docker:build
 pnpm docker:up
 ```
 
-The web container serves the app at `http://<server-host>:${GTD_WEB_PORT}` and proxies `/api` to the API container. The API is also exposed directly on `${GTD_API_PORT}`.
+The web container serves the app at `http://<server-host>:${GTD_WEB_PORT}` and proxies `/api` to the API container. Nginx protects both the app and proxied `/api` routes with basic auth. The default credentials are `admin` / `admin`; override `GTD_BASIC_AUTH_USER` and `GTD_BASIC_AUTH_PASSWORD` in `.env` before running a real deployment.
+
+The API port is bound to `127.0.0.1:${GTD_API_PORT}` on the Docker host for local checks without exposing an unauthenticated API port remotely.
 
 Override defaults in your shell when needed:
 
 ```bash
-GTD_WEB_PORT=8080 GTD_API_PORT=8081 pnpm docker:up
+GTD_WEB_PORT=8080 GTD_API_PORT=8081 GTD_BASIC_AUTH_USER=me GTD_BASIC_AUTH_PASSWORD=secret pnpm docker:up
 ```
 
 For local Docker Desktop testing on macOS, `/opt` may need to be shared in Docker Desktop settings. A temporary shared path works for local testing:

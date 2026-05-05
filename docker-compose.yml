@@ -9,7 +9,7 @@ services:
       NODE_ENV: production
       PORT: 3001
     ports:
-      - "${GTD_API_PORT:-3001}:3001"
+      - "127.0.0.1:${GTD_API_PORT:-3001}:3001"
     restart: unless-stopped
     volumes:
       - ${GTD_DOCKER_ROOT:-/opt/docker/gtd}/api/data:/data
@@ -21,6 +21,9 @@ services:
     container_name: gtd-web
     depends_on:
       - api
+    environment:
+      GTD_BASIC_AUTH_PASSWORD: ${GTD_BASIC_AUTH_PASSWORD:-admin}
+      GTD_BASIC_AUTH_USER: ${GTD_BASIC_AUTH_USER:-admin}
     ports:
       - "${GTD_WEB_PORT:-3000}:80"
     restart: unless-stopped

@@ -170,12 +170,17 @@ Docker Compose reads the committed `.env` file by default:
 GTD_DOCKER_ROOT=/opt/docker/gtd
 GTD_WEB_PORT=3000
 GTD_API_PORT=3001
+GTD_BASIC_AUTH_USER=admin
+GTD_BASIC_AUTH_PASSWORD=admin
 ```
 
-Override these values in your shell when you need different local ports or a different data root:
+The web container protects the app and proxied `/api` routes with Nginx basic auth.
+Override the default credentials in `.env` before running a real deployment.
+
+Override these values in your shell when you need different local ports, credentials, or a different data root:
 
 ```bash
-GTD_WEB_PORT=8080 GTD_API_PORT=8081 pnpm docker:up
+GTD_WEB_PORT=8080 GTD_API_PORT=8081 GTD_BASIC_AUTH_USER=me GTD_BASIC_AUTH_PASSWORD=secret pnpm docker:up
 ```
 
 On the Linux server, create the data directory first:
@@ -192,6 +197,7 @@ pnpm docker:up
 ```
 
 The app is served at `http://<server-host>:${GTD_WEB_PORT}`. With the default `.env`, that is `http://<server-host>:3000`.
+The API port is bound to `127.0.0.1` on the Docker host so remote users go through the authenticated web container.
 
 For local Docker Desktop testing on macOS, `/opt` may need to be added in Docker Desktop's file sharing settings. Alternatively, use a Docker-shared path while keeping the Linux server default unchanged:
 
