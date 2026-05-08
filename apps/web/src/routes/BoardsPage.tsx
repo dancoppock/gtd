@@ -55,7 +55,16 @@ export function BoardsPage() {
           {boards.length > 0 ? (
             <div className="labels-list">
               {boards.map((board) => (
-                <article key={board.id} className="label-row">
+                <article
+                  key={board.id}
+                  className="label-row label-row--clickable"
+                  data-testid={`board-row-${board.slug}`}
+                >
+                  <Link
+                    aria-label={`Open ${board.name}`}
+                    className="label-row__open-link"
+                    to={`/boards/${board.slug}`}
+                  />
                   <div className="label-row__main">
                     <div>
                       <strong>{board.name}</strong>
@@ -65,9 +74,6 @@ export function BoardsPage() {
                   </div>
 
                   <div className="label-row__actions">
-                    <Link className="ghost-button" to={`/boards/${board.slug}`}>
-                      Open
-                    </Link>
                     <Link className="primary-button" to={`/boards/${board.slug}/edit`}>
                       Edit
                     </Link>

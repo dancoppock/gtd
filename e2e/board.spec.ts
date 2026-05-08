@@ -21,6 +21,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("loads the seeded kanban board", async ({ page }) => {
+  await expect(page).toHaveTitle("GTD - System Board");
   await expect(page.getByTestId(`column-${systemActiveStatusKey}`)).toContainText("Design ticket modal");
   await expect(page.getByTestId(`column-${systemActiveStatusKey}`)).toContainText("Build board API route");
   await expect(page.getByTestId(`column-${systemDoneStatusKey}`)).toContainText("Seed default board");
@@ -143,6 +144,23 @@ test("creates a filtered board from the boards page", async ({ page }) => {
   await expect(page.getByTestId("column-todo")).toContainText("Design ticket modal");
   await expect(page.getByTestId("column-in_progress")).not.toContainText("Build board API route");
   await expect(page.getByTestId("column-done")).not.toContainText("Seed default board");
+});
+
+test("opens a board by clicking its row on the boards page", async ({ page }) => {
+  await page.getByRole("link", { name: "Boards" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Boards" })).toBeVisible();
+
+  const boardRow = page.getByTestId("board-row-default");
+  const rowBox = await boardRow.boundingBox();
+
+  if (!rowBox) {
+    throw new Error("Default board row is not visible");
+  }
+
+  await page.mouse.click(rowBox.x + 24, rowBox.y + rowBox.height / 2);
+
+  await expect(page).toHaveURL(/\/boards\/default$/);
+  await expect(page.getByRole("heading", { name: "System Board" })).toBeVisible();
 });
 
 test("uses the selected default board for Home navigation", async ({ page }) => {

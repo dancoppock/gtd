@@ -130,6 +130,7 @@ function resolveMutationStatusKey(
 
 const COLLAPSED_COLUMN_WIDTH_PX = 48;
 const EXPANDED_COLUMN_WIDTH_PX = 400;
+const APP_TITLE = "GTD";
 
 export function BoardPage() {
   const { boardSlug = "default" } = useParams();
@@ -284,6 +285,15 @@ export function BoardPage() {
   const activeTicket = activeTicketId
     ? visibleTickets.find((ticket) => ticket.id === activeTicketId) ?? null
     : null;
+
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = data?.board.name ? `${APP_TITLE} - ${data.board.name}` : APP_TITLE;
+
+    return () => {
+      document.title = previousTitle;
+    };
+  }, [data?.board.name]);
 
   useEffect(() => {
     if (data) {
