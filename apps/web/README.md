@@ -11,6 +11,7 @@ This package contains the React frontend for the kanban app.
 - fetch board data through TanStack Query
 - render the built-in system board `Active` / `Done` view
 - render board swimlanes grouped by label
+- render ticket descriptions with paragraph breaks and optional priority colour stripes
 - support temporary column collapse/expand
 - create and edit tickets in modal dialogs
 - support inline title editing

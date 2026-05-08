@@ -216,6 +216,7 @@ export class InMemoryBoardStore {
       description: input.description,
       isDefault: input.isDefault || this.getDefaultBoard() === null,
       isPinned: input.isPinned,
+      showPriorityColors: input.showPriorityColors,
       isSystem: false,
       createdAt: now,
       updatedAt: now,
@@ -247,6 +248,7 @@ export class InMemoryBoardStore {
           input.isDefault
           || (existingBoard.isDefault && this.getDefaultBoard()?.id === boardId),
         isPinned: input.isPinned,
+        showPriorityColors: input.showPriorityColors,
         updatedAt: new Date().toISOString(),
       });
 
@@ -264,6 +266,7 @@ export class InMemoryBoardStore {
       description: input.description,
       isDefault: input.isDefault || (existingBoard.isDefault && this.getDefaultBoard()?.id === boardId),
       isPinned: input.isPinned,
+      showPriorityColors: input.showPriorityColors,
       updatedAt: new Date().toISOString(),
     });
 
@@ -880,6 +883,7 @@ export class InMemoryBoardStore {
         description: SYSTEM_BOARD_DESCRIPTION_VALUE,
         isDefault: !hasDefaultBoard,
         isPinned: true,
+        showPriorityColors: true,
         isSystem: true,
         createdAt: now,
         updatedAt: now,

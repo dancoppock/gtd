@@ -135,6 +135,7 @@ describe("SqliteBoardStore", () => {
       description: "Only frontend-tagged tickets",
       isDefault: false,
       isPinned: false,
+      showPriorityColors: true,
       columns: [
         { name: "Todo", statusKey: "todo" },
         { name: "In Progress", statusKey: "in_progress" },
@@ -156,6 +157,7 @@ describe("SqliteBoardStore", () => {
       description: "Only frontend-tagged tickets",
       isDefault: false,
       isPinned: false,
+      showPriorityColors: true,
       columns: [
         { name: "Todo", statusKey: "todo" },
         { name: "In Progress", statusKey: "in_progress" },

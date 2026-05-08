@@ -43,6 +43,7 @@ The UI currently supports:
 - inline title editing
 - drag/drop reorder within and across columns
 - archive of visible done tickets
+- optional per-board priority colour stripes on tickets
 
 ### Backend
 
@@ -68,6 +69,7 @@ On first run, the API seeds:
 - Labels are global and reusable across all tickets and boards
 - Boards are views over tickets
 - Boards can be pinned to appear in the header navigation
+- Boards can enable or disable ticket priority colour stripes
 - Regular boards own a set of columns
 - Each regular board column maps to exactly one status
 - Statuses are global and can be extended beyond the seeded defaults

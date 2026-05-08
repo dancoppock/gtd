@@ -41,6 +41,7 @@ type BoardFormState = {
   description: string;
   isDefault: boolean;
   isPinned: boolean;
+  showPriorityColors: boolean;
   columns: BoardColumnFormState[];
   filterLabelIds: string[];
 };
@@ -111,6 +112,7 @@ function emptyBoardFormState(): BoardFormState {
     description: "",
     isDefault: false,
     isPinned: false,
+    showPriorityColors: true,
     columns: [
       defaultColumn("todo", "Todo"),
       defaultColumn("in_progress", "In Progress"),
@@ -126,6 +128,7 @@ function toBoardFormState(board: BoardDetail): BoardFormState {
     description: board.description,
     isDefault: board.isDefault,
     isPinned: board.isPinned,
+    showPriorityColors: board.showPriorityColors,
     columns: board.columns.map((column) => ({
       rowId: createRowId(),
       name: column.name,
@@ -509,6 +512,7 @@ export function BoardEditPage() {
                 description: formState.description.trim(),
                 isDefault: formState.isDefault,
                 isPinned: formState.isPinned,
+                showPriorityColors: formState.showPriorityColors,
                 columns: formState.columns.map((column) => ({
                   name: column.name.trim(),
                   statusKey: column.statusKey,
@@ -591,6 +595,21 @@ export function BoardEditPage() {
                 }
               />
               <span>Pin this board in navigation</span>
+            </label>
+
+            <label className="chip-toggle">
+              <input
+                checked={formState.showPriorityColors}
+                data-testid="board-priority-colors-input"
+                type="checkbox"
+                onChange={(event) =>
+                  setFormState((currentValue) => ({
+                    ...currentValue,
+                    showPriorityColors: event.target.checked,
+                  }))
+                }
+              />
+              <span>Show priority colour stripe on tickets</span>
             </label>
 
             {isSystemBoard ? (

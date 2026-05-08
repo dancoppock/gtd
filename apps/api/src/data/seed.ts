@@ -60,6 +60,7 @@ export function createSeedData(): SeedData {
       description: SYSTEM_BOARD_DESCRIPTION_VALUE,
       isDefault: true,
       isPinned: true,
+      showPriorityColors: true,
       isSystem: true,
       createdAt: now,
       updatedAt: now,

@@ -637,6 +637,7 @@ export function BoardPage() {
                               emptyMessage={null}
                               expandedTicketIds={expandedTicketIds}
                               showHeader={false}
+                              showPriorityColors={data.board.showPriorityColors}
                               showTail={false}
                               variant="swimlane"
                               tickets={laneTickets}
@@ -667,6 +668,7 @@ export function BoardPage() {
                       isArchiving={
                         archiveDoneTicketsMutation.isPending && column.statusCategory === "completed"
                       }
+                      showPriorityColors={data.board.showPriorityColors}
                       tickets={tickets}
                       onArchiveDoneTickets={() => {
                         void archiveDoneTicketsMutation.mutateAsync(data.board.id);
@@ -691,6 +693,7 @@ export function BoardPage() {
                   tone={resolveTicketTone(data.board.columns, activeTicket)}
                   onEdit={() => undefined}
                   onTitleUpdate={async () => undefined}
+                  showPriorityColor={data.board.showPriorityColors}
                   viewMode={ticketViewMode}
                 />
               ) : null}

@@ -1,7 +1,7 @@
 import type { Ticket } from "@gtd/contracts";
 import type { useSortable } from "@dnd-kit/sortable";
 import type { KeyboardEvent, MouseEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { TicketViewMode } from "../board/TicketViewToggle";
 
@@ -19,6 +19,7 @@ type TicketCardProps = {
   onEdit: () => void;
   onToggleExpanded?: () => void;
   onTitleUpdate?: (nextTitle: string) => Promise<void>;
+  showPriorityColor?: boolean;
   viewMode?: TicketViewMode;
 };
 
@@ -31,6 +32,7 @@ export function TicketCard({
   onEdit,
   onToggleExpanded,
   onTitleUpdate,
+  showPriorityColor = false,
   viewMode = "full",
 }: TicketCardProps) {
   const isCompact = viewMode === "compact";
@@ -40,7 +42,10 @@ export function TicketCard({
   const [draftTitle, setDraftTitle] = useState(ticket.title);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const [isDescriptionFullyExpanded, setIsDescriptionFullyExpanded] = useState(false);
+  const [isDescriptionTruncated, setIsDescriptionTruncated] = useState(false);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const descriptionRef = useRef<HTMLParagraphElement | null>(null);
   const titleClickTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -49,6 +54,24 @@ export function TicketCard({
       setTitleError(null);
     }
   }, [isEditingTitle, ticket.title]);
+
+  useEffect(() => {
+    setIsDescriptionFullyExpanded(false);
+  }, [ticket.description, ticket.id, viewMode]);
+
+  useLayoutEffect(() => {
+    const descriptionElement = descriptionRef.current;
+    if (!descriptionElement) {
+      setIsDescriptionTruncated(false);
+      return;
+    }
+
+    if (isDescriptionFullyExpanded) {
+      return;
+    }
+
+    setIsDescriptionTruncated(descriptionElement.scrollHeight > descriptionElement.clientHeight + 1);
+  }, [isDescriptionFullyExpanded, showExpandedContent, ticket.description]);
 
   useEffect(() => {
     return () => {
@@ -115,7 +138,7 @@ export function TicketCard({
   }
 
   function handleCardClick(event: MouseEvent<HTMLDivElement>) {
-    if (!isCompact || !onToggleExpanded || isEditingTitle) {
+    if (isEditingTitle) {
       return;
     }
 
@@ -135,7 +158,14 @@ export function TicketCard({
       }
     }
 
-    onToggleExpanded();
+    if (isCompact && onToggleExpanded) {
+      onToggleExpanded();
+      return;
+    }
+
+    if (!isCompact && (isDescriptionTruncated || isDescriptionFullyExpanded)) {
+      setIsDescriptionFullyExpanded((currentValue) => !currentValue);
+    }
   }
 
   function handleTitleClick(event: MouseEvent<HTMLHeadingElement>) {
@@ -177,7 +207,7 @@ export function TicketCard({
       data-testid={`ticket-${ticket.id}`}
     >
       <div
-        className={`ticket-card__content ${isCompact ? "ticket-card__content--toggleable" : ""}`}
+        className={`ticket-card__content ${isCompact || isDescriptionTruncated ? "ticket-card__content--toggleable" : ""} ${showPriorityColor ? `ticket-card__content--priority-color ticket-card__content--priority-${ticket.priority}` : ""}`}
         data-testid={`ticket-content-${ticket.id}`}
         onClick={handleCardClick}
       >
@@ -219,7 +249,20 @@ export function TicketCard({
           </div>
         </div>
 
-        {showExpandedContent && hasDescription ? <p>{ticket.description}</p> : null}
+        {showExpandedContent && hasDescription ? (
+          <>
+            <p
+              ref={descriptionRef}
+              className={`ticket-card__description ${isDescriptionFullyExpanded ? "ticket-card__description--full" : ""}`}
+              data-testid={`ticket-description-${ticket.id}`}
+            >
+              {ticket.description}
+            </p>
+            {isDescriptionTruncated && !isDescriptionFullyExpanded ? (
+              <span className="ticket-card__description-truncation">[...]</span>
+            ) : null}
+          </>
+        ) : null}
 
         {showExpandedContent ? (
           <div className="ticket-card__footer">

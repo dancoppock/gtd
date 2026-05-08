@@ -41,6 +41,8 @@ const dragHandleAttributes: DraggableAttributes = {
 
 afterEach(() => {
   vi.useRealTimers();
+  Reflect.deleteProperty(HTMLParagraphElement.prototype, "clientHeight");
+  Reflect.deleteProperty(HTMLParagraphElement.prototype, "scrollHeight");
 });
 
 describe("TicketCard", () => {
@@ -51,6 +53,73 @@ describe("TicketCard", () => {
     expect(screen.getByText("Hide lower-priority metadata in compact mode.")).toBeInTheDocument();
     expect(screen.getByText("frontend")).toBeInTheDocument();
     expect(screen.getByText("ux")).toBeInTheDocument();
+  });
+
+  it("preserves paragraph breaks in rendered descriptions", () => {
+    render(
+      <TicketCard
+        ticket={{
+          ...ticket,
+          description: "First paragraph\n\nSecond paragraph",
+        }}
+        onEdit={vi.fn()}
+        viewMode="full"
+      />,
+    );
+
+    expect(screen.getByTestId("ticket-description-ticket_1").textContent).toBe(
+      "First paragraph\n\nSecond paragraph",
+    );
+    expect(screen.getByTestId("ticket-description-ticket_1")).toHaveClass("ticket-card__description");
+  });
+
+  it("shows the priority color stripe when enabled", () => {
+    render(<TicketCard ticket={ticket} showPriorityColor onEdit={vi.fn()} viewMode="full" />);
+
+    expect(screen.getByTestId("ticket-content-ticket_1")).toHaveClass(
+      "ticket-card__content--priority-color",
+      "ticket-card__content--priority-medium",
+    );
+  });
+
+  it("toggles a long expanded description between clamped and full text", () => {
+    Object.defineProperty(HTMLParagraphElement.prototype, "clientHeight", {
+      configurable: true,
+      value: 200,
+    });
+    Object.defineProperty(HTMLParagraphElement.prototype, "scrollHeight", {
+      configurable: true,
+      value: 320,
+    });
+
+    render(<TicketCard ticket={ticket} onEdit={vi.fn()} viewMode="full" />);
+
+    expect(screen.getByText("[...]")).toBeInTheDocument();
+    expect(screen.getByTestId("ticket-description-ticket_1")).not.toHaveClass(
+      "ticket-card__description--full",
+    );
+
+    fireEvent.click(screen.getByTestId("ticket-content-ticket_1"));
+
+    expect(screen.queryByText("[...]")).not.toBeInTheDocument();
+    expect(screen.getByTestId("ticket-description-ticket_1")).toHaveClass(
+      "ticket-card__description--full",
+    );
+
+    fireEvent.click(screen.getByTestId("ticket-content-ticket_1"));
+
+    expect(screen.getByText("[...]")).toBeInTheDocument();
+    expect(screen.getByTestId("ticket-description-ticket_1")).not.toHaveClass(
+      "ticket-card__description--full",
+    );
+  });
+
+  it("hides the priority color stripe when disabled", () => {
+    render(<TicketCard ticket={ticket} onEdit={vi.fn()} viewMode="full" />);
+
+    expect(screen.getByTestId("ticket-content-ticket_1")).not.toHaveClass(
+      "ticket-card__content--priority-color",
+    );
   });
 
   it("hides description and labels in compact mode", () => {

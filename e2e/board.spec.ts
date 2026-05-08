@@ -138,15 +138,29 @@ test("creates a filtered board from the boards page", async ({ page }) => {
   await page.getByTestId("board-name-input").fill("Frontend Work");
   await page.getByTestId("board-description-input").fill("Only show frontend tickets");
   await expect(page.getByTestId("board-pinned-input")).not.toBeChecked();
+  await expect(page.getByTestId("board-priority-colors-input")).toBeChecked();
   await page.getByRole("checkbox", { name: "frontend" }).click({ force: true });
   await page.getByRole("button", { name: "Create Board" }).click();
 
   await expect(page).toHaveURL(/\/boards\/frontend-work$/);
   await expect(page.getByRole("heading", { name: "Frontend Work" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Pinned boards" }).getByRole("link", { name: "Frontend Work" })).toHaveCount(0);
+  await expect(page.getByTestId("ticket-content-ticket_1")).toHaveClass(/ticket-card__content--priority-color/);
   await expect(page.getByTestId("column-todo")).toContainText("Design ticket modal");
   await expect(page.getByTestId("column-in_progress")).not.toContainText("Build board API route");
   await expect(page.getByTestId("column-done")).not.toContainText("Seed default board");
+});
+
+test("can disable priority color stripes from board settings", async ({ page }) => {
+  await page.getByRole("link", { name: "Edit Board" }).click();
+  await page.getByTestId("board-priority-colors-input").uncheck({ force: true });
+  await page.getByRole("button", { name: "Save Board" }).click();
+
+  await expect(page).toHaveURL(/\/boards$/);
+  await page.getByRole("link", { name: "Open System Board" }).click();
+
+  await expect(page).toHaveURL(/\/boards\/default$/);
+  await expect(page.getByTestId("ticket-content-ticket_1")).not.toHaveClass(/ticket-card__content--priority-color/);
 });
 
 test("shows pinned boards in the header navigation", async ({ page }) => {

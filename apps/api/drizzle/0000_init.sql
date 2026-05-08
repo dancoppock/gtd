@@ -7,6 +7,7 @@ CREATE TABLE `boards` (
   `description` TEXT NOT NULL DEFAULT '',
   `is_default` INTEGER NOT NULL DEFAULT 0,
   `is_pinned` INTEGER NOT NULL DEFAULT 0,
+  `show_priority_colors` INTEGER NOT NULL DEFAULT 1,
   `is_system` INTEGER NOT NULL DEFAULT 0,
   `created_at` INTEGER NOT NULL,
   `updated_at` INTEGER NOT NULL
@@ -100,12 +101,13 @@ CREATE TABLE `ticket_labels` (
 CREATE INDEX `ticket_labels_label_idx`
   ON `ticket_labels` (`label_id`);
 
-INSERT INTO `boards` (`id`, `slug`, `name`, `description`, `is_default`, `is_pinned`, `is_system`, `created_at`, `updated_at`)
+INSERT INTO `boards` (`id`, `slug`, `name`, `description`, `is_default`, `is_pinned`, `show_priority_colors`, `is_system`, `created_at`, `updated_at`)
 VALUES (
   'board_default',
   'default',
   'My Board',
   'Default kanban board',
+  1,
   1,
   1,
   1,

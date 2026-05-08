@@ -12,6 +12,7 @@ type BoardColumnProps = {
   emptyMessage?: string | null;
   expandedTicketIds: ReadonlySet<string>;
   showHeader?: boolean;
+  showPriorityColors: boolean;
   showTail?: boolean;
   tickets: Ticket[];
   isArchiving?: boolean;
@@ -44,6 +45,7 @@ export function BoardColumn({
   emptyMessage = "No tickets match the current filters.",
   expandedTicketIds,
   showHeader = true,
+  showPriorityColors,
   showTail = true,
   tickets,
   isArchiving = false,
@@ -166,6 +168,7 @@ export function BoardColumn({
                 onEdit={() => onEditTicket(ticket)}
                 onToggleExpanded={() => onToggleTicketExpanded(ticket.id)}
                 onTitleUpdate={(nextTitle) => onInlineTitleUpdate(ticket, nextTitle)}
+                showPriorityColor={showPriorityColors}
                 viewMode={viewMode}
               />
             ))

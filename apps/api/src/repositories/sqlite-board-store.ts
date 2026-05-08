@@ -58,6 +58,7 @@ type BoardRow = {
   description: string;
   is_default: number;
   is_pinned: number;
+  show_priority_colors: number;
   is_system: number;
   created_at: number;
   updated_at: number;
@@ -265,10 +266,20 @@ export class SqliteBoardStore {
 
       this.sqlite
         .prepare(`
-          insert into boards (id, slug, name, description, is_default, is_pinned, is_system, created_at, updated_at)
-          values (?, ?, ?, ?, ?, ?, 0, ?, ?)
+          insert into boards (id, slug, name, description, is_default, is_pinned, show_priority_colors, is_system, created_at, updated_at)
+          values (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
         `)
-        .run(boardId, slug, input.name, input.description, isDefault ? 1 : 0, input.isPinned ? 1 : 0, now, now);
+        .run(
+          boardId,
+          slug,
+          input.name,
+          input.description,
+          isDefault ? 1 : 0,
+          input.isPinned ? 1 : 0,
+          input.showPriorityColors ? 1 : 0,
+          now,
+          now,
+        );
 
       this.replaceBoardColumns(boardId, input.columns);
       this.replaceBoardLabelFilters(boardId, input.filterLabelIds);
@@ -297,7 +308,7 @@ export class SqliteBoardStore {
         this.sqlite
           .prepare(`
             update boards
-            set name = ?, description = ?, is_default = ?, is_pinned = ?, is_system = 1, updated_at = ?
+            set name = ?, description = ?, is_default = ?, is_pinned = ?, show_priority_colors = ?, is_system = 1, updated_at = ?
             where id = ?
           `)
           .run(
@@ -305,6 +316,7 @@ export class SqliteBoardStore {
             SYSTEM_BOARD_DESCRIPTION_VALUE,
             shouldStayDefault ? 1 : 0,
             input.isPinned ? 1 : 0,
+            input.showPriorityColors ? 1 : 0,
             updatedAt,
             boardId,
           );
@@ -327,10 +339,18 @@ export class SqliteBoardStore {
       this.sqlite
         .prepare(`
           update boards
-          set name = ?, description = ?, is_default = ?, is_pinned = ?, updated_at = ?
+          set name = ?, description = ?, is_default = ?, is_pinned = ?, show_priority_colors = ?, updated_at = ?
           where id = ?
         `)
-        .run(input.name, input.description, shouldStayDefault ? 1 : 0, input.isPinned ? 1 : 0, updatedAt, boardId);
+        .run(
+          input.name,
+          input.description,
+          shouldStayDefault ? 1 : 0,
+          input.isPinned ? 1 : 0,
+          input.showPriorityColors ? 1 : 0,
+          updatedAt,
+          boardId,
+        );
 
       this.replaceBoardColumns(boardId, input.columns);
       this.replaceBoardLabelFilters(boardId, input.filterLabelIds);
@@ -718,8 +738,8 @@ export class SqliteBoardStore {
 
     this.sqlite.transaction(() => {
       const insertBoard = this.sqlite.prepare(`
-        insert or ignore into boards (id, slug, name, description, is_default, is_pinned, is_system, created_at, updated_at)
-        values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        insert or ignore into boards (id, slug, name, description, is_default, is_pinned, show_priority_colors, is_system, created_at, updated_at)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       const insertStatus = this.sqlite.prepare(`
         insert or ignore into statuses (key, name, category, is_system)
@@ -754,6 +774,7 @@ export class SqliteBoardStore {
           board.description,
           board.isDefault ? 1 : 0,
           board.isPinned ? 1 : 0,
+          board.showPriorityColors ? 1 : 0,
           board.isSystem ? 1 : 0,
           Date.parse(board.createdAt),
           Date.parse(board.updatedAt),
@@ -1259,6 +1280,7 @@ export class SqliteBoardStore {
       description: row.description,
       isDefault: Boolean(row.is_default),
       isPinned: Boolean(row.is_pinned),
+      showPriorityColors: Boolean(row.show_priority_colors),
       isSystem: Boolean(row.is_system),
       createdAt: toIsoString(row.created_at)!,
       updatedAt: toIsoString(row.updated_at)!,
@@ -1328,6 +1350,7 @@ export class SqliteBoardStore {
           description: SYSTEM_BOARD_DESCRIPTION_VALUE,
           isDefault: !hasDefaultBoard,
           isPinned: true,
+          showPriorityColors: true,
           isSystem: true,
           createdAt: new Date(now).toISOString(),
           updatedAt: new Date(now).toISOString(),
@@ -1339,8 +1362,8 @@ export class SqliteBoardStore {
 
         this.sqlite
           .prepare(`
-            insert into boards (id, slug, name, description, is_default, is_pinned, is_system, created_at, updated_at)
-            values (?, ?, ?, ?, ?, 1, 1, ?, ?)
+            insert into boards (id, slug, name, description, is_default, is_pinned, show_priority_colors, is_system, created_at, updated_at)
+            values (?, ?, ?, ?, ?, 1, 1, 1, ?, ?)
           `)
           .run(
             systemBoard.id,

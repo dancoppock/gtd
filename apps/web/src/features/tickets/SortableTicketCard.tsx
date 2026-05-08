@@ -14,6 +14,7 @@ type SortableTicketCardProps = {
   onTitleUpdate: (nextTitle: string) => Promise<void>;
   isExpanded?: boolean;
   onToggleExpanded?: () => void;
+  showPriorityColor: boolean;
   viewMode: TicketViewMode;
 };
 
@@ -22,6 +23,7 @@ export function SortableTicketCard({
   tone,
   onEdit,
   onTitleUpdate,
+  showPriorityColor,
   isExpanded = false,
   onToggleExpanded,
   viewMode,
@@ -57,6 +59,7 @@ export function SortableTicketCard({
         onEdit={onEdit}
         onToggleExpanded={onToggleExpanded}
         onTitleUpdate={onTitleUpdate}
+        showPriorityColor={showPriorityColor}
         isDragging={isDragging}
         viewMode={viewMode}
       />

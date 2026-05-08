@@ -38,6 +38,7 @@ describe("BoardColumn", () => {
         <BoardColumn
           column={column}
           expandedTicketIds={new Set()}
+          showPriorityColors
           tickets={[ticket]}
           onCreateTicket={onCreateTicket}
           onEditTicket={vi.fn()}
@@ -61,6 +62,7 @@ describe("BoardColumn", () => {
         <BoardColumn
           column={column}
           expandedTicketIds={new Set()}
+          showPriorityColors
           tickets={[ticket]}
           onCreateTicket={vi.fn()}
           onEditTicket={vi.fn()}

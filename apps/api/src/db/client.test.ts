@@ -101,10 +101,11 @@ describe("createDatabaseClient", () => {
     });
 
     const migratedBoard = client.sqlite
-      .prepare("select is_default, is_pinned, is_system, description from boards where id = ?")
+      .prepare("select is_default, is_pinned, show_priority_colors, is_system, description from boards where id = ?")
       .get("board_default") as {
         is_default: number;
         is_pinned: number;
+        show_priority_colors: number;
         is_system: number;
         description: string;
       };
@@ -112,6 +113,7 @@ describe("createDatabaseClient", () => {
     expect(migratedBoard).toEqual({
       is_default: 1,
       is_pinned: 1,
+      show_priority_colors: 1,
       is_system: 1,
       description: "",
     });

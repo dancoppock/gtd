@@ -49,6 +49,10 @@ function ensureBoardFields(sqlite: Database.Database) {
     sqlite.exec("update boards set is_pinned = 1 where slug = 'default'");
   }
 
+  if (!hasColumn(sqlite, "boards", "show_priority_colors")) {
+    sqlite.exec("alter table boards add column show_priority_colors integer not null default 1");
+  }
+
   if (!hasColumn(sqlite, "boards", "is_system")) {
     sqlite.exec("alter table boards add column is_system integer not null default 0");
   }
