@@ -85,7 +85,7 @@ describe("TicketCard", () => {
   it("toggles a long expanded description between clamped and full text", () => {
     Object.defineProperty(HTMLParagraphElement.prototype, "clientHeight", {
       configurable: true,
-      value: 200,
+      value: 150,
     });
     Object.defineProperty(HTMLParagraphElement.prototype, "scrollHeight", {
       configurable: true,

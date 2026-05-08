@@ -1345,7 +1345,7 @@ button {
 .ticket-card__description {
   margin: 12px 0 14px;
   color: var(--text-muted);
-  max-height: 200px;
+  max-height: 150px;
   overflow: hidden;
   white-space: pre-wrap;
 }
