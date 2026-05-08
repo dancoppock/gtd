@@ -215,6 +215,7 @@ export class InMemoryBoardStore {
       name: input.name,
       description: input.description,
       isDefault: input.isDefault || this.getDefaultBoard() === null,
+      isPinned: input.isPinned,
       isSystem: false,
       createdAt: now,
       updatedAt: now,
@@ -245,6 +246,7 @@ export class InMemoryBoardStore {
         isDefault:
           input.isDefault
           || (existingBoard.isDefault && this.getDefaultBoard()?.id === boardId),
+        isPinned: input.isPinned,
         updatedAt: new Date().toISOString(),
       });
 
@@ -261,6 +263,7 @@ export class InMemoryBoardStore {
       name: input.name,
       description: input.description,
       isDefault: input.isDefault || (existingBoard.isDefault && this.getDefaultBoard()?.id === boardId),
+      isPinned: input.isPinned,
       updatedAt: new Date().toISOString(),
     });
 
@@ -876,6 +879,7 @@ export class InMemoryBoardStore {
         name: SYSTEM_BOARD_NAME_VALUE,
         description: SYSTEM_BOARD_DESCRIPTION_VALUE,
         isDefault: !hasDefaultBoard,
+        isPinned: true,
         isSystem: true,
         createdAt: now,
         updatedAt: now,

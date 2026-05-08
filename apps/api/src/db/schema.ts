@@ -13,6 +13,7 @@ export const boards = sqliteTable("boards", {
   name: text("name").notNull(),
   description: text("description").notNull().default(""),
   isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
+  isPinned: integer("is_pinned", { mode: "boolean" }).notNull().default(false),
   isSystem: integer("is_system", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),

@@ -5,6 +5,7 @@ This package contains the React frontend for the kanban app.
 ## Current Responsibilities
 
 - route between Home, Boards, Labels, Insights, and individual board pages
+- show pinned board shortcuts in the shared header navigation
 - load a board by slug
 - keep filters in URL search params
 - fetch board data through TanStack Query

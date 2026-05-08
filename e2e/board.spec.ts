@@ -22,6 +22,7 @@ test.beforeEach(async ({ page }) => {
 
 test("loads the seeded kanban board", async ({ page }) => {
   await expect(page).toHaveTitle("GTD - System Board");
+  await expect(page.getByRole("navigation", { name: "Pinned boards" }).getByRole("link", { name: "System Board" })).toBeVisible();
   await expect(page.getByTestId(`column-${systemActiveStatusKey}`)).toContainText("Design ticket modal");
   await expect(page.getByTestId(`column-${systemActiveStatusKey}`)).toContainText("Build board API route");
   await expect(page.getByTestId(`column-${systemDoneStatusKey}`)).toContainText("Seed default board");
@@ -136,14 +137,35 @@ test("creates a filtered board from the boards page", async ({ page }) => {
 
   await page.getByTestId("board-name-input").fill("Frontend Work");
   await page.getByTestId("board-description-input").fill("Only show frontend tickets");
+  await expect(page.getByTestId("board-pinned-input")).not.toBeChecked();
   await page.getByRole("checkbox", { name: "frontend" }).click({ force: true });
   await page.getByRole("button", { name: "Create Board" }).click();
 
   await expect(page).toHaveURL(/\/boards\/frontend-work$/);
   await expect(page.getByRole("heading", { name: "Frontend Work" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Pinned boards" }).getByRole("link", { name: "Frontend Work" })).toHaveCount(0);
   await expect(page.getByTestId("column-todo")).toContainText("Design ticket modal");
   await expect(page.getByTestId("column-in_progress")).not.toContainText("Build board API route");
   await expect(page.getByTestId("column-done")).not.toContainText("Seed default board");
+});
+
+test("shows pinned boards in the header navigation", async ({ page }) => {
+  await page.getByRole("link", { name: "Boards" }).click();
+  await page.getByRole("link", { name: "Create Board" }).click();
+
+  await page.getByTestId("board-name-input").fill("Pinned Ops");
+  await page.getByTestId("board-description-input").fill("Pinned operations board");
+  await page.getByTestId("board-pinned-input").check({ force: true });
+  await page.getByRole("button", { name: "Create Board" }).click();
+
+  await expect(page).toHaveURL(/\/boards\/pinned-ops$/);
+  await expect(page.getByRole("navigation", { name: "Pinned boards" }).getByRole("link", { name: "Pinned Ops" })).toBeVisible();
+
+  await page.getByRole("link", { name: "System Board" }).click();
+  await expect(page).toHaveURL(/\/boards\/default$/);
+
+  await page.getByRole("navigation", { name: "Pinned boards" }).getByRole("link", { name: "Pinned Ops" }).click();
+  await expect(page).toHaveURL(/\/boards\/pinned-ops$/);
 });
 
 test("opens a board by clicking its row on the boards page", async ({ page }) => {

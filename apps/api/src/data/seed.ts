@@ -59,6 +59,7 @@ export function createSeedData(): SeedData {
       name: SYSTEM_BOARD_NAME_VALUE,
       description: SYSTEM_BOARD_DESCRIPTION_VALUE,
       isDefault: true,
+      isPinned: true,
       isSystem: true,
       createdAt: now,
       updatedAt: now,

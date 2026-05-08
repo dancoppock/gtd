@@ -44,6 +44,7 @@ describe("API routes", () => {
       slug: "default",
       name: "System Board",
       isDefault: true,
+      isPinned: true,
       isSystem: true,
     });
   });
@@ -59,6 +60,7 @@ describe("API routes", () => {
       id: "board_default",
       slug: "default",
       isDefault: true,
+      isPinned: true,
       columns: [
         expect.objectContaining({ statusKey: SYSTEM_BOARD_ACTIVE_STATUS_KEY, name: "Active" }),
         expect.objectContaining({ statusKey: SYSTEM_BOARD_DONE_STATUS_KEY, name: "Done" }),
@@ -230,6 +232,7 @@ describe("API routes", () => {
         name: "Frontend Work",
         description: "Only frontend-tagged tickets",
         isDefault: false,
+        isPinned: false,
         columns: [
           { name: "Todo", statusKey: "todo" },
           { name: "In Progress", statusKey: "in_progress" },
@@ -242,6 +245,7 @@ describe("API routes", () => {
     expect(createResponse.statusCode).toBe(201);
     expect(createResponse.json()).toMatchObject({
       slug: "frontend-work",
+      isPinned: false,
       filterLabels: [expect.objectContaining({ normalizedName: "frontend" })],
     });
 
@@ -262,6 +266,7 @@ describe("API routes", () => {
         name: "Frontend Delivery",
         description: "Filtered frontend board",
         isDefault: false,
+        isPinned: true,
         columns: [
           { name: "Doing", statusKey: "in_progress" },
           { name: "Done", statusKey: "done" },
@@ -273,6 +278,7 @@ describe("API routes", () => {
     expect(updateResponse.statusCode).toBe(200);
     expect(updateResponse.json()).toMatchObject({
       name: "Frontend Delivery",
+      isPinned: true,
       columns: [
         expect.objectContaining({ statusKey: "in_progress", name: "Doing" }),
         expect.objectContaining({ statusKey: "done", name: "Done" }),

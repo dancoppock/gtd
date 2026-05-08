@@ -367,6 +367,39 @@ button {
   opacity: 0.55;
 }
 
+.pinned-boards-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pinned-boards-nav__link {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pinned-boards-nav__link:not(:last-child)::after {
+  content: "|";
+  display: inline-block;
+  margin-left: 6px;
+  color: var(--button-text);
+  opacity: 0.6;
+  text-decoration: none;
+}
+
+.pinned-boards-nav__link:hover,
+.pinned-boards-nav__link--active {
+  color: var(--button-text);
+}
+
+.pinned-boards-nav__link--active {
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 3px;
+}
+
 .theme-select {
   display: inline-flex;
   align-items: center;

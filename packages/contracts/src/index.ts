@@ -33,6 +33,7 @@ export const boardSchema = z.object({
   name: z.string().min(1),
   description: z.string(),
   isDefault: z.boolean(),
+  isPinned: z.boolean(),
   isSystem: z.boolean(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
@@ -117,6 +118,7 @@ export const createBoardInputSchema = z.object({
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(2_000).default(""),
   isDefault: z.boolean().default(false),
+  isPinned: z.boolean().default(false),
   columns: z.array(boardColumnInputSchema).min(1),
   filterLabelIds: z.array(z.string().min(1)).default([]),
 });

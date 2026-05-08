@@ -31,6 +31,7 @@ The UI currently supports:
 
 - board view by slug
 - boards list and board edit/create pages
+- pinned board links in the header navigation
 - global labels page
 - insights dashboard
 - theme switching
@@ -66,6 +67,7 @@ On first run, the API seeds:
 - Tickets are global and carry a global `statusKey` plus a global `uiOrder`
 - Labels are global and reusable across all tickets and boards
 - Boards are views over tickets
+- Boards can be pinned to appear in the header navigation
 - Regular boards own a set of columns
 - Each regular board column maps to exactly one status
 - Statuses are global and can be extended beyond the seeded defaults

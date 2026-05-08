@@ -95,7 +95,8 @@ Statuses are global rather than board-scoped. The seeded defaults are `todo`, `i
 ### Board
 
 - a saved view over global tickets
-- has metadata: name, description, slug, `isSystem`
+- has metadata: name, description, slug, `isPinned`, `isSystem`
+- pinned boards appear as shortcuts under the primary header navigation
 - regular boards own columns
 - regular boards can optionally filter visible tickets by one or more labels
 - one built-in system board always exists

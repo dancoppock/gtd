@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
+import { fetchBoards } from "../board/api";
 import {
   isBoardTheme,
   themeOptions,
@@ -30,6 +32,12 @@ export function AppHeader({
   actions,
 }: AppHeaderProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const location = useLocation();
+  const boardsQuery = useQuery({
+    queryKey: ["boards"],
+    queryFn: fetchBoards,
+  });
+  const pinnedBoards = (boardsQuery.data ?? []).filter((board) => board.isPinned);
 
   return (
     <section className={`hero-panel ${isCollapsed ? "hero-panel--collapsed" : ""}`}>
@@ -74,6 +82,26 @@ export function AppHeader({
                 Insights
               </Link>
             </nav>
+
+            {pinnedBoards.length > 0 ? (
+              <nav aria-label="Pinned boards" className="pinned-boards-nav">
+                {pinnedBoards.map((board) => {
+                  const boardPath = `/boards/${board.slug}`;
+                  const isActiveBoard = location.pathname === boardPath
+                    || location.pathname.startsWith(`${boardPath}/`);
+
+                  return (
+                    <Link
+                      key={board.id}
+                      className={`pinned-boards-nav__link ${isActiveBoard ? "pinned-boards-nav__link--active" : ""}`}
+                      to={boardPath}
+                    >
+                      {board.name}
+                    </Link>
+                  );
+                })}
+              </nav>
+            ) : null}
           </div>
 
           <div className="hero-panel__actions">

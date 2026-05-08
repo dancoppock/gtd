@@ -1,4 +1,4 @@
-import type { BoardDetail, CreateBoardInput, Status } from "@gtd/contracts";
+import type { BoardDetail, CreateBoardInput, Status, UpdateBoardInput } from "@gtd/contracts";
 import {
   closestCenter,
   DndContext,
@@ -40,6 +40,7 @@ type BoardFormState = {
   name: string;
   description: string;
   isDefault: boolean;
+  isPinned: boolean;
   columns: BoardColumnFormState[];
   filterLabelIds: string[];
 };
@@ -109,6 +110,7 @@ function emptyBoardFormState(): BoardFormState {
     name: "",
     description: "",
     isDefault: false,
+    isPinned: false,
     columns: [
       defaultColumn("todo", "Todo"),
       defaultColumn("in_progress", "In Progress"),
@@ -123,6 +125,7 @@ function toBoardFormState(board: BoardDetail): BoardFormState {
     name: board.name,
     description: board.description,
     isDefault: board.isDefault,
+    isPinned: board.isPinned,
     columns: board.columns.map((column) => ({
       rowId: createRowId(),
       name: column.name,
@@ -344,7 +347,7 @@ export function BoardEditPage() {
   });
 
   const updateBoardMutation = useMutation({
-    mutationFn: (args: { boardId: string; input: CreateBoardInput }) => updateBoard(args.boardId, args.input),
+    mutationFn: (args: { boardId: string; input: UpdateBoardInput }) => updateBoard(args.boardId, args.input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["boards"] });
       await queryClient.invalidateQueries({ queryKey: ["board"] });
@@ -505,6 +508,7 @@ export function BoardEditPage() {
                 name: formState.name.trim(),
                 description: formState.description.trim(),
                 isDefault: formState.isDefault,
+                isPinned: formState.isPinned,
                 columns: formState.columns.map((column) => ({
                   name: column.name.trim(),
                   statusKey: column.statusKey,
@@ -572,6 +576,21 @@ export function BoardEditPage() {
                 }
               />
               <span>Make this the default board</span>
+            </label>
+
+            <label className="chip-toggle">
+              <input
+                checked={formState.isPinned}
+                data-testid="board-pinned-input"
+                type="checkbox"
+                onChange={(event) =>
+                  setFormState((currentValue) => ({
+                    ...currentValue,
+                    isPinned: event.target.checked,
+                  }))
+                }
+              />
+              <span>Pin this board in navigation</span>
             </label>
 
             {isSystemBoard ? (
