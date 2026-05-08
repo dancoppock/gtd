@@ -38,6 +38,7 @@ export function TicketCard({
   const isCompact = viewMode === "compact";
   const hasDescription = Boolean(ticket.description.trim());
   const showExpandedContent = viewMode === "full" || isExpanded;
+  const canClampDescription = viewMode === "full";
   const showToggleHint = isCompact && !isExpanded && hasDescription;
   const [draftTitle, setDraftTitle] = useState(ticket.title);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -61,7 +62,7 @@ export function TicketCard({
 
   useLayoutEffect(() => {
     const descriptionElement = descriptionRef.current;
-    if (!descriptionElement) {
+    if (!descriptionElement || !canClampDescription) {
       setIsDescriptionTruncated(false);
       return;
     }
@@ -71,7 +72,7 @@ export function TicketCard({
     }
 
     setIsDescriptionTruncated(descriptionElement.scrollHeight > descriptionElement.clientHeight + 1);
-  }, [isDescriptionFullyExpanded, showExpandedContent, ticket.description]);
+  }, [canClampDescription, isDescriptionFullyExpanded, showExpandedContent, ticket.description]);
 
   useEffect(() => {
     return () => {
@@ -163,7 +164,7 @@ export function TicketCard({
       return;
     }
 
-    if (!isCompact && (isDescriptionTruncated || isDescriptionFullyExpanded)) {
+    if (canClampDescription && (isDescriptionTruncated || isDescriptionFullyExpanded)) {
       setIsDescriptionFullyExpanded((currentValue) => !currentValue);
     }
   }
@@ -253,12 +254,12 @@ export function TicketCard({
           <>
             <p
               ref={descriptionRef}
-              className={`ticket-card__description ${isDescriptionFullyExpanded ? "ticket-card__description--full" : ""}`}
+              className={`ticket-card__description ${!canClampDescription || isDescriptionFullyExpanded ? "ticket-card__description--full" : ""}`}
               data-testid={`ticket-description-${ticket.id}`}
             >
               {ticket.description}
             </p>
-            {isDescriptionTruncated && !isDescriptionFullyExpanded ? (
+            {canClampDescription && isDescriptionTruncated && !isDescriptionFullyExpanded ? (
               <span className="ticket-card__description-truncation">[...]</span>
             ) : null}
           </>

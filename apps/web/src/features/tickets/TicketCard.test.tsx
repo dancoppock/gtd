@@ -143,6 +143,24 @@ describe("TicketCard", () => {
     expect(screen.queryByText("[...]")).not.toBeInTheDocument();
   });
 
+  it("does not clamp or add a description ellipsis when a compact card is expanded", () => {
+    Object.defineProperty(HTMLParagraphElement.prototype, "clientHeight", {
+      configurable: true,
+      value: 150,
+    });
+    Object.defineProperty(HTMLParagraphElement.prototype, "scrollHeight", {
+      configurable: true,
+      value: 320,
+    });
+
+    render(<TicketCard ticket={ticket} isExpanded onEdit={vi.fn()} viewMode="compact" />);
+
+    expect(screen.queryByText("[...]")).not.toBeInTheDocument();
+    expect(screen.getByTestId("ticket-description-ticket_1")).toHaveClass(
+      "ticket-card__description--full",
+    );
+  });
+
   it("toggles expanded state when compact card content is clicked", () => {
     const onToggleExpanded = vi.fn();
 
