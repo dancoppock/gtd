@@ -168,7 +168,7 @@ export function BoardColumn({
                 onEdit={() => onEditTicket(ticket)}
                 onToggleExpanded={() => onToggleTicketExpanded(ticket.id)}
                 onTitleUpdate={(nextTitle) => onInlineTitleUpdate(ticket, nextTitle)}
-                showPriorityColor={showPriorityColors}
+                showPriorityColor={showPriorityColors && column.statusCategory !== "completed"}
                 viewMode={viewMode}
               />
             ))

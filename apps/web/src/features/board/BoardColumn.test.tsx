@@ -15,6 +15,16 @@ const column: Column = {
   position: 0,
 };
 
+const doneColumn: Column = {
+  ...column,
+  id: "column_done",
+  name: "Done",
+  statusKey: "done",
+  statusName: "Done",
+  statusCategory: "completed",
+  position: 1,
+};
+
 const ticket: Ticket = {
   id: "ticket_1",
   statusKey: "todo",
@@ -27,6 +37,13 @@ const ticket: Ticket = {
   archivedAt: null,
   createdAt: "2026-04-30T00:00:00.000Z",
   updatedAt: "2026-04-30T00:00:00.000Z",
+};
+
+const doneTicket: Ticket = {
+  ...ticket,
+  statusKey: "done",
+  priority: "high",
+  completedAt: "2026-04-30T12:00:00.000Z",
 };
 
 describe("BoardColumn", () => {
@@ -77,5 +94,28 @@ describe("BoardColumn", () => {
     fireEvent.click(screen.getByTestId("column-collapse-todo"));
 
     expect(onToggleCollapsed).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides priority color styling for tickets in completed columns", () => {
+    render(
+      <DndContext>
+        <BoardColumn
+          column={doneColumn}
+          expandedTicketIds={new Set()}
+          showPriorityColors
+          tickets={[doneTicket]}
+          onCreateTicket={vi.fn()}
+          onEditTicket={vi.fn()}
+          onInlineTitleUpdate={vi.fn().mockResolvedValue(undefined)}
+          onToggleTicketExpanded={vi.fn()}
+          viewMode="compact"
+        />
+      </DndContext>,
+    );
+
+    expect(screen.getByTestId("ticket-content-ticket_1")).not.toHaveClass(
+      "ticket-card__content--priority-color",
+      "ticket-card__content--priority-high",
+    );
   });
 });
