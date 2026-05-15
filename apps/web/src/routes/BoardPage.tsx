@@ -496,6 +496,7 @@ export function BoardPage() {
         const nextTickets = moveTicket(data.board.columns, ticketsWithTargetLane, activeId, mappedOverId);
         const didChange = !haveSameTicketLayout(displayedDataTickets, nextTickets);
         const didChangeLane = activeLaneKey !== overLaneKey;
+        const nextActiveTicket = nextTickets.find((ticket) => ticket.id === activeId);
 
         if (didChange) {
           const repositionInput = buildSwimlaneRepositionInput(
@@ -529,11 +530,21 @@ export function BoardPage() {
           });
         }
 
+        if (nextActiveTicket) {
+          collapseExpandedTicketAfterColumnMove(
+            activeId,
+            originalActiveTicket.statusKey,
+            nextActiveTicket.statusKey,
+          );
+        }
+
         return nextTickets;
       }
 
+      const originalActiveTicket = displayedDataTickets.find((ticket) => ticket.id === activeId) ?? null;
       const nextTickets = moveTicket(data.board.columns, currentTickets, activeId, overId);
       const didChange = !haveSameTicketLayout(displayedDataTickets, nextTickets);
+      const nextActiveTicket = nextTickets.find((ticket) => ticket.id === activeId);
 
       if (didChange) {
         const repositionInput = buildRepositionInput(data.board.columns, nextTickets, activeId);
@@ -551,6 +562,14 @@ export function BoardPage() {
             },
           });
         }
+      }
+
+      if (originalActiveTicket && nextActiveTicket) {
+        collapseExpandedTicketAfterColumnMove(
+          activeId,
+          originalActiveTicket.statusKey,
+          nextActiveTicket.statusKey,
+        );
       }
 
       return nextTickets;
@@ -656,6 +675,26 @@ export function BoardPage() {
       }
 
       return nextCollapsedStatusKeys;
+    });
+  }
+
+  function collapseExpandedTicketAfterColumnMove(
+    ticketId: string,
+    previousStatusKey: Ticket["statusKey"],
+    nextStatusKey: Ticket["statusKey"],
+  ) {
+    if (ticketViewMode !== "compact" || previousStatusKey === nextStatusKey) {
+      return;
+    }
+
+    setExpandedTicketIds((currentExpandedTicketIds) => {
+      if (!currentExpandedTicketIds.has(ticketId)) {
+        return currentExpandedTicketIds;
+      }
+
+      const nextExpandedTicketIds = new Set(currentExpandedTicketIds);
+      nextExpandedTicketIds.delete(ticketId);
+      return nextExpandedTicketIds;
     });
   }
 
