@@ -256,6 +256,11 @@ function SortableBoardColumnRow({
           <input
             value={column.name}
             onChange={(event) => onColumnNameChange(index, event.target.value)}
+            onFocus={() => {
+              if (column.name === "New Column") {
+                onColumnNameChange(index, "");
+              }
+            }}
           />
         </label>
       </div>
