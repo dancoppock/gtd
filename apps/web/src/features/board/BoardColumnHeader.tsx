@@ -1,4 +1,5 @@
 import type { Column } from "@gtd/contracts";
+import type { CreateTicketPosition } from "./BoardColumn";
 
 type BoardColumnHeaderProps = {
   column: Column;
@@ -6,7 +7,7 @@ type BoardColumnHeaderProps = {
   ticketCount: number;
   isArchiving?: boolean;
   onArchiveDoneTickets?: () => void;
-  onCreateTicket: (statusKey: Column["statusKey"]) => void;
+  onCreateTicket: (statusKey: Column["statusKey"], position: CreateTicketPosition) => void;
   onToggleCollapsed?: () => void;
 };
 
@@ -96,7 +97,7 @@ export function BoardColumnHeader({
               className="board-column__add-button"
               data-testid={`column-add-${column.statusKey}`}
               type="button"
-              onClick={() => onCreateTicket(column.statusKey)}
+              onClick={() => onCreateTicket(column.statusKey, "top")}
             >
               <svg aria-hidden="true" viewBox="0 0 20 20">
                 <path d="M9 4a1 1 0 1 1 2 0v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H4a1 1 0 1 1 0-2h5V4Z" />

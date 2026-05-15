@@ -68,6 +68,45 @@ describe("SqliteBoardStore", () => {
     expect(tickets.map((ticket) => ticket.title)).toEqual(["Ship 100% test coverage"]);
   });
 
+  it("creates tickets at the top of a status when requested", () => {
+    const createdTicket = store.createTicket(boardId, {
+      statusKey: "todo",
+      title: "Urgent top ticket",
+      description: "",
+      priority: "medium",
+      labels: [],
+      position: "top",
+    });
+
+    expect(createdTicket).not.toBeNull();
+
+    const orderedTodoTitles = store
+      .listTickets(boardId, emptyFilters())
+      .filter((ticket) => ticket.statusKey === "todo")
+      .map((ticket) => ticket.title);
+
+    expect(orderedTodoTitles.slice(0, 2)).toEqual(["Urgent top ticket", "Design ticket modal"]);
+  });
+
+  it("creates tickets at the bottom of a status by default", () => {
+    const createdTicket = store.createTicket(boardId, {
+      statusKey: "todo",
+      title: "Bottom ticket",
+      description: "",
+      priority: "medium",
+      labels: [],
+    });
+
+    expect(createdTicket).not.toBeNull();
+
+    const orderedTodoTitles = store
+      .listTickets(boardId, emptyFilters())
+      .filter((ticket) => ticket.statusKey === "todo")
+      .map((ticket) => ticket.title);
+
+    expect(orderedTodoTitles.at(-1)).toBe("Bottom ticket");
+  });
+
   it("creates labels on demand and reuses existing normalized labels globally", () => {
     const createdTicket = store.createTicket(boardId, {
       statusKey: "todo",

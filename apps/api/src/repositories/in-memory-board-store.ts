@@ -419,7 +419,11 @@ export class InMemoryBoardStore {
     );
     const now = new Date().toISOString();
     const ticketId = `ticket_${crypto.randomUUID()}`;
-    const nextOrder = this.getNextGlobalOrder();
+    const nextOrder = this.getCreateTicketOrder(
+      boardId,
+      resolvedStatusKey,
+      input.position ?? "bottom",
+    );
 
     const record: SeedTicketRecord = {
       id: ticketId,
@@ -749,6 +753,42 @@ export class InMemoryBoardStore {
     );
 
     return currentMax + ORDER_STEP;
+  }
+
+  private getCreateTicketOrder(
+    boardId: string,
+    statusKey: Ticket["statusKey"],
+    position: CreateTicketInput["position"],
+  ) {
+    if (position === "bottom") {
+      return this.getNextGlobalOrder();
+    }
+
+    const firstTicketInStatus = this.listTickets(boardId, {
+      priorities: [],
+      labels: [],
+      q: "",
+    }).find((ticket) => ticket.statusKey === statusKey);
+
+    if (!firstTicketInStatus) {
+      return this.getNextGlobalOrder();
+    }
+
+    if (firstTicketInStatus.uiOrder > 1) {
+      return Math.floor(firstTicketInStatus.uiOrder / 2);
+    }
+
+    this.rebalanceTickets();
+
+    const rebalancedFirstTicketInStatus = this.listTickets(boardId, {
+      priorities: [],
+      labels: [],
+      q: "",
+    }).find((ticket) => ticket.statusKey === statusKey);
+
+    return rebalancedFirstTicketInStatus
+      ? Math.floor(rebalancedFirstTicketInStatus.uiOrder / 2)
+      : this.getNextGlobalOrder();
   }
 
   private computeOrder(prevOrder: number | null, nextOrder: number | null) {

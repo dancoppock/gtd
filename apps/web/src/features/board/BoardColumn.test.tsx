@@ -68,7 +68,31 @@ describe("BoardColumn", () => {
 
     fireEvent.doubleClick(screen.getByTestId("column-tail-todo"));
 
-    expect(onCreateTicket).toHaveBeenCalledWith("todo");
+    expect(onCreateTicket).toHaveBeenCalledWith("todo", "bottom");
+  });
+
+  it("opens the create flow at the top when the header add button is clicked", () => {
+    const onCreateTicket = vi.fn();
+
+    render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          expandedTicketIds={new Set()}
+          showPriorityColors
+          tickets={[ticket]}
+          onCreateTicket={onCreateTicket}
+          onEditTicket={vi.fn()}
+          onInlineTitleUpdate={vi.fn().mockResolvedValue(undefined)}
+          onToggleTicketExpanded={vi.fn()}
+          viewMode="compact"
+        />
+      </DndContext>,
+    );
+
+    fireEvent.click(screen.getByTestId("column-add-todo"));
+
+    expect(onCreateTicket).toHaveBeenCalledWith("todo", "top");
   });
 
   it("toggles collapse from the column header", () => {

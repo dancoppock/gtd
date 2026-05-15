@@ -30,7 +30,7 @@ import {
   repositionTicket,
   updateTicket,
 } from "../features/board/api";
-import { BoardColumn } from "../features/board/BoardColumn";
+import { BoardColumn, type CreateTicketPosition } from "../features/board/BoardColumn";
 import { BoardColumnHeader } from "../features/board/BoardColumnHeader";
 import {
   buildRepositionInput,
@@ -132,11 +132,16 @@ const COLLAPSED_COLUMN_WIDTH_PX = 48;
 const EXPANDED_COLUMN_WIDTH_PX = 400;
 const APP_TITLE = "GTD";
 
+type CreateTicketIntent = {
+  statusKey: Ticket["statusKey"];
+  position: CreateTicketPosition;
+};
+
 export function BoardPage() {
   const { boardSlug = "default" } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
-  const [createStatusKey, setCreateStatusKey] = useState<Ticket["statusKey"] | null>(null);
+  const [createTicketIntent, setCreateTicketIntent] = useState<CreateTicketIntent | null>(null);
   const [collapsedStatusKeys, setCollapsedStatusKeys] = useState<Set<string>>(() => new Set());
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [expandedTicketIds, setExpandedTicketIds] = useState<Set<string>>(() => new Set());
@@ -168,6 +173,7 @@ export function BoardPage() {
       description: string;
       priority: Ticket["priority"];
       labels: string[];
+      position: CreateTicketPosition;
     }) => {
       if (!boardQuery.data) {
         throw new Error("Board data is not ready");
@@ -176,7 +182,7 @@ export function BoardPage() {
       return createTicket(boardQuery.data.board.id, input);
     },
     onSuccess: async () => {
-      setCreateStatusKey(null);
+      setCreateTicketIntent(null);
       await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
       await queryClient.invalidateQueries({ queryKey: ["boards"] });
       await queryClient.invalidateQueries({ queryKey: ["labels"] });
@@ -529,6 +535,10 @@ export function BoardPage() {
     });
   }
 
+  function openCreateTicket(statusKey: Ticket["statusKey"], position: CreateTicketPosition) {
+    setCreateTicketIntent({ statusKey, position });
+  }
+
   return (
     <main className="page-shell">
       <AppHeader
@@ -544,7 +554,7 @@ export function BoardPage() {
               className="primary-button"
               disabled={!data}
               type="button"
-              onClick={() => setCreateStatusKey(data?.board.columns[0]?.statusKey ?? "todo")}
+              onClick={() => openCreateTicket(data?.board.columns[0]?.statusKey ?? "todo", "bottom")}
             >
               New Ticket
             </button>
@@ -609,7 +619,7 @@ export function BoardPage() {
                           onArchiveDoneTickets={() => {
                             void archiveDoneTicketsMutation.mutateAsync(data.board.id);
                           }}
-                          onCreateTicket={setCreateStatusKey}
+                          onCreateTicket={openCreateTicket}
                           onToggleCollapsed={() => handleToggleCollapsed(column.statusKey)}
                         />
                       );
@@ -642,7 +652,7 @@ export function BoardPage() {
                               variant="swimlane"
                               tickets={laneTickets}
                               onEditTicket={setEditingTicket}
-                              onCreateTicket={setCreateStatusKey}
+                              onCreateTicket={openCreateTicket}
                               onInlineTitleUpdate={handleInlineTitleUpdate}
                               onToggleTicketExpanded={handleToggleTicketExpanded}
                               viewMode={ticketViewMode}
@@ -674,7 +684,7 @@ export function BoardPage() {
                         void archiveDoneTicketsMutation.mutateAsync(data.board.id);
                       }}
                       onEditTicket={setEditingTicket}
-                      onCreateTicket={setCreateStatusKey}
+                      onCreateTicket={openCreateTicket}
                       onInlineTitleUpdate={handleInlineTitleUpdate}
                       onToggleCollapsed={() => handleToggleCollapsed(column.statusKey)}
                       onToggleTicketExpanded={handleToggleTicketExpanded}
@@ -707,19 +717,20 @@ export function BoardPage() {
         </section>
       )}
 
-      {createStatusKey && data ? (
+      {createTicketIntent && data ? (
         <TicketModal
           mode="create"
           ticket={null}
           columns={data.board.columns}
           availableLabels={data.board.availableLabels}
           implicitLabels={data.board.filterLabels}
-          defaultStatusKey={createStatusKey}
-          onClose={() => setCreateStatusKey(null)}
+          defaultStatusKey={createTicketIntent.statusKey}
+          onClose={() => setCreateTicketIntent(null)}
           onSubmit={async (input) => {
             await createTicketMutation.mutateAsync({
               ...input,
               statusKey: resolveMutationStatusKey(data.board.isSystem, input.statusKey),
+              position: createTicketIntent.position,
             });
           }}
         />

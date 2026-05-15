@@ -477,7 +477,11 @@ export class SqliteBoardStore {
         ? []
         : this.getBoardFilterLabels(boardId).map((label) => label.name);
       const labels = this.getOrCreateLabels([...input.labels, ...boardFilterLabelNames]);
-      const nextOrder = this.getNextGlobalOrder();
+      const nextOrder = this.getCreateTicketOrder(
+        boardId,
+        resolvedStatusKey,
+        input.position ?? "bottom",
+      );
 
       this.sqlite
         .prepare(`
@@ -1169,6 +1173,42 @@ export class SqliteBoardStore {
       .get() as { maxOrder: number };
 
     return row.maxOrder + ORDER_STEP;
+  }
+
+  private getCreateTicketOrder(
+    boardId: string,
+    statusKey: Ticket["statusKey"],
+    position: CreateTicketInput["position"],
+  ) {
+    if (position === "bottom") {
+      return this.getNextGlobalOrder();
+    }
+
+    const firstTicketInStatus = this.selectVisibleTicketRows(boardId, {
+      priorities: [],
+      labels: [],
+      q: "",
+    }).find((ticket) => ticket.status_key === statusKey);
+
+    if (!firstTicketInStatus) {
+      return this.getNextGlobalOrder();
+    }
+
+    if (firstTicketInStatus.ui_order > 1) {
+      return Math.floor(firstTicketInStatus.ui_order / 2);
+    }
+
+    this.rebalanceTickets();
+
+    const rebalancedFirstTicketInStatus = this.selectVisibleTicketRows(boardId, {
+      priorities: [],
+      labels: [],
+      q: "",
+    }).find((ticket) => ticket.status_key === statusKey);
+
+    return rebalancedFirstTicketInStatus
+      ? Math.floor(rebalancedFirstTicketInStatus.ui_order / 2)
+      : this.getNextGlobalOrder();
   }
 
   private computeOrder(prevOrder: number | null, nextOrder: number | null) {

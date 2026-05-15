@@ -133,6 +133,7 @@ export const createTicketInputSchema = z.object({
   description: z.string().default(""),
   priority: ticketPrioritySchema.default("medium"),
   labels: z.array(z.string().min(1)).default([]),
+  position: z.enum(["top", "bottom"]).optional(),
 });
 
 export const updateTicketInputSchema = z.object({

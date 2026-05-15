@@ -5,6 +5,8 @@ import { useDroppable } from "@dnd-kit/core";
 import type { TicketViewMode } from "./TicketViewToggle";
 import { SortableTicketCard } from "../tickets/SortableTicketCard";
 
+export type CreateTicketPosition = "top" | "bottom";
+
 type BoardColumnProps = {
   column: Column;
   collapsed?: boolean;
@@ -17,7 +19,7 @@ type BoardColumnProps = {
   tickets: Ticket[];
   isArchiving?: boolean;
   onEditTicket: (ticket: Ticket) => void;
-  onCreateTicket: (statusKey: Column["statusKey"]) => void;
+  onCreateTicket: (statusKey: Column["statusKey"], position: CreateTicketPosition) => void;
   onArchiveDoneTickets?: () => void;
   onInlineTitleUpdate: (ticket: Ticket, nextTitle: string) => Promise<void>;
   onToggleCollapsed?: () => void;
@@ -138,7 +140,7 @@ export function BoardColumn({
                 className="board-column__add-button"
                 data-testid={`column-add-${column.statusKey}`}
                 type="button"
-                onClick={() => onCreateTicket(column.statusKey)}
+                onClick={() => onCreateTicket(column.statusKey, "top")}
               >
                 <svg aria-hidden="true" viewBox="0 0 20 20">
                   <path d="M9 4a1 1 0 1 1 2 0v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H4a1 1 0 1 1 0-2h5V4Z" />
@@ -183,7 +185,7 @@ export function BoardColumn({
           <div
             className="board-column__tail"
             data-testid={`column-tail-${column.statusKey}`}
-            onDoubleClick={() => onCreateTicket(column.statusKey)}
+            onDoubleClick={() => onCreateTicket(column.statusKey, "bottom")}
           />
         ) : null}
       </div>
