@@ -92,13 +92,10 @@ export function TicketModal({
 
   const implicitLabelNames = implicitLabels.map((label) => label.name);
   const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
-    if (mode !== "edit") {
-      return;
-    }
-
     const target = event.target;
 
     if (
+      mode === "edit" &&
       event.key === "Escape" &&
       target instanceof HTMLInputElement &&
       target.name === "title"
@@ -107,11 +104,14 @@ export function TicketModal({
       return;
     }
 
+    const isCommandEnter =
+      event.metaKey
+      && (event.key === "Enter" || event.key === "NumpadEnter" || event.code === "NumpadEnter");
+
     if (
-      event.key === "Enter" &&
-      event.metaKey &&
-      target instanceof HTMLElement &&
-      ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)
+      isCommandEnter
+      && target instanceof HTMLElement
+      && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)
     ) {
       event.preventDefault();
       event.currentTarget.requestSubmit();

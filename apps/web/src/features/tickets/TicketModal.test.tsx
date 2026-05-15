@@ -418,4 +418,74 @@ describe("TicketModal", () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
   });
+
+  it("saves the edit modal on Command+NumpadEnter", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <TicketModal
+        mode="edit"
+        ticket={existingTicket}
+        columns={columns}
+        availableLabels={availableLabels}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Save from keypad enter" },
+    });
+    fireEvent.keyDown(screen.getByLabelText("Title"), {
+      key: "NumpadEnter",
+      code: "NumpadEnter",
+      metaKey: true,
+    });
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({
+        statusKey: "done",
+        title: "Save from keypad enter",
+        description: "Update the edit flow wording.",
+        priority: "high",
+        labels: ["frontend", "backend"],
+      }),
+    );
+  });
+
+  it("saves the create modal on Command+Enter from the description field", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <TicketModal
+        mode="create"
+        ticket={null}
+        columns={columns}
+        availableLabels={availableLabels}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Create shortcut ticket" },
+    });
+    fireEvent.change(screen.getByLabelText("Description"), {
+      target: { value: "Save the new ticket from the textarea." },
+    });
+    fireEvent.keyDown(screen.getByLabelText("Description"), {
+      key: "Enter",
+      metaKey: true,
+    });
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({
+        statusKey: "todo",
+        title: "Create shortcut ticket",
+        description: "Save the new ticket from the textarea.",
+        priority: "medium",
+        labels: [],
+      }),
+    );
+  });
 });
