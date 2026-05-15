@@ -167,11 +167,13 @@ describe("SqliteBoardStore", () => {
 
   it("creates boards with label filters and returns matching tickets only", () => {
     const frontendLabelId = store.listAllLabels().find((label) => label.normalizedName === "frontend")?.id;
+    const backendLabelId = store.listAllLabels().find((label) => label.normalizedName === "backend")?.id;
     expect(frontendLabelId).toBeTruthy();
+    expect(backendLabelId).toBeTruthy();
 
     const board = store.createBoard({
-      name: "Frontend Work",
-      description: "Only frontend-tagged tickets",
+      name: "Engineering Work",
+      description: "Frontend or backend tickets",
       isDefault: false,
       isPinned: false,
       showPriorityColors: true,
@@ -180,20 +182,28 @@ describe("SqliteBoardStore", () => {
         { name: "In Progress", statusKey: "in_progress" },
         { name: "Done", statusKey: "done" },
       ],
-      filterLabelIds: [frontendLabelId!],
+      filterLabelIds: [frontendLabelId!, backendLabelId!],
+      defaultLabelId: frontendLabelId,
     });
 
-    expect(board.filterLabels.map((label) => label.normalizedName)).toEqual(["frontend"]);
-    expect(store.listTickets(board.id, emptyFilters()).map((ticket) => ticket.id)).toEqual(["ticket_1"]);
+    expect(board.filterLabels.map((label) => label.normalizedName).sort()).toEqual(["backend", "frontend"]);
+    expect(board.defaultLabel?.normalizedName).toBe("frontend");
+    expect(store.listTickets(board.id, emptyFilters()).map((ticket) => ticket.id)).toEqual([
+      "ticket_1",
+      "ticket_2",
+      "ticket_3",
+    ]);
   });
 
-  it("automatically applies board filter labels to newly created tickets", () => {
+  it("automatically applies only the board default label to newly created tickets", () => {
     const frontendLabelId = store.listAllLabels().find((label) => label.normalizedName === "frontend")?.id;
+    const backendLabelId = store.listAllLabels().find((label) => label.normalizedName === "backend")?.id;
     expect(frontendLabelId).toBeTruthy();
+    expect(backendLabelId).toBeTruthy();
 
     const board = store.createBoard({
-      name: "Frontend Work",
-      description: "Only frontend-tagged tickets",
+      name: "Engineering Work",
+      description: "Frontend or backend tickets",
       isDefault: false,
       isPinned: false,
       showPriorityColors: true,
@@ -202,24 +212,94 @@ describe("SqliteBoardStore", () => {
         { name: "In Progress", statusKey: "in_progress" },
         { name: "Done", statusKey: "done" },
       ],
-      filterLabelIds: [frontendLabelId!],
+      filterLabelIds: [frontendLabelId!, backendLabelId!],
+      defaultLabelId: frontendLabelId,
     });
 
     const createdTicket = store.createTicket(board.id, {
       statusKey: "todo",
-      title: "New frontend task",
+      title: "New engineering task",
       description: "",
       priority: "medium",
-      labels: ["backend"],
+      labels: ["ops"],
     });
 
     expect(createdTicket).not.toBeNull();
     expect(createdTicket?.labels.map((label) => label.normalizedName).sort()).toEqual([
-      "backend",
       "frontend",
+      "ops",
     ]);
     expect(store.listTickets(board.id, emptyFilters()).map((ticket) => ticket.title)).toContain(
-      "New frontend task",
+      "New engineering task",
+    );
+  });
+
+  it("does not apply the board default label when the ticket already has a board filter label", () => {
+    const frontendLabelId = store.listAllLabels().find((label) => label.normalizedName === "frontend")?.id;
+    const backendLabelId = store.listAllLabels().find((label) => label.normalizedName === "backend")?.id;
+    expect(frontendLabelId).toBeTruthy();
+    expect(backendLabelId).toBeTruthy();
+
+    const board = store.createBoard({
+      name: "Engineering Work",
+      description: "Frontend or backend tickets",
+      isDefault: false,
+      isPinned: false,
+      showPriorityColors: true,
+      columns: [
+        { name: "Todo", statusKey: "todo" },
+        { name: "In Progress", statusKey: "in_progress" },
+        { name: "Done", statusKey: "done" },
+      ],
+      filterLabelIds: [frontendLabelId!, backendLabelId!],
+      defaultLabelId: backendLabelId,
+    });
+
+    const createdTicket = store.createTicket(board.id, {
+      statusKey: "todo",
+      title: "Frontend override task",
+      description: "",
+      priority: "medium",
+      labels: ["frontend"],
+    });
+
+    expect(createdTicket).not.toBeNull();
+    expect(createdTicket?.labels.map((label) => label.normalizedName)).toEqual(["frontend"]);
+  });
+
+  it("does not auto-apply filter labels when a board has no default label", () => {
+    const frontendLabelId = store.listAllLabels().find((label) => label.normalizedName === "frontend")?.id;
+    const backendLabelId = store.listAllLabels().find((label) => label.normalizedName === "backend")?.id;
+    expect(frontendLabelId).toBeTruthy();
+    expect(backendLabelId).toBeTruthy();
+
+    const board = store.createBoard({
+      name: "Engineering Work",
+      description: "Frontend or backend tickets",
+      isDefault: false,
+      isPinned: false,
+      showPriorityColors: true,
+      columns: [
+        { name: "Todo", statusKey: "todo" },
+        { name: "In Progress", statusKey: "in_progress" },
+        { name: "Done", statusKey: "done" },
+      ],
+      filterLabelIds: [frontendLabelId!, backendLabelId!],
+      defaultLabelId: null,
+    });
+
+    const createdTicket = store.createTicket(board.id, {
+      statusKey: "todo",
+      title: "Unlabeled engineering task",
+      description: "",
+      priority: "medium",
+      labels: [],
+    });
+
+    expect(createdTicket).not.toBeNull();
+    expect(createdTicket?.labels).toEqual([]);
+    expect(store.listTickets(board.id, emptyFilters()).map((ticket) => ticket.title)).not.toContain(
+      "Unlabeled engineering task",
     );
   });
 

@@ -130,6 +130,7 @@ export class InMemoryBoardStore {
   private labels = new Map<string, Label>();
   private tickets = new Map<string, SeedTicketRecord>();
   private boardLabelFilters = new Map<string, Set<string>>();
+  private boardDefaultLabels = new Map<string, string>();
 
   constructor() {
     const seed = createSeedData();
@@ -202,6 +203,7 @@ export class InMemoryBoardStore {
       columns: this.getEffectiveColumnsForBoard(board),
       availableLabels: this.getAllLabels(),
       availableStatuses: this.listStatuses(),
+      defaultLabel: board.isSystem ? null : this.getBoardDefaultLabel(boardId),
       filterLabels: board.isSystem ? [] : this.getBoardFilterLabels(boardId),
     };
   }
@@ -229,6 +231,7 @@ export class InMemoryBoardStore {
     this.boards.set(board.id, board);
     this.replaceBoardColumns(board.id, input.columns);
     this.replaceBoardLabelFilters(board.id, input.filterLabelIds);
+    this.replaceBoardDefaultLabel(board.id, input.filterLabelIds, input.defaultLabelId ?? null);
 
     return this.getBoardDetail(board.id)!;
   }
@@ -276,6 +279,7 @@ export class InMemoryBoardStore {
 
     this.replaceBoardColumns(boardId, input.columns);
     this.replaceBoardLabelFilters(boardId, input.filterLabelIds);
+    this.replaceBoardDefaultLabel(boardId, input.filterLabelIds, input.defaultLabelId ?? null);
 
     return this.getBoardDetail(boardId);
   }
@@ -288,6 +292,7 @@ export class InMemoryBoardStore {
 
     this.boards.delete(boardId);
     this.boardLabelFilters.delete(boardId);
+    this.boardDefaultLabels.delete(boardId);
 
     Array.from(this.columns.values()).forEach((column) => {
       if (column.boardId === boardId) {
@@ -411,10 +416,10 @@ export class InMemoryBoardStore {
       return null;
     }
 
-    const boardFilterLabelNames = board.isSystem
-      ? []
-      : this.getBoardFilterLabels(boardId).map((label) => label.name);
-    const labelIds = this.getOrCreateLabels([...input.labels, ...boardFilterLabelNames]).map(
+    const labelIds = this.getOrCreateLabels([
+      ...input.labels,
+      ...this.getCreateTicketDefaultLabels(boardId, input.labels),
+    ]).map(
       (label) => label.id,
     );
     const now = new Date().toISOString();
@@ -651,6 +656,27 @@ export class InMemoryBoardStore {
       .sort((left, right) => left.name.localeCompare(right.name));
   }
 
+  private getBoardDefaultLabel(boardId: string) {
+    const labelId = this.boardDefaultLabels.get(boardId);
+    return labelId ? this.labels.get(labelId) ?? null : null;
+  }
+
+  private getCreateTicketDefaultLabels(boardId: string, inputLabels: string[]) {
+    const defaultLabel = this.getBoardDefaultLabel(boardId);
+    if (!defaultLabel) {
+      return [];
+    }
+
+    const filterLabelNames = new Set(
+      this.getBoardFilterLabels(boardId).map((label) => label.normalizedName),
+    );
+    const hasBoardFilterLabel = inputLabels
+      .map(normalizeLabelName)
+      .some((labelName) => filterLabelNames.has(labelName));
+
+    return hasBoardFilterLabel ? [] : [defaultLabel.name];
+  }
+
   private getVisibleTicketRecordsForBoard(board: Board) {
     if (board.isSystem) {
       return Array.from(this.tickets.values())
@@ -730,6 +756,20 @@ export class InMemoryBoardStore {
     this.deleteOrphanLabels();
   }
 
+  private replaceBoardDefaultLabel(
+    boardId: string,
+    filterLabelIds: string[],
+    defaultLabelId: string | null,
+  ) {
+    if (defaultLabelId && filterLabelIds.includes(defaultLabelId) && this.labels.has(defaultLabelId)) {
+      this.boardDefaultLabels.set(boardId, defaultLabelId);
+    } else {
+      this.boardDefaultLabels.delete(boardId);
+    }
+
+    this.deleteOrphanLabels();
+  }
+
   private deleteOrphanLabels() {
     const referencedLabelIds = new Set(
       Array.from(this.tickets.values()).flatMap((ticket) => ticket.labelIds),
@@ -738,6 +778,7 @@ export class InMemoryBoardStore {
     this.boardLabelFilters.forEach((labelIds) => {
       labelIds.forEach((labelId) => referencedLabelIds.add(labelId));
     });
+    this.boardDefaultLabels.forEach((labelId) => referencedLabelIds.add(labelId));
 
     this.getAllLabels().forEach((label) => {
       if (!referencedLabelIds.has(label.id)) {

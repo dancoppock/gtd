@@ -40,9 +40,9 @@ const availableLabels: Label[] = [
 
 const implicitLabels: Label[] = [
   {
-    id: "label_qa",
-    name: "qa",
-    normalizedName: "qa",
+    id: "label_backend",
+    name: "backend",
+    normalizedName: "backend",
   },
 ];
 
@@ -133,7 +133,7 @@ describe("TicketModal", () => {
     );
   });
 
-  it("shows implicit board labels in create mode and includes them on submit", async () => {
+  it("shows the board default label in create mode and includes it on submit", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -149,14 +149,14 @@ describe("TicketModal", () => {
     );
 
     expect(screen.getByTestId("ticket-modal-implicit-labels")).toHaveTextContent(
-      "Board labels added automatically: qa",
+      "Board default label added automatically: backend",
     );
 
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "Create filtered ticket" },
     });
     fireEvent.change(screen.getByPlaceholderText("frontend, backend, product"), {
-      target: { value: "backend, qa" },
+      target: { value: "qa" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create Ticket" }));
 
@@ -166,7 +166,42 @@ describe("TicketModal", () => {
         title: "Create filtered ticket",
         description: "",
         priority: "medium",
-        labels: ["backend", "qa"],
+        labels: ["qa", "backend"],
+      }),
+    );
+  });
+
+  it("does not include the board default label when the user enters another board filter label", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <TicketModal
+        mode="create"
+        ticket={null}
+        columns={columns}
+        availableLabels={availableLabels}
+        implicitLabels={implicitLabels}
+        boardFilterLabels={availableLabels}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Create frontend ticket" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("frontend, backend, product"), {
+      target: { value: "frontend" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Ticket" }));
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({
+        statusKey: "todo",
+        title: "Create frontend ticket",
+        description: "",
+        priority: "medium",
+        labels: ["frontend"],
       }),
     );
   });

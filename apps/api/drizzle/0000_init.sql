@@ -9,8 +9,10 @@ CREATE TABLE `boards` (
   `is_pinned` INTEGER NOT NULL DEFAULT 0,
   `show_priority_colors` INTEGER NOT NULL DEFAULT 1,
   `is_system` INTEGER NOT NULL DEFAULT 0,
+  `default_label_id` TEXT,
   `created_at` INTEGER NOT NULL,
-  `updated_at` INTEGER NOT NULL
+  `updated_at` INTEGER NOT NULL,
+  FOREIGN KEY (`default_label_id`) REFERENCES `labels` (`id`) ON DELETE SET NULL
 );
 
 CREATE UNIQUE INDEX `boards_slug_unique`

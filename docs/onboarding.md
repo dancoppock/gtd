@@ -207,6 +207,7 @@ curl http://127.0.0.1:3001/api/labels
 - regular board columns map to statuses
 - one built-in system board always exists and shows `Active` plus `Done`
 - board filters optionally limit tickets by label
+- board default labels are separate from filters and optionally apply one label to new tickets
 - ticket ordering is global and persisted through `uiOrder`
 - drag/drop on filtered boards reorders against the visible subset only
 

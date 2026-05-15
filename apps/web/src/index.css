@@ -788,6 +788,10 @@ button {
   box-shadow: 0 0 0 4px var(--focus-ring);
 }
 
+.board-edit__default-label-field {
+  max-width: 300px;
+}
+
 .field__hint,
 .muted-text {
   color: var(--text-muted);

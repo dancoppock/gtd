@@ -9,6 +9,7 @@ type TicketModalProps = {
   ticket: Ticket | null;
   columns: Column[];
   availableLabels: Label[];
+  boardFilterLabels?: Label[];
   implicitLabels?: Label[];
   defaultStatusKey?: Ticket["statusKey"];
   onClose: () => void;
@@ -47,11 +48,16 @@ function parseLabels(labelsText: string) {
   );
 }
 
+function normalizeLabelName(label: string) {
+  return label.trim().toLowerCase();
+}
+
 export function TicketModal({
   mode,
   ticket,
   columns,
   availableLabels,
+  boardFilterLabels = [],
   implicitLabels = [],
   defaultStatusKey,
   onClose,
@@ -123,6 +129,17 @@ export function TicketModal({
           className="modal-form"
           onSubmit={handleSubmit(async (values) => {
             const hashtagLabels = extractHashtagLabels(values.title);
+            const explicitLabels = Array.from(
+              new Set([...parseLabels(values.labelsText), ...hashtagLabels]),
+            );
+            const boardFilterLabelNames = new Set(
+              boardFilterLabels.map((label) => label.normalizedName),
+            );
+            const hasExplicitBoardFilterLabel =
+              boardFilterLabelNames.size > 0
+              && explicitLabels
+                .map(normalizeLabelName)
+                .some((labelName) => boardFilterLabelNames.has(labelName));
 
             await onSubmit({
               statusKey: values.statusKey,
@@ -131,9 +148,8 @@ export function TicketModal({
               priority: values.priority,
               labels: Array.from(
                 new Set([
-                  ...parseLabels(values.labelsText),
-                  ...hashtagLabels,
-                  ...implicitLabelNames,
+                  ...explicitLabels,
+                  ...(hasExplicitBoardFilterLabel ? [] : implicitLabelNames),
                 ]),
               ),
             });
@@ -192,7 +208,7 @@ export function TicketModal({
             />
             {mode === "create" && implicitLabels.length > 0 ? (
               <small className="field__hint" data-testid="ticket-modal-implicit-labels">
-                Board labels added automatically: {implicitLabelNames.join(", ")}
+                Board default label added automatically: {implicitLabelNames.join(", ")}
               </small>
             ) : null}
             {availableLabels.length > 0 ? (

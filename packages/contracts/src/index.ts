@@ -74,6 +74,7 @@ export const boardDetailSchema = boardSchema.extend({
   columns: z.array(columnSchema),
   availableLabels: z.array(labelSchema),
   availableStatuses: z.array(statusSchema),
+  defaultLabel: labelSchema.nullable(),
   filterLabels: z.array(labelSchema),
 });
 
@@ -123,6 +124,7 @@ export const createBoardInputSchema = z.object({
   showPriorityColors: z.boolean().default(true),
   columns: z.array(boardColumnInputSchema).min(1),
   filterLabelIds: z.array(z.string().min(1)).default([]),
+  defaultLabelId: z.string().min(1).nullable().optional(),
 });
 
 export const updateBoardInputSchema = createBoardInputSchema;

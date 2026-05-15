@@ -16,6 +16,7 @@ export const boards = sqliteTable("boards", {
   isPinned: integer("is_pinned", { mode: "boolean" }).notNull().default(false),
   showPriorityColors: integer("show_priority_colors", { mode: "boolean" }).notNull().default(true),
   isSystem: integer("is_system", { mode: "boolean" }).notNull().default(false),
+  defaultLabelId: text("default_label_id").references(() => labels.id, { onDelete: "set null" }),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 }, (table) => ({

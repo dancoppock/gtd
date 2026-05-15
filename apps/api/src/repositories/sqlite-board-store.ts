@@ -60,6 +60,7 @@ type BoardRow = {
   is_pinned: number;
   show_priority_colors: number;
   is_system: number;
+  default_label_id: string | null;
   created_at: number;
   updated_at: number;
 };
@@ -248,6 +249,7 @@ export class SqliteBoardStore {
       columns: this.getEffectiveColumnsForBoard(board),
       availableLabels: this.getAllLabels(),
       availableStatuses: this.listStatuses(),
+      defaultLabel: board.isSystem ? null : this.getBoardDefaultLabel(boardId),
       filterLabels: board.isSystem ? [] : this.getBoardFilterLabels(boardId),
     };
   }
@@ -266,8 +268,8 @@ export class SqliteBoardStore {
 
       this.sqlite
         .prepare(`
-          insert into boards (id, slug, name, description, is_default, is_pinned, show_priority_colors, is_system, created_at, updated_at)
-          values (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+          insert into boards (id, slug, name, description, is_default, is_pinned, show_priority_colors, is_system, default_label_id, created_at, updated_at)
+          values (?, ?, ?, ?, ?, ?, ?, 0, null, ?, ?)
         `)
         .run(
           boardId,
@@ -283,6 +285,7 @@ export class SqliteBoardStore {
 
       this.replaceBoardColumns(boardId, input.columns);
       this.replaceBoardLabelFilters(boardId, input.filterLabelIds);
+      this.replaceBoardDefaultLabel(boardId, input.filterLabelIds, input.defaultLabelId ?? null);
     })();
 
     return this.getBoardDetail(boardId)!;
@@ -354,6 +357,7 @@ export class SqliteBoardStore {
 
       this.replaceBoardColumns(boardId, input.columns);
       this.replaceBoardLabelFilters(boardId, input.filterLabelIds);
+      this.replaceBoardDefaultLabel(boardId, input.filterLabelIds, input.defaultLabelId ?? null);
     })();
 
     return this.getBoardDetail(boardId);
@@ -473,10 +477,10 @@ export class SqliteBoardStore {
     const now = Date.now();
 
     this.sqlite.transaction(() => {
-      const boardFilterLabelNames = board.isSystem
-        ? []
-        : this.getBoardFilterLabels(boardId).map((label) => label.name);
-      const labels = this.getOrCreateLabels([...input.labels, ...boardFilterLabelNames]);
+      const labels = this.getOrCreateLabels([
+        ...input.labels,
+        ...this.getCreateTicketDefaultLabels(boardId, input.labels),
+      ]);
       const nextOrder = this.getCreateTicketOrder(
         boardId,
         resolvedStatusKey,
@@ -876,6 +880,36 @@ export class SqliteBoardStore {
     return rows.map((row) => this.toLabel(row));
   }
 
+  private getBoardDefaultLabel(boardId: string) {
+    const row = this.sqlite
+      .prepare(`
+        select labels.*
+        from boards
+        inner join labels on labels.id = boards.default_label_id
+        where boards.id = ?
+        limit 1
+      `)
+      .get(boardId) as LabelRow | undefined;
+
+    return row ? this.toLabel(row) : null;
+  }
+
+  private getCreateTicketDefaultLabels(boardId: string, inputLabels: string[]) {
+    const defaultLabel = this.getBoardDefaultLabel(boardId);
+    if (!defaultLabel) {
+      return [];
+    }
+
+    const filterLabelNames = new Set(
+      this.getBoardFilterLabels(boardId).map((label) => label.normalizedName),
+    );
+    const hasBoardFilterLabel = inputLabels
+      .map(normalizeLabelName)
+      .some((labelName) => filterLabelNames.has(labelName));
+
+    return hasBoardFilterLabel ? [] : [defaultLabel.name];
+  }
+
   private selectVisibleTicketRows(boardId: string, filters: BoardFilters) {
     const board = this.getBoardById(boardId);
     if (!board) {
@@ -1151,6 +1185,22 @@ export class SqliteBoardStore {
     this.deleteOrphanLabels();
   }
 
+  private replaceBoardDefaultLabel(
+    boardId: string,
+    filterLabelIds: string[],
+    defaultLabelId: string | null,
+  ) {
+    const nextDefaultLabelId =
+      defaultLabelId && filterLabelIds.includes(defaultLabelId) && this.getLabelById(defaultLabelId)
+        ? defaultLabelId
+        : null;
+
+    this.sqlite
+      .prepare("update boards set default_label_id = ? where id = ?")
+      .run(nextDefaultLabelId, boardId);
+    this.deleteOrphanLabels();
+  }
+
   private deleteOrphanLabels() {
     this.sqlite.exec(`
       delete from labels
@@ -1163,6 +1213,11 @@ export class SqliteBoardStore {
         select 1
         from board_label_filters
         where board_label_filters.label_id = labels.id
+      )
+      and not exists (
+        select 1
+        from boards
+        where boards.default_label_id = labels.id
       )
     `);
   }

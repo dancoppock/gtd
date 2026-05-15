@@ -100,6 +100,7 @@ Statuses are global rather than board-scoped. The seeded defaults are `todo`, `i
 - boards can opt in or out of priority colour stripes on ticket cards
 - regular boards own columns
 - regular boards can optionally filter visible tickets by one or more labels
+- regular boards can optionally define one default label for newly created tickets; this is separate from the visibility filter
 - one built-in system board always exists
 
 System board behavior:
@@ -108,7 +109,7 @@ System board behavior:
 - it always shows exactly two columns: `Active` and `Done`
 - `Active` groups all non-completed tickets
 - `Done` groups all completed tickets
-- its column configuration and label filter are not editable in the board settings UI
+- its column configuration, label filter, and default label are not editable in the board settings UI
 
 ### Column
 
@@ -133,6 +134,7 @@ Important implementation detail:
 - old single-board data is migrated forward in `apps/api/src/db/client.ts`
 - legacy `tickets.board_id` / `tickets.column_id` data is converted into global `tickets.status_key`
 - legacy board-scoped labels are merged into global labels by normalized name
+- legacy boards with exactly one label filter use that label as their default label after migration
 
 Runtime database locations:
 

@@ -57,6 +57,10 @@ function ensureBoardFields(sqlite: Database.Database) {
     sqlite.exec("alter table boards add column is_system integer not null default 0");
   }
 
+  if (!hasColumn(sqlite, "boards", "default_label_id")) {
+    sqlite.exec("alter table boards add column default_label_id text");
+  }
+
   sqlite.exec("update boards set is_system = 1 where slug = 'default'");
 
   const firstDefaultRow = sqlite
@@ -83,6 +87,29 @@ function ensureBoardFields(sqlite: Database.Database) {
       fallbackDefaultRow.id,
     );
   }
+}
+
+function ensureBoardDefaultLabels(sqlite: Database.Database) {
+  if (!hasTable(sqlite, "board_label_filters") || !hasTable(sqlite, "labels")) {
+    return;
+  }
+
+  sqlite.exec(`
+    update boards
+    set default_label_id = (
+      select board_label_filters.label_id
+      from board_label_filters
+      where board_label_filters.board_id = boards.id
+      limit 1
+    )
+    where default_label_id is null
+      and is_system = 0
+      and (
+        select count(*)
+        from board_label_filters
+        where board_label_filters.board_id = boards.id
+      ) = 1
+  `);
 }
 
 function humanizeStatusKey(statusKey: string) {
@@ -358,6 +385,7 @@ function ensureDatabaseSchema(sqlite: Database.Database) {
   ensureStatusesData(sqlite);
   ensureTicketCompletionFields(sqlite);
   createBoardLabelFilters(sqlite);
+  ensureBoardDefaultLabels(sqlite);
   ensureCurrentIndexes(sqlite);
 }
 

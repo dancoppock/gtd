@@ -74,6 +74,7 @@ On first run, the API seeds:
 - Each regular board column maps to exactly one status
 - Statuses are global and can be extended beyond the seeded defaults
 - Boards can optionally filter visible tickets by one or more labels
+- Boards can also choose one default label that is automatically applied to new tickets created from that board
 - One built-in system board always exists and shows all active tickets in `Active` plus all completed tickets in `Done`
 
 ## API Routes

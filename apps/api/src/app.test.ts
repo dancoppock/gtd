@@ -240,7 +240,8 @@ describe("API routes", () => {
           { name: "In Progress", statusKey: "in_progress" },
           { name: "Done", statusKey: "done" },
         ],
-        filterLabelIds: ["label_frontend"],
+        filterLabelIds: ["label_frontend", "label_backend"],
+        defaultLabelId: "label_frontend",
       },
     });
 
@@ -249,7 +250,11 @@ describe("API routes", () => {
       slug: "frontend-work",
       isPinned: false,
       showPriorityColors: true,
-      filterLabels: [expect.objectContaining({ normalizedName: "frontend" })],
+      filterLabels: [
+        expect.objectContaining({ normalizedName: "backend" }),
+        expect.objectContaining({ normalizedName: "frontend" }),
+      ],
+      defaultLabel: expect.objectContaining({ normalizedName: "frontend" }),
     });
 
     const ticketsResponse = await app.inject({
@@ -260,6 +265,8 @@ describe("API routes", () => {
     expect(ticketsResponse.statusCode).toBe(200);
     expect(ticketsResponse.json().tickets.map((ticket: { id: string }) => ticket.id)).toEqual([
       "ticket_1",
+      "ticket_2",
+      "ticket_3",
     ]);
 
     const updateResponse = await app.inject({
@@ -275,7 +282,8 @@ describe("API routes", () => {
           { name: "Doing", statusKey: "in_progress" },
           { name: "Done", statusKey: "done" },
         ],
-        filterLabelIds: ["label_frontend"],
+        filterLabelIds: ["label_frontend", "label_backend"],
+        defaultLabelId: "label_backend",
       },
     });
 
@@ -288,7 +296,87 @@ describe("API routes", () => {
         expect.objectContaining({ statusKey: "in_progress", name: "Doing" }),
         expect.objectContaining({ statusKey: "done", name: "Done" }),
       ],
+      defaultLabel: expect.objectContaining({ normalizedName: "backend" }),
     });
+  });
+
+  it("applies a board default label separately from multi-label filters", async () => {
+    const createBoardResponse = await app.inject({
+      method: "POST",
+      url: "/api/boards",
+      payload: {
+        name: "Engineering Work",
+        description: "Frontend or backend tickets",
+        isDefault: false,
+        isPinned: false,
+        columns: [
+          { name: "Todo", statusKey: "todo" },
+          { name: "In Progress", statusKey: "in_progress" },
+          { name: "Done", statusKey: "done" },
+        ],
+        filterLabelIds: ["label_frontend", "label_backend"],
+        defaultLabelId: "label_frontend",
+      },
+    });
+
+    expect(createBoardResponse.statusCode).toBe(201);
+
+    const createTicketResponse = await app.inject({
+      method: "POST",
+      url: `/api/boards/${createBoardResponse.json().id}/tickets`,
+      payload: {
+        statusKey: "todo",
+        title: "New engineering task",
+        description: "",
+        priority: "medium",
+        labels: ["ops"],
+      },
+    });
+
+    expect(createTicketResponse.statusCode).toBe(201);
+    expect(createTicketResponse.json().labels.map((label: { normalizedName: string }) => label.normalizedName).sort()).toEqual([
+      "frontend",
+      "ops",
+    ]);
+  });
+
+  it("skips a board default label when the ticket already has a board filter label", async () => {
+    const createBoardResponse = await app.inject({
+      method: "POST",
+      url: "/api/boards",
+      payload: {
+        name: "Engineering Work",
+        description: "Frontend or backend tickets",
+        isDefault: false,
+        isPinned: false,
+        columns: [
+          { name: "Todo", statusKey: "todo" },
+          { name: "In Progress", statusKey: "in_progress" },
+          { name: "Done", statusKey: "done" },
+        ],
+        filterLabelIds: ["label_frontend", "label_backend"],
+        defaultLabelId: "label_backend",
+      },
+    });
+
+    expect(createBoardResponse.statusCode).toBe(201);
+
+    const createTicketResponse = await app.inject({
+      method: "POST",
+      url: `/api/boards/${createBoardResponse.json().id}/tickets`,
+      payload: {
+        statusKey: "todo",
+        title: "Frontend override task",
+        description: "",
+        priority: "medium",
+        labels: ["frontend"],
+      },
+    });
+
+    expect(createTicketResponse.statusCode).toBe(201);
+    expect(createTicketResponse.json().labels.map((label: { normalizedName: string }) => label.normalizedName)).toEqual([
+      "frontend",
+    ]);
   });
 
   it("creates a board with a brand-new status and exposes it globally", async () => {

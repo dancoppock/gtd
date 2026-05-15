@@ -44,6 +44,7 @@ type BoardFormState = {
   showPriorityColors: boolean;
   columns: BoardColumnFormState[];
   filterLabelIds: string[];
+  defaultLabelId: string | null;
 };
 
 type CreateStatusModalProps = {
@@ -119,6 +120,7 @@ function emptyBoardFormState(): BoardFormState {
       defaultColumn("done", "Done"),
     ],
     filterLabelIds: [],
+    defaultLabelId: null,
   };
 }
 
@@ -135,6 +137,7 @@ function toBoardFormState(board: BoardDetail): BoardFormState {
       statusKey: column.statusKey,
     })),
     filterLabelIds: board.filterLabels.map((label) => label.id),
+    defaultLabelId: board.defaultLabel?.id ?? null,
   };
 }
 
@@ -523,6 +526,7 @@ export function BoardEditPage() {
                   statusKey: column.statusKey,
                 })),
                 filterLabelIds: formState.filterLabelIds,
+                defaultLabelId: formState.defaultLabelId,
               };
 
               if (isCreateMode) {
@@ -721,6 +725,10 @@ export function BoardEditPage() {
                                 filterLabelIds: currentValue.filterLabelIds.includes(label.id)
                                   ? currentValue.filterLabelIds.filter((candidateId) => candidateId !== label.id)
                                   : [...currentValue.filterLabelIds, label.id],
+                                defaultLabelId:
+                                  currentValue.defaultLabelId === label.id
+                                    ? null
+                                    : currentValue.defaultLabelId,
                               }))
                             }
                           />
@@ -732,6 +740,33 @@ export function BoardEditPage() {
                     )}
                   </div>
                 </div>
+
+                <label className="field board-edit__default-label-field">
+                  <span>Default Label</span>
+                  <select
+                    data-testid="board-default-label-input"
+                    disabled={formState.filterLabelIds.length === 0}
+                    value={formState.defaultLabelId ?? ""}
+                    onChange={(event) =>
+                      setFormState((currentValue) => ({
+                        ...currentValue,
+                        defaultLabelId: event.target.value || null,
+                      }))
+                    }
+                  >
+                    <option value="">None</option>
+                    {labels
+                      .filter((label) => formState.filterLabelIds.includes(label.id))
+                      .map((label) => (
+                        <option key={label.id} value={label.id}>
+                          {label.name}
+                        </option>
+                      ))}
+                  </select>
+                  <small className="field__hint">
+                    New tickets created on this board automatically receive this label.
+                  </small>
+                </label>
               </>
             )}
 

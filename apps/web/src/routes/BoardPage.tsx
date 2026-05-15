@@ -723,7 +723,8 @@ export function BoardPage() {
           ticket={null}
           columns={data.board.columns}
           availableLabels={data.board.availableLabels}
-          implicitLabels={data.board.filterLabels}
+          boardFilterLabels={data.board.filterLabels}
+          implicitLabels={data.board.defaultLabel ? [data.board.defaultLabel] : []}
           defaultStatusKey={createTicketIntent.statusKey}
           onClose={() => setCreateTicketIntent(null)}
           onSubmit={async (input) => {

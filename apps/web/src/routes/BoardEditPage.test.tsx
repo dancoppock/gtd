@@ -5,6 +5,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BoardEditPage } from "./BoardEditPage";
 
+const statuses = [
+  { key: "todo", name: "Todo", category: "active", isSystem: false },
+  { key: "in_progress", name: "In Progress", category: "active", isSystem: false },
+  { key: "done", name: "Done", category: "completed", isSystem: false },
+];
+
 function renderBoardEditPage() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -30,36 +36,32 @@ function jsonResponse(body: unknown) {
   } as Response;
 }
 
+function stubBoardEditFetch(labels: unknown[] = []) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) => {
+      const url = input.toString();
+
+      if (url === "/api/labels") {
+        return Promise.resolve(jsonResponse({ labels }));
+      }
+
+      if (url === "/api/statuses") {
+        return Promise.resolve(jsonResponse({ statuses }));
+      }
+
+      return Promise.reject(new Error(`Unexpected fetch: ${url}`));
+    }),
+  );
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe("BoardEditPage", () => {
   it("clears the default new column name when the title input receives focus", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn((input: RequestInfo | URL) => {
-        const url = input.toString();
-
-        if (url === "/api/labels") {
-          return Promise.resolve(jsonResponse({ labels: [] }));
-        }
-
-        if (url === "/api/statuses") {
-          return Promise.resolve(
-            jsonResponse({
-              statuses: [
-                { key: "todo", name: "Todo", category: "active", isSystem: false },
-                { key: "in_progress", name: "In Progress", category: "active", isSystem: false },
-                { key: "done", name: "Done", category: "completed", isSystem: false },
-              ],
-            }),
-          );
-        }
-
-        return Promise.reject(new Error(`Unexpected fetch: ${url}`));
-      }),
-    );
+    stubBoardEditFetch();
 
     renderBoardEditPage();
 
@@ -73,5 +75,52 @@ describe("BoardEditPage", () => {
     fireEvent.focus(newColumnNameInput as HTMLElement);
 
     expect(newColumnNameInput).toHaveValue("");
+  });
+
+  it("limits the default label selector to selected filter labels and clears removed defaults", async () => {
+    stubBoardEditFetch([
+      {
+        id: "label_frontend",
+        name: "frontend",
+        normalizedName: "frontend",
+        activeTicketCount: 1,
+        archivedTicketCount: 0,
+      },
+      {
+        id: "label_backend",
+        name: "backend",
+        normalizedName: "backend",
+        activeTicketCount: 1,
+        archivedTicketCount: 0,
+      },
+    ]);
+
+    renderBoardEditPage();
+
+    const defaultLabelSelect = await screen.findByTestId("board-default-label-input");
+
+    expect(defaultLabelSelect).toBeDisabled();
+
+    const frontendFilter = await screen.findByText("frontend");
+    const backendFilter = await screen.findByText("backend");
+
+    fireEvent.click(frontendFilter);
+    fireEvent.click(backendFilter);
+
+    expect(defaultLabelSelect).not.toBeDisabled();
+    expect(screen.getByRole("option", { name: "frontend" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "backend" })).toBeInTheDocument();
+
+    fireEvent.change(defaultLabelSelect, {
+      target: { value: "label_frontend" },
+    });
+
+    expect(defaultLabelSelect).toHaveValue("label_frontend");
+
+    fireEvent.click(frontendFilter);
+
+    expect(defaultLabelSelect).toHaveValue("");
+    expect(screen.queryByRole("option", { name: "frontend" })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "backend" })).toBeInTheDocument();
   });
 });
