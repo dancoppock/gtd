@@ -348,7 +348,7 @@ describe("TicketModal", () => {
     expect(onClose).toHaveBeenCalledTimes(3);
   });
 
-  it("closes when Escape is pressed", () => {
+  it("closes the edit modal on Escape only when the title field has focus", () => {
     const onClose = vi.fn();
 
     render(
@@ -362,8 +362,60 @@ describe("TicketModal", () => {
       />,
     );
 
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(screen.getByLabelText("Description"), { key: "Escape" });
+    fireEvent.keyDown(screen.getByLabelText("Priority"), { key: "Escape" });
+    fireEvent.keyDown(screen.getByPlaceholderText("frontend, backend, product"), {
+      key: "Escape",
+    });
 
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(screen.getByLabelText("Title"), { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves the edit modal on Command+Enter from any form field", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <TicketModal
+        mode="edit"
+        ticket={existingTicket}
+        columns={columns}
+        availableLabels={availableLabels}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Refine keyboard handling" },
+    });
+    fireEvent.keyDown(screen.getByLabelText("Description"), {
+      key: "Enter",
+      metaKey: true,
+    });
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({
+        statusKey: "done",
+        title: "Refine keyboard handling",
+        description: "Update the edit flow wording.",
+        priority: "high",
+        labels: ["frontend", "backend"],
+      }),
+    );
+
+    onSubmit.mockClear();
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Save from labels field" },
+    });
+    fireEvent.keyDown(screen.getByPlaceholderText("frontend, backend, product"), {
+      key: "Enter",
+      metaKey: true,
+    });
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
   });
 });

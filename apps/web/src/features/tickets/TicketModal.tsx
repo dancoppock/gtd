@@ -1,4 +1,5 @@
 import type { Column, Label, Ticket, TicketPriority } from "@gtd/contracts";
+import type { KeyboardEvent } from "react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -85,25 +86,37 @@ export function TicketModal({
     });
   }, [columns, defaultStatusKey, reset, ticket]);
 
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [onClose]);
-
   const submitLabel = mode === "create" ? "Create Ticket" : "Save Changes";
   const title = mode === "create" ? "Create Ticket" : "Edit Ticket";
   const isBusy = formState.isSubmitting || isDeleting;
 
   const implicitLabelNames = implicitLabels.map((label) => label.name);
+  const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
+    if (mode !== "edit") {
+      return;
+    }
+
+    const target = event.target;
+
+    if (
+      event.key === "Escape" &&
+      target instanceof HTMLInputElement &&
+      target.name === "title"
+    ) {
+      onClose();
+      return;
+    }
+
+    if (
+      event.key === "Enter" &&
+      event.metaKey &&
+      target instanceof HTMLElement &&
+      ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)
+    ) {
+      event.preventDefault();
+      event.currentTarget.requestSubmit();
+    }
+  };
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -127,6 +140,7 @@ export function TicketModal({
 
         <form
           className="modal-form"
+          onKeyDown={handleFormKeyDown}
           onSubmit={handleSubmit(async (values) => {
             const hashtagLabels = extractHashtagLabels(values.title);
             const explicitLabels = Array.from(
