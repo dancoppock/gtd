@@ -123,4 +123,47 @@ describe("BoardEditPage", () => {
     expect(screen.queryByRole("option", { name: "frontend" })).not.toBeInTheDocument();
     expect(screen.getByRole("option", { name: "backend" })).toBeInTheDocument();
   });
+
+  it("requires a default label when board filter labels are selected", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = input.toString();
+
+      if (url === "/api/labels") {
+        return Promise.resolve(jsonResponse({
+          labels: [
+            {
+              id: "label_frontend",
+              name: "frontend",
+              normalizedName: "frontend",
+              activeTicketCount: 1,
+              archivedTicketCount: 0,
+            },
+          ],
+        }));
+      }
+
+      if (url === "/api/statuses") {
+        return Promise.resolve(jsonResponse({ statuses }));
+      }
+
+      return Promise.reject(new Error(`Unexpected fetch: ${url}`));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderBoardEditPage();
+
+    fireEvent.change(await screen.findByTestId("board-name-input"), {
+      target: { value: "Filtered Board" },
+    });
+    fireEvent.click(await screen.findByText("frontend"));
+    fireEvent.click(screen.getByRole("button", { name: "Create Board" }));
+
+    expect(
+      await screen.findAllByText("Choose a default label from the board filter labels before saving."),
+    ).toHaveLength(2);
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      "/api/boards",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
 });

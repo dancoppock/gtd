@@ -8,6 +8,7 @@ export const SYSTEM_BOARD_DONE_STATUS_KEY = "__system_done__";
 export const ticketPrioritySchema = z.enum(["highest", "high", "medium", "low"]);
 export const statusCategorySchema = z.enum(["active", "completed"]);
 export const ticketStatusSchema = z.string().trim().min(1).max(80);
+export const boardSwimlaneLayoutSchema = z.enum(["none", "labels"]);
 
 export const statusSchema = z.object({
   key: ticketStatusSchema,
@@ -35,6 +36,8 @@ export const boardSchema = z.object({
   isDefault: z.boolean(),
   isPinned: z.boolean(),
   showPriorityColors: z.boolean(),
+  swimlaneLayout: boardSwimlaneLayoutSchema,
+  swimlaneLabelOrder: z.array(z.string().min(1)),
   isSystem: z.boolean(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
@@ -122,6 +125,8 @@ export const createBoardInputSchema = z.object({
   isDefault: z.boolean().default(false),
   isPinned: z.boolean().default(false),
   showPriorityColors: z.boolean().default(true),
+  swimlaneLayout: boardSwimlaneLayoutSchema.default("none"),
+  swimlaneLabelOrder: z.array(z.string().min(1)).default([]),
   columns: z.array(boardColumnInputSchema).min(1),
   filterLabelIds: z.array(z.string().min(1)).default([]),
   defaultLabelId: z.string().min(1).nullable().optional(),
@@ -156,6 +161,10 @@ export const repositionTicketInputSchema = z.object({
   nextVisibleTicketId: z.string().min(1).nullable(),
 });
 
+export const updateBoardSwimlaneOrderInputSchema = z.object({
+  labelNames: z.array(z.string().min(1)).default([]),
+});
+
 export const archiveDoneTicketsResponseSchema = z.object({
   archivedCount: z.number().int().nonnegative(),
 });
@@ -163,6 +172,7 @@ export const archiveDoneTicketsResponseSchema = z.object({
 export type TicketPriority = z.infer<typeof ticketPrioritySchema>;
 export type StatusCategory = z.infer<typeof statusCategorySchema>;
 export type TicketStatus = z.infer<typeof ticketStatusSchema>;
+export type BoardSwimlaneLayout = z.infer<typeof boardSwimlaneLayoutSchema>;
 export type Status = z.infer<typeof statusSchema>;
 export type Label = z.infer<typeof labelSchema>;
 export type LabelUsage = z.infer<typeof labelUsageSchema>;
@@ -184,4 +194,5 @@ export type CreateTicketInput = z.infer<typeof createTicketInputSchema>;
 export type UpdateTicketInput = z.infer<typeof updateTicketInputSchema>;
 export type UpdateLabelInput = z.infer<typeof updateLabelInputSchema>;
 export type RepositionTicketInput = z.infer<typeof repositionTicketInputSchema>;
+export type UpdateBoardSwimlaneOrderInput = z.infer<typeof updateBoardSwimlaneOrderInputSchema>;
 export type ArchiveDoneTicketsResponse = z.infer<typeof archiveDoneTicketsResponseSchema>;

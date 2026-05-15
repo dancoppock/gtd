@@ -14,6 +14,7 @@ import type {
   Status,
   Ticket,
   UpdateBoardInput,
+  UpdateBoardSwimlaneOrderInput,
   UpdateLabelInput,
   UpdateTicketInput,
 } from "@gtd/contracts";
@@ -67,6 +68,10 @@ function uniqueNames(labels: string[]) {
         .filter(Boolean),
     ),
   );
+}
+
+function uniqueNormalizedNames(labels: string[]) {
+  return Array.from(new Set(labels.map(normalizeLabelName).filter(Boolean)));
 }
 
 function slugify(value: string) {
@@ -219,6 +224,8 @@ export class InMemoryBoardStore {
       isDefault: input.isDefault || this.getDefaultBoard() === null,
       isPinned: input.isPinned,
       showPriorityColors: input.showPriorityColors,
+      swimlaneLayout: input.swimlaneLayout,
+      swimlaneLabelOrder: uniqueNormalizedNames(input.swimlaneLabelOrder),
       isSystem: false,
       createdAt: now,
       updatedAt: now,
@@ -252,6 +259,8 @@ export class InMemoryBoardStore {
           || (existingBoard.isDefault && this.getDefaultBoard()?.id === boardId),
         isPinned: input.isPinned,
         showPriorityColors: input.showPriorityColors,
+        swimlaneLayout: input.swimlaneLayout,
+        swimlaneLabelOrder: uniqueNormalizedNames(input.swimlaneLabelOrder),
         updatedAt: new Date().toISOString(),
       });
 
@@ -270,6 +279,8 @@ export class InMemoryBoardStore {
       isDefault: input.isDefault || (existingBoard.isDefault && this.getDefaultBoard()?.id === boardId),
       isPinned: input.isPinned,
       showPriorityColors: input.showPriorityColors,
+      swimlaneLayout: input.swimlaneLayout,
+      swimlaneLabelOrder: uniqueNormalizedNames(input.swimlaneLabelOrder),
       updatedAt: new Date().toISOString(),
     });
 
@@ -280,6 +291,21 @@ export class InMemoryBoardStore {
     this.replaceBoardColumns(boardId, input.columns);
     this.replaceBoardLabelFilters(boardId, input.filterLabelIds);
     this.replaceBoardDefaultLabel(boardId, input.filterLabelIds, input.defaultLabelId ?? null);
+
+    return this.getBoardDetail(boardId);
+  }
+
+  updateBoardSwimlaneOrder(boardId: string, input: UpdateBoardSwimlaneOrderInput) {
+    const existingBoard = this.getBoardById(boardId);
+    if (!existingBoard) {
+      return null;
+    }
+
+    this.boards.set(boardId, {
+      ...existingBoard,
+      swimlaneLabelOrder: uniqueNormalizedNames(input.labelNames),
+      updatedAt: new Date().toISOString(),
+    });
 
     return this.getBoardDetail(boardId);
   }
@@ -965,6 +991,8 @@ export class InMemoryBoardStore {
         isDefault: !hasDefaultBoard,
         isPinned: true,
         showPriorityColors: true,
+        swimlaneLayout: "none",
+        swimlaneLabelOrder: [],
         isSystem: true,
         createdAt: now,
         updatedAt: now,

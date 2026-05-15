@@ -185,7 +185,7 @@ export function BoardColumn({
           <div
             className="board-column__tail"
             data-testid={`column-tail-${column.statusKey}`}
-            onDoubleClick={() => onCreateTicket(column.statusKey, "bottom")}
+            onClick={() => onCreateTicket(column.statusKey, "bottom")}
           />
         ) : null}
       </div>

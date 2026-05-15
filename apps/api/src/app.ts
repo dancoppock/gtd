@@ -32,6 +32,7 @@ function createBoardStoreProxy(getBoardStore: () => BoardStore): BoardStore {
     getBoardDetail: (boardId) => getBoardStore().getBoardDetail(boardId),
     createBoard: (input) => getBoardStore().createBoard(input),
     updateBoard: (boardId, input) => getBoardStore().updateBoard(boardId, input),
+    updateBoardSwimlaneOrder: (boardId, input) => getBoardStore().updateBoardSwimlaneOrder(boardId, input),
     deleteBoard: (boardId) => getBoardStore().deleteBoard(boardId),
     getLabelById: (labelId) => getBoardStore().getLabelById(labelId),
     listAllLabels: () => getBoardStore().listAllLabels(),

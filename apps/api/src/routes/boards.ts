@@ -6,6 +6,7 @@ import {
   createBoardInputSchema,
   listTicketsResponseSchema,
   updateBoardInputSchema,
+  updateBoardSwimlaneOrderInputSchema,
 } from "@gtd/contracts";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
@@ -108,6 +109,18 @@ export const registerBoardRoutes: FastifyPluginAsync<BoardRouteOptions> = async 
     }
 
     const board = boardStore.updateBoard(boardId, input);
+
+    if (!board) {
+      return reply.status(404).send(notFound("Board not found"));
+    }
+
+    return boardDetailSchema.parse(board);
+  });
+
+  app.patch("/boards/:boardId/swimlane-order", async (request, reply) => {
+    const { boardId } = boardIdParamsSchema.parse(request.params);
+    const input = updateBoardSwimlaneOrderInputSchema.parse(request.body);
+    const board = boardStore.updateBoardSwimlaneOrder(boardId, input);
 
     if (!board) {
       return reply.status(404).send(notFound("Board not found"));

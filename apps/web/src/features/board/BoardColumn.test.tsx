@@ -47,7 +47,7 @@ const doneTicket: Ticket = {
 };
 
 describe("BoardColumn", () => {
-  it("opens the create flow when the tail area is double clicked", () => {
+  it("opens the create flow when the tail area is clicked", () => {
     const onCreateTicket = vi.fn();
 
     render(
@@ -66,7 +66,7 @@ describe("BoardColumn", () => {
       </DndContext>,
     );
 
-    fireEvent.doubleClick(screen.getByTestId("column-tail-todo"));
+    fireEvent.click(screen.getByTestId("column-tail-todo"));
 
     expect(onCreateTicket).toHaveBeenCalledWith("todo", "bottom");
   });

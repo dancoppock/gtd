@@ -101,11 +101,13 @@ describe("createDatabaseClient", () => {
     });
 
     const migratedBoard = client.sqlite
-      .prepare("select is_default, is_pinned, show_priority_colors, is_system, description from boards where id = ?")
+      .prepare("select is_default, is_pinned, show_priority_colors, swimlane_layout, swimlane_label_order, is_system, description from boards where id = ?")
       .get("board_default") as {
         is_default: number;
         is_pinned: number;
         show_priority_colors: number;
+        swimlane_layout: string;
+        swimlane_label_order: string;
         is_system: number;
         description: string;
       };
@@ -114,6 +116,8 @@ describe("createDatabaseClient", () => {
       is_default: 1,
       is_pinned: 1,
       show_priority_colors: 1,
+      swimlane_layout: "none",
+      swimlane_label_order: "[]",
       is_system: 1,
       description: "",
     });

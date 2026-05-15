@@ -14,6 +14,7 @@ import type {
   Status,
   Ticket,
   UpdateBoardInput,
+  UpdateBoardSwimlaneOrderInput,
   UpdateLabelInput,
   UpdateTicketInput,
 } from "@gtd/contracts";
@@ -78,6 +79,16 @@ export async function createBoard(input: CreateBoardInput) {
 
 export async function updateBoard(boardId: string, input: UpdateBoardInput) {
   return fetch(`/api/boards/${encodeURIComponent(boardId)}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  }).then((response) => readJson<BoardDetail>(response));
+}
+
+export async function updateBoardSwimlaneOrder(boardId: string, input: UpdateBoardSwimlaneOrderInput) {
+  return fetch(`/api/boards/${encodeURIComponent(boardId)}/swimlane-order`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",

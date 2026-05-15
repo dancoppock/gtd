@@ -177,6 +177,8 @@ describe("SqliteBoardStore", () => {
       isDefault: false,
       isPinned: false,
       showPriorityColors: true,
+      swimlaneLayout: "none",
+      swimlaneLabelOrder: [],
       columns: [
         { name: "Todo", statusKey: "todo" },
         { name: "In Progress", statusKey: "in_progress" },
@@ -207,6 +209,8 @@ describe("SqliteBoardStore", () => {
       isDefault: false,
       isPinned: false,
       showPriorityColors: true,
+      swimlaneLayout: "none",
+      swimlaneLabelOrder: [],
       columns: [
         { name: "Todo", statusKey: "todo" },
         { name: "In Progress", statusKey: "in_progress" },
@@ -246,6 +250,8 @@ describe("SqliteBoardStore", () => {
       isDefault: false,
       isPinned: false,
       showPriorityColors: true,
+      swimlaneLayout: "none",
+      swimlaneLabelOrder: [],
       columns: [
         { name: "Todo", statusKey: "todo" },
         { name: "In Progress", statusKey: "in_progress" },
@@ -279,6 +285,8 @@ describe("SqliteBoardStore", () => {
       isDefault: false,
       isPinned: false,
       showPriorityColors: true,
+      swimlaneLayout: "none",
+      swimlaneLabelOrder: [],
       columns: [
         { name: "Todo", statusKey: "todo" },
         { name: "In Progress", statusKey: "in_progress" },

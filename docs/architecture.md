@@ -219,7 +219,8 @@ Current implementation strategy:
 
 Notable board-view behaviors:
 
-- optional swimlanes group tickets by first non-implicit label
+- board-configured swimlanes can group tickets by first non-implicit label
+- swimlane label priority is stored per board; lanes without explicit priority sort by name, and `Unlabeled` renders last
 - columns can be temporarily collapsed in the UI
 - compact cards can be expanded individually
 - the system board maps its `Active` / `Done` UI back to real ticket statuses when creating, editing, or dragging tickets

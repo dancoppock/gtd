@@ -1,5 +1,6 @@
 import {
   boardFiltersSchema,
+  type Label,
   SYSTEM_BOARD_ACTIVE_STATUS_KEY,
   SYSTEM_BOARD_DONE_STATUS_KEY,
   type BoardFilters,
@@ -29,6 +30,7 @@ import {
   fetchBoardTickets,
   repositionTicket,
   updateTicket,
+  updateBoardSwimlaneOrder,
 } from "../features/board/api";
 import { BoardColumn, type CreateTicketPosition } from "../features/board/BoardColumn";
 import { BoardColumnHeader } from "../features/board/BoardColumnHeader";
@@ -43,6 +45,8 @@ import {
   buildSwimlaneRepositionInput,
   buildSwimlanes,
   resolveTicketSwimlane,
+  UNLABELED_SWIMLANE_KEY,
+  updateTicketSwimlaneLabels,
 } from "../features/board/swimlanes";
 import { TicketViewToggle, type TicketViewMode } from "../features/board/TicketViewToggle";
 import { BoardFilters as BoardFiltersPanel } from "../features/filters/BoardFilters";
@@ -93,6 +97,39 @@ function buildSwimlaneDropTargetId(swimlaneKey: string, columnId: string) {
   return `swimlane:${swimlaneKey}:${columnId}`;
 }
 
+function normalizeLabelName(labelName: string) {
+  return labelName.trim().toLowerCase();
+}
+
+function buildCreateTicketLabels(
+  inputLabels: string[],
+  laneLabels: string[],
+  boardFilterLabels: Label[],
+  defaultLabel: Label | null,
+) {
+  const labels = new Map<string, string>();
+
+  [...inputLabels, ...laneLabels].forEach((label) => {
+    const normalizedName = normalizeLabelName(label);
+
+    if (normalizedName && !labels.has(normalizedName)) {
+      labels.set(normalizedName, label);
+    }
+  });
+
+  const defaultLabelName = defaultLabel?.normalizedName ?? null;
+  const boardFilterLabelNames = new Set(boardFilterLabels.map((label) => label.normalizedName));
+  const hasNonDefaultBoardFilterLabel = Array.from(labels.keys()).some(
+    (labelName) => boardFilterLabelNames.has(labelName) && labelName !== defaultLabelName,
+  );
+
+  if (defaultLabelName && hasNonDefaultBoardFilterLabel) {
+    labels.delete(defaultLabelName);
+  }
+
+  return Array.from(labels.values());
+}
+
 function toDisplayStatusKey(ticket: Ticket) {
   return ticket.completedAt ? SYSTEM_BOARD_DONE_STATUS_KEY : SYSTEM_BOARD_ACTIVE_STATUS_KEY;
 }
@@ -106,6 +143,28 @@ function mapTicketsForBoardDisplay(isSystemBoard: boolean, tickets: Ticket[]) {
     ...ticket,
     statusKey: toDisplayStatusKey(ticket),
   }));
+}
+
+function moveSwimlaneLabelOrder(swimlanes: Array<{ key: string }>, laneKey: string, direction: -1 | 1) {
+  const orderedKeys = swimlanes
+    .map((swimlane) => swimlane.key)
+    .filter((key) => key !== UNLABELED_SWIMLANE_KEY);
+  const currentIndex = orderedKeys.indexOf(laneKey);
+  const nextIndex = currentIndex + direction;
+
+  if (currentIndex < 0 || nextIndex < 0 || nextIndex >= orderedKeys.length) {
+    return null;
+  }
+
+  const nextOrder = [...orderedKeys];
+  const [movedKey] = nextOrder.splice(currentIndex, 1);
+  if (!movedKey) {
+    return null;
+  }
+
+  nextOrder.splice(nextIndex, 0, movedKey);
+
+  return nextOrder;
 }
 
 function resolveMutationStatusKey(
@@ -135,6 +194,7 @@ const APP_TITLE = "GTD";
 type CreateTicketIntent = {
   statusKey: Ticket["statusKey"];
   position: CreateTicketPosition;
+  labels: string[];
 };
 
 export function BoardPage() {
@@ -221,6 +281,20 @@ export function BoardPage() {
     },
   });
 
+  const updateSwimlaneOrderMutation = useMutation({
+    mutationFn: (labelNames: string[]) => {
+      if (!boardQuery.data) {
+        throw new Error("Board data is not ready");
+      }
+
+      return updateBoardSwimlaneOrder(boardQuery.data.board.id, { labelNames });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
+      await queryClient.invalidateQueries({ queryKey: ["boards"] });
+    },
+  });
+
   const repositionTicketMutation = useMutation({
     mutationFn: (args: {
       ticketId: string;
@@ -237,6 +311,8 @@ export function BoardPage() {
   });
 
   const data = boardQuery.data;
+  const boardId = data?.board.id;
+  const boardSwimlaneDefault = data?.board.swimlaneLayout === "labels";
   const actualTicketsById = useMemo(
     () => new Map((data?.tickets ?? []).map((ticket) => [ticket.id, ticket])),
     [data?.tickets],
@@ -252,12 +328,17 @@ export function BoardPage() {
   const swimlanes = useMemo(
     () =>
       data && showSwimlanes
-        ? buildSwimlanes(data.board.columns, visibleTickets, implicitSwimlaneLabelNames)
+        ? buildSwimlanes(
+            data.board.columns,
+            visibleTickets,
+            implicitSwimlaneLabelNames,
+            data.board.swimlaneLabelOrder,
+          )
         : [],
     [data, implicitSwimlaneLabelNames, showSwimlanes, visibleTickets],
   );
   const swimlaneDropTargets = useMemo(() => {
-    const dropTargets = new Map<string, { columnId: string; laneKey: string }>();
+    const dropTargets = new Map<string, { columnId: string; laneKey: string; laneName: string }>();
 
     if (!data || !showSwimlanes) {
       return dropTargets;
@@ -268,6 +349,7 @@ export function BoardPage() {
         dropTargets.set(buildSwimlaneDropTargetId(swimlane.key, column.id), {
           columnId: column.id,
           laneKey: swimlane.key,
+          laneName: swimlane.name,
         });
       });
     });
@@ -307,6 +389,12 @@ export function BoardPage() {
     }
   }, [data, displayedDataTickets]);
 
+  useEffect(() => {
+    if (boardId) {
+      setShowSwimlanes(boardSwimlaneDefault);
+    }
+  }, [boardId, boardSwimlaneDefault]);
+
   function handleDragStart(event: DragStartEvent) {
     setActiveTicketId(String(event.active.id));
   }
@@ -330,8 +418,12 @@ export function BoardPage() {
           ? resolveTicketSwimlane(overTicket, implicitSwimlaneLabelNames).key
           : (swimlaneDropTargets.get(overId)?.laneKey ?? null);
 
-        if (!activeLaneKey || !overLaneKey || activeLaneKey !== overLaneKey) {
-          return displayedDataTickets;
+        if (!activeTicket || !activeLaneKey || !overLaneKey) {
+          return currentTickets;
+        }
+
+        if (activeLaneKey !== overLaneKey) {
+          return currentTickets;
         }
 
         const mappedOverId = swimlaneDropTargets.get(overId)?.columnId ?? overId;
@@ -366,21 +458,44 @@ export function BoardPage() {
     setVisibleTickets((currentTickets) => {
       if (showSwimlanes) {
         const activeTicket = currentTickets.find((ticket) => ticket.id === activeId);
+        const originalActiveTicket =
+          displayedDataTickets.find((ticket) => ticket.id === activeId) ?? activeTicket;
         const overTicket = currentTickets.find((ticket) => ticket.id === overId);
-        const activeLaneKey = activeTicket
-          ? resolveTicketSwimlane(activeTicket, implicitSwimlaneLabelNames).key
+        const activeLaneKey = originalActiveTicket
+          ? resolveTicketSwimlane(originalActiveTicket, implicitSwimlaneLabelNames).key
           : null;
         const overLaneKey = overTicket
           ? resolveTicketSwimlane(overTicket, implicitSwimlaneLabelNames).key
           : (swimlaneDropTargets.get(overId)?.laneKey ?? null);
 
-        if (!activeLaneKey || !overLaneKey || activeLaneKey !== overLaneKey) {
+        if (!activeTicket || !originalActiveTicket || !activeLaneKey || !overLaneKey) {
           return displayedDataTickets;
         }
 
+        const overLaneName = overTicket
+          ? resolveTicketSwimlane(overTicket, implicitSwimlaneLabelNames).name
+          : (swimlaneDropTargets.get(overId)?.laneName ?? overLaneKey);
         const mappedOverId = swimlaneDropTargets.get(overId)?.columnId ?? overId;
-        const nextTickets = moveTicket(data.board.columns, currentTickets, activeId, mappedOverId);
+        const nextLabels = updateTicketSwimlaneLabels(
+          originalActiveTicket,
+          { key: overLaneKey, name: overLaneName },
+          implicitSwimlaneLabelNames,
+          data.board.defaultLabel?.normalizedName,
+        );
+        const ticketsWithTargetLane =
+          activeLaneKey === overLaneKey
+            ? currentTickets
+            : currentTickets.map((ticket) =>
+                ticket.id === activeId
+                  ? {
+                      ...ticket,
+                      labels: nextLabels,
+                    }
+                  : ticket,
+              );
+        const nextTickets = moveTicket(data.board.columns, ticketsWithTargetLane, activeId, mappedOverId);
         const didChange = !haveSameTicketLayout(displayedDataTickets, nextTickets);
+        const didChangeLane = activeLaneKey !== overLaneKey;
 
         if (didChange) {
           const repositionInput = buildSwimlaneRepositionInput(
@@ -403,6 +518,15 @@ export function BoardPage() {
               },
             });
           }
+        }
+
+        if (didChangeLane) {
+          updateTicketMutation.mutate({
+            ticketId: activeId,
+            input: {
+              labels: nextLabels.map((label) => label.name),
+            },
+          });
         }
 
         return nextTickets;
@@ -535,8 +659,12 @@ export function BoardPage() {
     });
   }
 
-  function openCreateTicket(statusKey: Ticket["statusKey"], position: CreateTicketPosition) {
-    setCreateTicketIntent({ statusKey, position });
+  function openCreateTicket(
+    statusKey: Ticket["statusKey"],
+    position: CreateTicketPosition,
+    labels: string[] = [],
+  ) {
+    setCreateTicketIntent({ statusKey, position, labels });
   }
 
   return (
@@ -626,10 +754,51 @@ export function BoardPage() {
                     })}
                   </section>
 
-                  {swimlanes.map((swimlane) => (
+                  {swimlanes.map((swimlane) => {
+                    const isUnlabeledSwimlane = swimlane.key === UNLABELED_SWIMLANE_KEY;
+                    const orderedSwimlanes = swimlanes.filter((candidate) => candidate.key !== UNLABELED_SWIMLANE_KEY);
+                    const orderedSwimlaneIndex = orderedSwimlanes.findIndex((candidate) => candidate.key === swimlane.key);
+
+                    return (
                     <section key={swimlane.key} className="board-swimlane">
                       <div className="board-swimlane__rule">
                         <span>{swimlane.name}</span>
+                        {!isUnlabeledSwimlane ? (
+                          <div className="board-swimlane__order-actions">
+                            <button
+                              aria-label={`Move ${swimlane.name} swimlane up`}
+                              className="board-swimlane__order-button"
+                              disabled={orderedSwimlaneIndex <= 0 || updateSwimlaneOrderMutation.isPending}
+                              type="button"
+                              onClick={() => {
+                                const nextOrder = moveSwimlaneLabelOrder(swimlanes, swimlane.key, -1);
+                                if (nextOrder) {
+                                  void updateSwimlaneOrderMutation.mutateAsync(nextOrder);
+                                }
+                              }}
+                            >
+                              <svg aria-hidden="true" viewBox="0 0 20 20">
+                                <path d="M10 4.5a.75.75 0 0 1 .53.22l4.25 4.25a.75.75 0 1 1-1.06 1.06L10.75 7.06v7.69a.75.75 0 0 1-1.5 0V7.06l-2.97 2.97a.75.75 0 0 1-1.06-1.06l4.25-4.25A.75.75 0 0 1 10 4.5Z" />
+                              </svg>
+                            </button>
+                            <button
+                              aria-label={`Move ${swimlane.name} swimlane down`}
+                              className="board-swimlane__order-button"
+                              disabled={orderedSwimlaneIndex >= orderedSwimlanes.length - 1 || updateSwimlaneOrderMutation.isPending}
+                              type="button"
+                              onClick={() => {
+                                const nextOrder = moveSwimlaneLabelOrder(swimlanes, swimlane.key, 1);
+                                if (nextOrder) {
+                                  void updateSwimlaneOrderMutation.mutateAsync(nextOrder);
+                                }
+                              }}
+                            >
+                              <svg aria-hidden="true" viewBox="0 0 20 20">
+                                <path d="M10 15.5a.75.75 0 0 1-.53-.22L5.22 11.03a.75.75 0 1 1 1.06-1.06l2.97 2.97V5.25a.75.75 0 0 1 1.5 0v7.69l2.97-2.97a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-.53.22Z" />
+                              </svg>
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
 
                       <section className="board-grid board-grid--swimlane-row" style={boardGridStyle}>
@@ -648,11 +817,16 @@ export function BoardPage() {
                               expandedTicketIds={expandedTicketIds}
                               showHeader={false}
                               showPriorityColors={data.board.showPriorityColors}
-                              showTail={false}
                               variant="swimlane"
                               tickets={laneTickets}
                               onEditTicket={setEditingTicket}
-                              onCreateTicket={openCreateTicket}
+                              onCreateTicket={(statusKey, position) =>
+                                openCreateTicket(
+                                  statusKey,
+                                  position,
+                                  swimlane.key === UNLABELED_SWIMLANE_KEY ? [] : [swimlane.name],
+                                )
+                              }
                               onInlineTitleUpdate={handleInlineTitleUpdate}
                               onToggleTicketExpanded={handleToggleTicketExpanded}
                               viewMode={ticketViewMode}
@@ -661,7 +835,8 @@ export function BoardPage() {
                         })}
                       </section>
                     </section>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             ) : (
@@ -730,6 +905,12 @@ export function BoardPage() {
           onSubmit={async (input) => {
             await createTicketMutation.mutateAsync({
               ...input,
+              labels: buildCreateTicketLabels(
+                input.labels,
+                createTicketIntent.labels,
+                data.board.filterLabels,
+                data.board.defaultLabel,
+              ),
               statusKey: resolveMutationStatusKey(data.board.isSystem, input.statusKey),
               position: createTicketIntent.position,
             });

@@ -42,6 +42,8 @@ type BoardFormState = {
   isDefault: boolean;
   isPinned: boolean;
   showPriorityColors: boolean;
+  swimlaneLayout: BoardDetail["swimlaneLayout"];
+  swimlaneLabelOrder: BoardDetail["swimlaneLabelOrder"];
   columns: BoardColumnFormState[];
   filterLabelIds: string[];
   defaultLabelId: string | null;
@@ -114,6 +116,8 @@ function emptyBoardFormState(): BoardFormState {
     isDefault: false,
     isPinned: false,
     showPriorityColors: true,
+    swimlaneLayout: "none",
+    swimlaneLabelOrder: [],
     columns: [
       defaultColumn("todo", "Todo"),
       defaultColumn("in_progress", "In Progress"),
@@ -131,6 +135,8 @@ function toBoardFormState(board: BoardDetail): BoardFormState {
     isDefault: board.isDefault,
     isPinned: board.isPinned,
     showPriorityColors: board.showPriorityColors,
+    swimlaneLayout: board.swimlaneLayout,
+    swimlaneLabelOrder: board.swimlaneLabelOrder,
     columns: board.columns.map((column) => ({
       rowId: createRowId(),
       name: column.name,
@@ -423,6 +429,11 @@ export function BoardEditPage() {
   }, [formState.columns]);
   const hasInvalidColumns = formState.columns.some((column) => !column.name.trim() || !column.statusKey);
   const canSubmit = formState.name.trim() && formState.columns.length > 0 && !duplicateStatuses && !hasInvalidColumns;
+  const validationMessages = [
+    errorMessage,
+    duplicateStatuses ? "Each column must map to a different status." : null,
+    hasInvalidColumns ? "Each column must choose a status before saving." : null,
+  ].filter((message): message is string => Boolean(message));
 
   function updateColumnAt(index: number, updater: (column: BoardColumnFormState) => BoardColumnFormState) {
     setFormState((currentValue) => ({
@@ -496,13 +507,9 @@ export function BoardEditPage() {
             </div>
           </div>
 
-          {errorMessage ? <p className="labels-panel__error">{errorMessage}</p> : null}
-          {duplicateStatuses ? (
-            <p className="labels-panel__error">Each column must map to a different status.</p>
-          ) : null}
-          {hasInvalidColumns ? (
-            <p className="labels-panel__error">Each column must choose a status before saving.</p>
-          ) : null}
+          {validationMessages.map((message) => (
+            <p key={message} className="labels-panel__error">{message}</p>
+          ))}
 
           <form
             className="modal-form"
@@ -515,12 +522,22 @@ export function BoardEditPage() {
                 return;
               }
 
+              if (
+                formState.filterLabelIds.length > 0
+                && (!formState.defaultLabelId || !formState.filterLabelIds.includes(formState.defaultLabelId))
+              ) {
+                setErrorMessage("Choose a default label from the board filter labels before saving.");
+                return;
+              }
+
               const payload: CreateBoardInput = {
                 name: formState.name.trim(),
                 description: formState.description.trim(),
                 isDefault: formState.isDefault,
                 isPinned: formState.isPinned,
                 showPriorityColors: formState.showPriorityColors,
+                swimlaneLayout: formState.swimlaneLayout,
+                swimlaneLabelOrder: formState.swimlaneLabelOrder,
                 columns: formState.columns.map((column) => ({
                   name: column.name.trim(),
                   statusKey: column.statusKey,
@@ -619,6 +636,25 @@ export function BoardEditPage() {
                 }
               />
               <span>Show priority colour stripe on tickets</span>
+            </label>
+
+            <label className="field">
+              <span>Swimlane Layout</span>
+              <select
+                className="board-edit__swimlane-layout-input"
+                data-testid="board-swimlane-layout-input"
+                disabled={isSystemBoard}
+                value={formState.swimlaneLayout}
+                onChange={(event) =>
+                  setFormState((currentValue) => ({
+                    ...currentValue,
+                    swimlaneLayout: event.target.value as BoardFormState["swimlaneLayout"],
+                  }))
+                }
+              >
+                <option value="none">No swimlanes</option>
+                <option value="labels">Group by label</option>
+              </select>
             </label>
 
             {isSystemBoard ? (
@@ -802,6 +838,9 @@ export function BoardEditPage() {
                 </button>
               </div>
             </div>
+            {validationMessages.map((message) => (
+              <p key={message} className="labels-panel__error labels-panel__error--actions">{message}</p>
+            ))}
           </form>
         </section>
       ) : null}

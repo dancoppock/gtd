@@ -10,11 +10,11 @@ export type Swimlane = {
 
 export function resolveTicketSwimlane(
   ticket: Ticket,
-  implicitLabelNames: ReadonlySet<string>,
+  boardFilterLabelNames: ReadonlySet<string>,
 ): Pick<Swimlane, "key" | "name"> {
   const swimlaneLabel = ticket.labels.find(
-    (label) => !implicitLabelNames.has(label.normalizedName),
-  );
+    (label) => !boardFilterLabelNames.has(label.normalizedName),
+  ) ?? ticket.labels[0];
 
   if (!swimlaneLabel) {
     return {
@@ -32,9 +32,11 @@ export function resolveTicketSwimlane(
 export function buildSwimlanes(
   columns: Column[],
   tickets: Ticket[],
-  implicitLabelNames: ReadonlySet<string>,
+  boardFilterLabelNames: ReadonlySet<string>,
+  labelPriorityNames: readonly string[] = [],
 ): Swimlane[] {
   const lanes = new Map<string, Swimlane>();
+  const labelPriorities = new Map(labelPriorityNames.map((labelName, index) => [labelName, index]));
   const completedStatusKeys = new Set(
     columns
       .filter((column) => column.statusCategory === "completed")
@@ -42,7 +44,7 @@ export function buildSwimlanes(
   );
 
   tickets.forEach((ticket) => {
-    const { key, name } = resolveTicketSwimlane(ticket, implicitLabelNames);
+    const { key, name } = resolveTicketSwimlane(ticket, boardFilterLabelNames);
     const lane = lanes.get(key);
 
     if (lane) {
@@ -57,9 +59,34 @@ export function buildSwimlanes(
     });
   });
 
-  return Array.from(lanes.values()).filter((lane) =>
-    lane.tickets.some((ticket) => !completedStatusKeys.has(ticket.statusKey)),
-  );
+  return Array.from(lanes.values())
+    .filter((lane) => lane.tickets.some((ticket) => !completedStatusKeys.has(ticket.statusKey)))
+    .sort((left, right) => {
+      if (left.key === UNLABELED_SWIMLANE_KEY) {
+        return 1;
+      }
+
+      if (right.key === UNLABELED_SWIMLANE_KEY) {
+        return -1;
+      }
+
+      const leftPriority = labelPriorities.get(left.key);
+      const rightPriority = labelPriorities.get(right.key);
+
+      if (leftPriority !== undefined && rightPriority !== undefined) {
+        return leftPriority - rightPriority;
+      }
+
+      if (leftPriority !== undefined) {
+        return -1;
+      }
+
+      if (rightPriority !== undefined) {
+        return 1;
+      }
+
+      return left.name.localeCompare(right.name);
+    });
 }
 
 export function buildSwimlaneRepositionInput(
@@ -94,4 +121,59 @@ export function buildSwimlaneRepositionInput(
     prevVisibleTicketId: columnTickets[ticketIndex - 1]?.id ?? null,
     nextVisibleTicketId: columnTickets[ticketIndex + 1]?.id ?? null,
   };
+}
+
+export function updateTicketSwimlaneLabels(
+  ticket: Ticket,
+  targetSwimlane: Pick<Swimlane, "key" | "name">,
+  boardFilterLabelNames: ReadonlySet<string>,
+  boardDefaultLabelName?: string | null,
+) {
+  const sourceSwimlaneKey = resolveTicketSwimlane(ticket, boardFilterLabelNames).key;
+  const shouldEnsureDefaultLabel =
+    Boolean(boardDefaultLabelName)
+    && boardFilterLabelNames.has(sourceSwimlaneKey)
+    && targetSwimlane.key !== UNLABELED_SWIMLANE_KEY
+    && !boardFilterLabelNames.has(targetSwimlane.key);
+  const shouldRemoveDefaultLabel =
+    Boolean(boardDefaultLabelName)
+    && !boardFilterLabelNames.has(sourceSwimlaneKey)
+    && boardFilterLabelNames.has(targetSwimlane.key);
+  const labelsWithoutSourceSwimlane = ticket.labels.filter(
+    (label) =>
+      label.normalizedName !== sourceSwimlaneKey
+      && (!shouldRemoveDefaultLabel || label.normalizedName !== boardDefaultLabelName),
+  );
+
+  if (targetSwimlane.key === UNLABELED_SWIMLANE_KEY) {
+    return labelsWithoutSourceSwimlane;
+  }
+
+  const nextLabels = labelsWithoutSourceSwimlane.some((label) => label.normalizedName === targetSwimlane.key)
+    ? labelsWithoutSourceSwimlane
+    : [
+        ...labelsWithoutSourceSwimlane,
+        {
+          id: `swimlane-label-${targetSwimlane.key}`,
+          name: targetSwimlane.name,
+          normalizedName: targetSwimlane.key,
+        },
+      ];
+
+  if (
+    shouldEnsureDefaultLabel
+    && boardDefaultLabelName
+    && !nextLabels.some((label) => label.normalizedName === boardDefaultLabelName)
+  ) {
+    return [
+      ...nextLabels,
+      {
+        id: `swimlane-label-${boardDefaultLabelName}`,
+        name: boardDefaultLabelName,
+        normalizedName: boardDefaultLabelName,
+      },
+    ];
+  }
+
+  return nextLabels;
 }

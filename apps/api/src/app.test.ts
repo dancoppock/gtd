@@ -46,6 +46,8 @@ describe("API routes", () => {
       isDefault: true,
       isPinned: true,
       showPriorityColors: true,
+      swimlaneLayout: "none",
+      swimlaneLabelOrder: [],
       isSystem: true,
     });
   });
@@ -63,6 +65,8 @@ describe("API routes", () => {
       isDefault: true,
       isPinned: true,
       showPriorityColors: true,
+      swimlaneLayout: "none",
+      swimlaneLabelOrder: [],
       columns: [
         expect.objectContaining({ statusKey: SYSTEM_BOARD_ACTIVE_STATUS_KEY, name: "Active" }),
         expect.objectContaining({ statusKey: SYSTEM_BOARD_DONE_STATUS_KEY, name: "Done" }),
@@ -250,6 +254,8 @@ describe("API routes", () => {
       slug: "frontend-work",
       isPinned: false,
       showPriorityColors: true,
+      swimlaneLayout: "none",
+      swimlaneLabelOrder: [],
       filterLabels: [
         expect.objectContaining({ normalizedName: "backend" }),
         expect.objectContaining({ normalizedName: "frontend" }),
@@ -278,6 +284,8 @@ describe("API routes", () => {
         isDefault: false,
         isPinned: true,
         showPriorityColors: false,
+        swimlaneLayout: "labels",
+        swimlaneLabelOrder: ["backend", "frontend"],
         columns: [
           { name: "Doing", statusKey: "in_progress" },
           { name: "Done", statusKey: "done" },
@@ -292,11 +300,26 @@ describe("API routes", () => {
       name: "Frontend Delivery",
       isPinned: true,
       showPriorityColors: false,
+      swimlaneLayout: "labels",
+      swimlaneLabelOrder: ["backend", "frontend"],
       columns: [
         expect.objectContaining({ statusKey: "in_progress", name: "Doing" }),
         expect.objectContaining({ statusKey: "done", name: "Done" }),
       ],
       defaultLabel: expect.objectContaining({ normalizedName: "backend" }),
+    });
+
+    const swimlaneOrderResponse = await app.inject({
+      method: "PATCH",
+      url: `/api/boards/${createResponse.json().id}/swimlane-order`,
+      payload: {
+        labelNames: ["frontend", "backend"],
+      },
+    });
+
+    expect(swimlaneOrderResponse.statusCode).toBe(200);
+    expect(swimlaneOrderResponse.json()).toMatchObject({
+      swimlaneLabelOrder: ["frontend", "backend"],
     });
   });
 

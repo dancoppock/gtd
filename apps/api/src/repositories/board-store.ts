@@ -13,6 +13,7 @@ import type {
   Status,
   Ticket,
   UpdateBoardInput,
+  UpdateBoardSwimlaneOrderInput,
   UpdateLabelInput,
   UpdateTicketInput,
 } from "@gtd/contracts";
@@ -29,6 +30,7 @@ export type BoardStore = {
   getBoardDetail(boardId: string): BoardDetail | null;
   createBoard(input: CreateBoardInput): BoardDetail;
   updateBoard(boardId: string, input: UpdateBoardInput): BoardDetail | null;
+  updateBoardSwimlaneOrder(boardId: string, input: UpdateBoardSwimlaneOrderInput): BoardDetail | null;
   deleteBoard(boardId: string): boolean;
   getLabelById(labelId: string): Label | null;
   listAllLabels(): LabelUsage[];
