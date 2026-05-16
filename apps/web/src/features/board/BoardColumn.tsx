@@ -32,7 +32,7 @@ type BoardColumnProps = {
   onInlineTitleUpdate: (ticket: Ticket, nextTitle: string) => Promise<void>;
   onTicketClick?: (ticket: Ticket, event: MouseEvent) => void;
   onToggleCollapsed?: () => void;
-  onToggleTicketExpanded: (ticketId: string) => void;
+  onToggleTicketExpanded: (ticketId: string, options?: { selectTicket?: boolean }) => void;
   variant?: "default" | "swimlane";
   viewMode: TicketViewMode;
 };
@@ -195,7 +195,7 @@ export function BoardColumn({
                 onEdit={() => onEditTicket(ticket)}
                 onTitleEditStart={() => onInlineTitleEditStart?.(ticket)}
                 onTitleEditEnd={() => onInlineTitleEditEnd?.(ticket)}
-                onToggleExpanded={() => onToggleTicketExpanded(ticket.id)}
+                onToggleExpanded={() => onToggleTicketExpanded(ticket.id, { selectTicket: true })}
                 onTitleUpdate={(nextTitle) => onInlineTitleUpdate(ticket, nextTitle)}
                 onTicketClick={(event) => onTicketClick?.(ticket, event)}
                 showPriorityColor={showPriorityColors && column.statusCategory !== "completed"}

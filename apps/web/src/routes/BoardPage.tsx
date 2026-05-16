@@ -774,7 +774,16 @@ export function BoardPage() {
     }
   }
 
-  function handleToggleTicketExpanded(ticketId: string) {
+  function selectOnlyTicket(ticketId: string) {
+    setSelectedTicketId(ticketId);
+    setTaggedTicketIds(new Set());
+  }
+
+  function handleToggleTicketExpanded(ticketId: string, options?: { selectTicket?: boolean }) {
+    if (options?.selectTicket) {
+      selectOnlyTicket(ticketId);
+    }
+
     setExpandedTicketIds((currentExpandedTicketIds) => {
       const nextExpandedTicketIds = new Set(currentExpandedTicketIds);
 
@@ -868,7 +877,7 @@ export function BoardPage() {
       return;
     }
 
-    setSelectedTicketId(ticket.id);
+    selectOnlyTicket(ticket.id);
   }
 
   function persistReposition(ticketId: string, nextTickets: Ticket[]) {
