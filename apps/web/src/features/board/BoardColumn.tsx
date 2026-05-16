@@ -158,6 +158,7 @@ export function BoardColumn({
         ref={setNodeRef}
         className={`board-column__body ${tickets.length === 0 ? "board-column__body--empty" : ""} ${variant === "swimlane" ? "board-column__body--swimlane" : ""} ${isOver ? "board-column__body--over" : ""}`}
         data-testid={`column-body-${column.statusKey}`}
+        onClick={tickets.length === 0 && showTail ? () => onCreateTicket(column.statusKey, "bottom") : undefined}
       >
         <SortableContext
           items={tickets.map((ticket) => ticket.id)}
@@ -188,7 +189,10 @@ export function BoardColumn({
           <div
             className="board-column__tail"
             data-testid={`column-tail-${column.statusKey}`}
-            onClick={() => onCreateTicket(column.statusKey, "bottom")}
+            onClick={(event) => {
+              event.stopPropagation();
+              onCreateTicket(column.statusKey, "bottom");
+            }}
           />
         ) : null}
       </div>

@@ -1258,11 +1258,15 @@ button {
   border-radius: 16px;
 }
 
-.board-column__body--swimlane:not(.board-column__body--empty) .board-column__tail {
-  flex: 0 0 50px;
+.board-column__tail:hover {
+  background: var(--button-surface);
 }
 
-.board-column__tail:hover {
+.board-column__body--empty {
+  cursor: pointer;
+}
+
+.board-column__body--empty:hover .board-column__tail {
   background: var(--button-surface);
 }
 
