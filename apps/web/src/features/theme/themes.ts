@@ -4,6 +4,7 @@ export const themeOptions = [
   { value: "grove", label: "Grove" },
   { value: "ember", label: "Ember" },
   { value: "dark", label: "Dark" },
+  { value: "console", label: "Console" },
   { value: "macchiato", label: "Macchiato" },
   { value: "macchiato2", label: "Macchiato 2" },
 ] as const;
