@@ -500,19 +500,21 @@ export function BoardPage() {
       });
 
       const rect = selectedTicketElement.getBoundingClientRect();
+      const topLimit = SELECTED_TICKET_VIEWPORT_BUFFER_PX;
       const bottomLimit = window.innerHeight - SELECTED_TICKET_VIEWPORT_BUFFER_PX;
+      const comfortableViewportHeight = bottomLimit - topLimit;
 
-      if (rect.bottom > bottomLimit) {
+      if (rect.top < topLimit || rect.height > comfortableViewportHeight) {
         window.scrollBy({
-          top: rect.bottom - bottomLimit,
+          top: rect.top - topLimit,
           behavior: "smooth",
         });
         return;
       }
 
-      if (rect.top < SELECTED_TICKET_VIEWPORT_BUFFER_PX) {
+      if (rect.bottom > bottomLimit) {
         window.scrollBy({
-          top: rect.top - SELECTED_TICKET_VIEWPORT_BUFFER_PX,
+          top: rect.bottom - bottomLimit,
           behavior: "smooth",
         });
       }
