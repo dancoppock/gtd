@@ -980,7 +980,14 @@ button {
 .board-grid--swimlane-row {
   display: grid;
   gap: 18px;
+}
+
+.board-grid--swimlane-header {
   align-items: start;
+}
+
+.board-grid--swimlane-row {
+  align-items: stretch;
 }
 
 .board-swimlane {
@@ -1078,7 +1085,7 @@ button {
 }
 
 .board-column--swimlane {
-  min-height: 180px;
+  min-height: 140px;
 }
 
 .board-column--over {
@@ -1225,6 +1232,7 @@ button {
 
 .board-column__body {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 12px;
   padding: 12px;
@@ -1237,7 +1245,7 @@ button {
 }
 
 .board-column__body--swimlane {
-  min-height: 80px;
+  min-height: 40px;
 }
 
 .board-column__collapsed-spacer {
@@ -1245,9 +1253,13 @@ button {
 }
 
 .board-column__tail {
-  flex: 1 0 84px;
-  min-height: 84px;
+  flex: 1 1 50px;
+  min-height: 50px;
   border-radius: 16px;
+}
+
+.board-column__body--swimlane:not(.board-column__body--empty) .board-column__tail {
+  flex: 0 0 50px;
 }
 
 .board-column__tail:hover {
@@ -1260,12 +1272,17 @@ button {
 }
 
 .board-column__empty {
+  flex: 0 0 auto;
   color: var(--empty-column-text);
 }
 
 .board-column__empty--quiet {
-  min-height: 52px;
+  min-height: 0;
   padding: 0;
+}
+
+.board-column__body--empty .board-column__empty--quiet {
+  display: none;
 }
 
 .message-panel h2 {

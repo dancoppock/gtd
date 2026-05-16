@@ -156,7 +156,7 @@ export function BoardColumn({
 
       <div
         ref={setNodeRef}
-        className={`board-column__body ${variant === "swimlane" ? "board-column__body--swimlane" : ""} ${isOver ? "board-column__body--over" : ""}`}
+        className={`board-column__body ${tickets.length === 0 ? "board-column__body--empty" : ""} ${variant === "swimlane" ? "board-column__body--swimlane" : ""} ${isOver ? "board-column__body--over" : ""}`}
         data-testid={`column-body-${column.statusKey}`}
       >
         <SortableContext
