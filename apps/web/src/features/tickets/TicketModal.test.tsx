@@ -327,7 +327,7 @@ describe("TicketModal", () => {
     expect(screen.queryByRole("button", { name: "Delete ticket" })).not.toBeInTheDocument();
   });
 
-  it("keeps the modal open on backdrop clicks and closes on action button clicks", () => {
+  it("keeps the modal open on backdrop clicks and closes on cancel", () => {
     const onClose = vi.fn();
 
     render(
@@ -343,11 +343,11 @@ describe("TicketModal", () => {
 
     fireEvent.click(screen.getByRole("presentation"));
     expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
-    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("locks background scrolling while the modal is mounted", () => {

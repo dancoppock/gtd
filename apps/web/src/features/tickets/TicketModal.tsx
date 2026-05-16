@@ -142,9 +142,6 @@ export function TicketModal({
             <h2 id="ticket-modal-title">{title}</h2>
             <p>Tickets default to medium priority and can carry multiple labels.</p>
           </div>
-          <button className="ghost-button" type="button" onClick={onClose}>
-            Close
-          </button>
         </div>
 
         <form
