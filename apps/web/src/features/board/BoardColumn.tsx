@@ -71,7 +71,7 @@ export function BoardColumn({
   if (collapsed) {
     return (
       <section
-        className={`board-column board-column--collapsed ${variant === "swimlane" ? "board-column--swimlane" : ""}`}
+        className={`board-column board-column--collapsed ${column.statusKey === "in_progress" ? "board-column--in-progress" : ""} ${variant === "swimlane" ? "board-column--swimlane" : ""}`}
         data-testid={`column-${column.statusKey}`}
       >
         {showHeader ? (
@@ -101,7 +101,7 @@ export function BoardColumn({
 
   return (
     <section
-      className={`board-column ${variant === "swimlane" ? "board-column--swimlane" : ""} ${isOver ? "board-column--over" : ""}`}
+      className={`board-column ${column.statusKey === "in_progress" ? "board-column--in-progress" : ""} ${variant === "swimlane" ? "board-column--swimlane" : ""} ${isOver ? "board-column--over" : ""}`}
       data-testid={`column-${column.statusKey}`}
     >
       {showHeader ? (

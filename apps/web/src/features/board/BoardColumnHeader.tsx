@@ -38,7 +38,7 @@ export function BoardColumnHeader({
 }: BoardColumnHeaderProps) {
   if (collapsed) {
     return (
-      <section className="board-column board-column--header-only board-column--collapsed" data-testid={`column-header-${column.statusKey}`}>
+      <section className={`board-column board-column--header-only board-column--collapsed ${column.statusKey === "in_progress" ? "board-column--in-progress" : ""}`} data-testid={`column-header-${column.statusKey}`}>
         <header className="board-column__header board-column__header--collapsed">
           <div className="board-column__header-row board-column__header-row--collapsed">
             <button
@@ -61,7 +61,7 @@ export function BoardColumnHeader({
   }
 
   return (
-    <section className="board-column board-column--header-only" data-testid={`column-header-${column.statusKey}`}>
+    <section className={`board-column board-column--header-only ${column.statusKey === "in_progress" ? "board-column--in-progress" : ""}`} data-testid={`column-header-${column.statusKey}`}>
       <header className="board-column__header">
         <div className="board-column__header-row">
           <div className="board-column__header-main">

@@ -188,7 +188,8 @@ function resolveMutationStatusKey(
 }
 
 const COLLAPSED_COLUMN_WIDTH_PX = 48;
-const EXPANDED_COLUMN_WIDTH_PX = 400;
+const EXPANDED_COLUMN_WIDTH_PX = 450;
+const IN_PROGRESS_COLUMN_WIDTH_PX = 500;
 const APP_TITLE = "GTD";
 
 type CreateTicketIntent = {
@@ -364,7 +365,7 @@ export function BoardPage() {
             .map((column) =>
               collapsedStatusKeys.has(column.statusKey)
                 ? `${COLLAPSED_COLUMN_WIDTH_PX}px`
-                : `${EXPANDED_COLUMN_WIDTH_PX}px`,
+                : `${column.statusKey === "in_progress" ? IN_PROGRESS_COLUMN_WIDTH_PX : EXPANDED_COLUMN_WIDTH_PX}px`,
             )
             .join(" ") ?? "",
       }) as CSSProperties,

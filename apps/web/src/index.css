@@ -941,7 +941,7 @@ button {
 
 .board-column {
   display: flex;
-  flex: 0 0 min(400px, calc(100vw - 96px));
+  flex: 0 0 min(450px, calc(100vw - 96px));
   flex-direction: column;
   min-height: 440px;
   background: var(--column-surface);
@@ -952,6 +952,10 @@ button {
     border-color 160ms ease,
     transform 160ms ease,
     box-shadow 160ms ease;
+}
+
+.board-column--in-progress {
+  flex-basis: min(500px, calc(100vw - 96px));
 }
 
 .board-column--header-only {
