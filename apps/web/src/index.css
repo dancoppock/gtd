@@ -548,6 +548,14 @@ button {
   color: var(--button-text);
 }
 
+.hero-panel__toggle--floating {
+  position: fixed;
+  top: 24px;
+  right: 32px;
+  z-index: 20;
+  box-shadow: var(--shadow);
+}
+
 .hero-panel__toggle-icon {
   width: 18px;
   height: 18px;
@@ -1183,8 +1191,8 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--button-surface);
@@ -1195,8 +1203,8 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--button-surface);

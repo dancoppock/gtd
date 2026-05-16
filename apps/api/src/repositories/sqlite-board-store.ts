@@ -60,6 +60,7 @@ type BoardRow = {
   is_default: number;
   is_pinned: number;
   show_priority_colors: number;
+  collapse_menus_by_default: number;
   swimlane_layout: Board["swimlaneLayout"];
   swimlane_label_order: string;
   is_system: number;
@@ -307,8 +308,8 @@ export class SqliteBoardStore {
 
       this.sqlite
         .prepare(`
-          insert into boards (id, slug, name, description, is_default, is_pinned, show_priority_colors, swimlane_layout, swimlane_label_order, is_system, default_label_id, created_at, updated_at)
-          values (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, null, ?, ?)
+          insert into boards (id, slug, name, description, is_default, is_pinned, show_priority_colors, collapse_menus_by_default, swimlane_layout, swimlane_label_order, is_system, default_label_id, created_at, updated_at)
+          values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, null, ?, ?)
         `)
         .run(
           boardId,
@@ -318,6 +319,7 @@ export class SqliteBoardStore {
           isDefault ? 1 : 0,
           input.isPinned ? 1 : 0,
           input.showPriorityColors ? 1 : 0,
+          input.collapseMenusByDefault ? 1 : 0,
           input.swimlaneLayout,
           serializeSwimlaneLabelOrder(input.swimlaneLabelOrder),
           now,
@@ -352,7 +354,7 @@ export class SqliteBoardStore {
         this.sqlite
           .prepare(`
             update boards
-            set name = ?, description = ?, is_default = ?, is_pinned = ?, show_priority_colors = ?, swimlane_layout = ?, swimlane_label_order = ?, is_system = 1, updated_at = ?
+            set name = ?, description = ?, is_default = ?, is_pinned = ?, show_priority_colors = ?, collapse_menus_by_default = ?, swimlane_layout = ?, swimlane_label_order = ?, is_system = 1, updated_at = ?
             where id = ?
           `)
           .run(
@@ -361,6 +363,7 @@ export class SqliteBoardStore {
             shouldStayDefault ? 1 : 0,
             input.isPinned ? 1 : 0,
             input.showPriorityColors ? 1 : 0,
+            input.collapseMenusByDefault ? 1 : 0,
             input.swimlaneLayout,
             serializeSwimlaneLabelOrder(input.swimlaneLabelOrder),
             updatedAt,
@@ -385,7 +388,7 @@ export class SqliteBoardStore {
       this.sqlite
         .prepare(`
           update boards
-          set name = ?, description = ?, is_default = ?, is_pinned = ?, show_priority_colors = ?, swimlane_layout = ?, swimlane_label_order = ?, updated_at = ?
+          set name = ?, description = ?, is_default = ?, is_pinned = ?, show_priority_colors = ?, collapse_menus_by_default = ?, swimlane_layout = ?, swimlane_label_order = ?, updated_at = ?
           where id = ?
         `)
         .run(
@@ -394,6 +397,7 @@ export class SqliteBoardStore {
           shouldStayDefault ? 1 : 0,
           input.isPinned ? 1 : 0,
           input.showPriorityColors ? 1 : 0,
+          input.collapseMenusByDefault ? 1 : 0,
           input.swimlaneLayout,
           serializeSwimlaneLabelOrder(input.swimlaneLabelOrder),
           updatedAt,
@@ -809,8 +813,8 @@ export class SqliteBoardStore {
 
     this.sqlite.transaction(() => {
       const insertBoard = this.sqlite.prepare(`
-        insert or ignore into boards (id, slug, name, description, is_default, is_pinned, show_priority_colors, swimlane_layout, swimlane_label_order, is_system, created_at, updated_at)
-        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        insert or ignore into boards (id, slug, name, description, is_default, is_pinned, show_priority_colors, collapse_menus_by_default, swimlane_layout, swimlane_label_order, is_system, created_at, updated_at)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       const insertStatus = this.sqlite.prepare(`
         insert or ignore into statuses (key, name, category, is_system)
@@ -846,6 +850,7 @@ export class SqliteBoardStore {
           board.isDefault ? 1 : 0,
           board.isPinned ? 1 : 0,
           board.showPriorityColors ? 1 : 0,
+          board.collapseMenusByDefault ? 1 : 0,
           board.swimlaneLayout,
           serializeSwimlaneLabelOrder(board.swimlaneLabelOrder),
           board.isSystem ? 1 : 0,
@@ -1441,6 +1446,7 @@ export class SqliteBoardStore {
       isDefault: Boolean(row.is_default),
       isPinned: Boolean(row.is_pinned),
       showPriorityColors: Boolean(row.show_priority_colors),
+      collapseMenusByDefault: Boolean(row.collapse_menus_by_default),
       swimlaneLayout: row.swimlane_layout,
       swimlaneLabelOrder: parseSwimlaneLabelOrder(row.swimlane_label_order),
       isSystem: Boolean(row.is_system),
@@ -1513,6 +1519,7 @@ export class SqliteBoardStore {
           isDefault: !hasDefaultBoard,
           isPinned: true,
           showPriorityColors: true,
+          collapseMenusByDefault: false,
           swimlaneLayout: "none",
           swimlaneLabelOrder: [],
           isSystem: true,
@@ -1526,8 +1533,8 @@ export class SqliteBoardStore {
 
         this.sqlite
           .prepare(`
-            insert into boards (id, slug, name, description, is_default, is_pinned, show_priority_colors, swimlane_layout, swimlane_label_order, is_system, created_at, updated_at)
-            values (?, ?, ?, ?, ?, 1, 1, ?, ?, 1, ?, ?)
+            insert into boards (id, slug, name, description, is_default, is_pinned, show_priority_colors, collapse_menus_by_default, swimlane_layout, swimlane_label_order, is_system, created_at, updated_at)
+            values (?, ?, ?, ?, ?, 1, 1, 0, ?, ?, 1, ?, ?)
           `)
           .run(
             systemBoard.id,

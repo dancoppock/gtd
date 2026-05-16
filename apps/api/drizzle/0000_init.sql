@@ -8,6 +8,7 @@ CREATE TABLE `boards` (
   `is_default` INTEGER NOT NULL DEFAULT 0,
   `is_pinned` INTEGER NOT NULL DEFAULT 0,
   `show_priority_colors` INTEGER NOT NULL DEFAULT 1,
+  `collapse_menus_by_default` INTEGER NOT NULL DEFAULT 0,
   `swimlane_layout` TEXT NOT NULL DEFAULT 'none',
   `swimlane_label_order` TEXT NOT NULL DEFAULT '[]',
   `is_system` INTEGER NOT NULL DEFAULT 0,
@@ -105,7 +106,7 @@ CREATE TABLE `ticket_labels` (
 CREATE INDEX `ticket_labels_label_idx`
   ON `ticket_labels` (`label_id`);
 
-INSERT INTO `boards` (`id`, `slug`, `name`, `description`, `is_default`, `is_pinned`, `show_priority_colors`, `swimlane_layout`, `swimlane_label_order`, `is_system`, `created_at`, `updated_at`)
+INSERT INTO `boards` (`id`, `slug`, `name`, `description`, `is_default`, `is_pinned`, `show_priority_colors`, `collapse_menus_by_default`, `swimlane_layout`, `swimlane_label_order`, `is_system`, `created_at`, `updated_at`)
 VALUES (
   'board_default',
   'default',
@@ -114,6 +115,7 @@ VALUES (
   1,
   1,
   1,
+  0,
   'none',
   '[]',
   1,

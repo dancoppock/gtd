@@ -42,6 +42,7 @@ type BoardFormState = {
   isDefault: boolean;
   isPinned: boolean;
   showPriorityColors: boolean;
+  collapseMenusByDefault: boolean;
   swimlaneLayout: BoardDetail["swimlaneLayout"];
   swimlaneLabelOrder: BoardDetail["swimlaneLabelOrder"];
   columns: BoardColumnFormState[];
@@ -116,6 +117,7 @@ function emptyBoardFormState(): BoardFormState {
     isDefault: false,
     isPinned: false,
     showPriorityColors: true,
+    collapseMenusByDefault: false,
     swimlaneLayout: "none",
     swimlaneLabelOrder: [],
     columns: [
@@ -135,6 +137,7 @@ function toBoardFormState(board: BoardDetail): BoardFormState {
     isDefault: board.isDefault,
     isPinned: board.isPinned,
     showPriorityColors: board.showPriorityColors,
+    collapseMenusByDefault: board.collapseMenusByDefault,
     swimlaneLayout: board.swimlaneLayout,
     swimlaneLabelOrder: board.swimlaneLabelOrder,
     columns: board.columns.map((column) => ({
@@ -536,6 +539,7 @@ export function BoardEditPage() {
                 isDefault: formState.isDefault,
                 isPinned: formState.isPinned,
                 showPriorityColors: formState.showPriorityColors,
+                collapseMenusByDefault: formState.collapseMenusByDefault,
                 swimlaneLayout: formState.swimlaneLayout,
                 swimlaneLabelOrder: formState.swimlaneLabelOrder,
                 columns: formState.columns.map((column) => ({
@@ -636,6 +640,21 @@ export function BoardEditPage() {
                 }
               />
               <span>Show priority colour stripe on tickets</span>
+            </label>
+
+            <label className="chip-toggle">
+              <input
+                checked={formState.collapseMenusByDefault}
+                data-testid="board-collapse-menus-input"
+                type="checkbox"
+                onChange={(event) =>
+                  setFormState((currentValue) => ({
+                    ...currentValue,
+                    collapseMenusByDefault: event.target.checked,
+                  }))
+                }
+              />
+              <span>Collapse header and search panels by default</span>
             </label>
 
             <label className="field">

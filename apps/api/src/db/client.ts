@@ -53,6 +53,10 @@ function ensureBoardFields(sqlite: Database.Database) {
     sqlite.exec("alter table boards add column show_priority_colors integer not null default 1");
   }
 
+  if (!hasColumn(sqlite, "boards", "collapse_menus_by_default")) {
+    sqlite.exec("alter table boards add column collapse_menus_by_default integer not null default 0");
+  }
+
   if (!hasColumn(sqlite, "boards", "swimlane_layout")) {
     sqlite.exec("alter table boards add column swimlane_layout text not null default 'none'");
   }

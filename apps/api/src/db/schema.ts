@@ -15,6 +15,7 @@ export const boards = sqliteTable("boards", {
   isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
   isPinned: integer("is_pinned", { mode: "boolean" }).notNull().default(false),
   showPriorityColors: integer("show_priority_colors", { mode: "boolean" }).notNull().default(true),
+  collapseMenusByDefault: integer("collapse_menus_by_default", { mode: "boolean" }).notNull().default(false),
   swimlaneLayout: text("swimlane_layout").notNull().default("none"),
   swimlaneLabelOrder: text("swimlane_label_order").notNull().default("[]"),
   isSystem: integer("is_system", { mode: "boolean" }).notNull().default(false),

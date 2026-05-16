@@ -206,6 +206,7 @@ export function BoardPage() {
   const [collapsedStatusKeys, setCollapsedStatusKeys] = useState<Set<string>>(() => new Set());
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [expandedTicketIds, setExpandedTicketIds] = useState<Set<string>>(() => new Set());
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [showSwimlanes, setShowSwimlanes] = useState(false);
   const [ticketViewMode, setTicketViewMode] = useState<TicketViewMode>("compact");
   const { theme, setTheme } = useBoardTheme();
@@ -395,6 +396,12 @@ export function BoardPage() {
       setShowSwimlanes(boardSwimlaneDefault);
     }
   }, [boardId, boardSwimlaneDefault]);
+
+  useEffect(() => {
+    if (boardId) {
+      setIsHeaderCollapsed(Boolean(data?.board.collapseMenusByDefault));
+    }
+  }, [boardId, data?.board.collapseMenusByDefault]);
 
   function handleDragStart(event: DragStartEvent) {
     setActiveTicketId(String(event.active.id));
@@ -729,8 +736,10 @@ export function BoardPage() {
           </>
         }
         description={data?.board.description ?? "Loading board configuration..."}
+        isCollapsed={isHeaderCollapsed}
         theme={theme}
         title={data?.board.name ?? "Loading board..."}
+        onCollapsedChange={setIsHeaderCollapsed}
         onThemeChange={setTheme}
       />
 
@@ -743,21 +752,23 @@ export function BoardPage() {
 
       {data ? (
         <>
-          <BoardFiltersPanel
-            filters={filters}
-            availableLabels={data.board.availableLabels}
-            implicitLabels={data.board.filterLabels}
-            onChange={(nextFilters) => setSearchParams(writeFilters(nextFilters))}
-            onClear={() =>
-              setSearchParams(
-                writeFilters({
-                  priorities: [],
-                  labels: [],
-                  q: "",
-                }),
-              )
-            }
-          />
+          <div hidden={isHeaderCollapsed}>
+            <BoardFiltersPanel
+              filters={filters}
+              availableLabels={data.board.availableLabels}
+              implicitLabels={data.board.filterLabels}
+              onChange={(nextFilters) => setSearchParams(writeFilters(nextFilters))}
+              onClear={() =>
+                setSearchParams(
+                  writeFilters({
+                    priorities: [],
+                    labels: [],
+                    q: "",
+                  }),
+                )
+              }
+            />
+          </div>
 
           <DndContext
             collisionDetection={closestCorners}

@@ -61,6 +61,7 @@ export function createSeedData(): SeedData {
       isDefault: true,
       isPinned: true,
       showPriorityColors: true,
+      collapseMenusByDefault: false,
       swimlaneLayout: "none",
       swimlaneLabelOrder: [],
       isSystem: true,
