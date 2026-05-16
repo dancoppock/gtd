@@ -35,7 +35,7 @@ export function BoardFilters({
     >
       <div className="filters-panel__header">
         <div>
-          <span className="filter-group__title">Search & Filters</span>
+          <span className="filters-panel__title">Search & Filters</span>
         </div>
         <button
           aria-label={isCollapsed ? "Expand filters panel" : "Collapse filters panel"}
