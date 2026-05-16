@@ -39,6 +39,10 @@ const shortcutGroups: ShortcutGroup[] = [
         description: "Toggle tag state on any ticket.",
       },
       {
+        keys: "Shift + Up / Down",
+        description: "Expand or contract the tagged range above or below, then move the highlight.",
+      },
+      {
         keys: "Shift + T",
         description: "Clear all tagged tickets.",
       },
@@ -48,12 +52,12 @@ const shortcutGroups: ShortcutGroup[] = [
     title: "Move and Prioritise",
     shortcuts: [
       {
-        keys: "Shift + Arrow",
-        description: "Move the selected ticket one slot or one column when no tickets are tagged.",
+        keys: "Cmd + Arrow",
+        description: "Move tagged tickets as a group; in swimlane view, Up/Down moves them between swimlanes.",
       },
       {
-        keys: "Shift + Arrow with tags",
-        description: "Move tagged tickets as a group when all tagged tickets are in the same column.",
+        keys: "Option + Arrow",
+        description: "Alternative shortcut for moving tagged tickets as a group, including between swimlanes.",
       },
       {
         keys: "1 / 2 / 3 / 4",
@@ -100,6 +104,10 @@ const shortcutGroups: ShortcutGroup[] = [
       {
         keys: "Shift + C",
         description: "Toggle the board between compact and expanded ticket layout.",
+      },
+      {
+        keys: "Shift + H",
+        description: "Toggle the header panel visibility.",
       },
     ],
   },

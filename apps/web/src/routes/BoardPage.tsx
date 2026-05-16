@@ -1217,6 +1217,129 @@ export function BoardPage() {
     }
   }
 
+  function getKeyboardMoveTickets() {
+    if (taggedTicketIds.size > 0) {
+      const taggedTickets = visibleTickets.filter((ticket) => taggedTicketIds.has(ticket.id));
+      return taggedTickets.length === taggedTicketIds.size ? taggedTickets : [];
+    }
+
+    return selectedTicketId
+      ? visibleTickets.filter((ticket) => ticket.id === selectedTicketId)
+      : [];
+  }
+
+  function handleQuickSwimlaneMove(direction: "up" | "down") {
+    if (!data || !showSwimlanes || swimlanes.length < 2) {
+      return false;
+    }
+
+    const movingTickets = getKeyboardMoveTickets();
+    const firstMovingTicket = movingTickets[0];
+
+    if (!firstMovingTicket) {
+      return false;
+    }
+
+    const sourceSwimlane = resolveTicketSwimlane(firstMovingTicket, implicitSwimlaneLabelNames);
+    const sourceSwimlaneIndex = swimlanes.findIndex((swimlane) => swimlane.key === sourceSwimlane.key);
+    const targetSwimlane = swimlanes[sourceSwimlaneIndex + (direction === "up" ? -1 : 1)];
+
+    if (!targetSwimlane) {
+      return false;
+    }
+
+    const sourceStatusKey = firstMovingTicket.statusKey;
+    const canMoveTogether = movingTickets.every((ticket) => {
+      const ticketSwimlane = resolveTicketSwimlane(ticket, implicitSwimlaneLabelNames);
+      return ticket.statusKey === sourceStatusKey && ticketSwimlane.key === sourceSwimlane.key;
+    });
+
+    if (!canMoveTogether) {
+      return false;
+    }
+
+    const nextLabelsByTicketId = new Map(
+      movingTickets.map((ticket) => [
+        ticket.id,
+        updateTicketSwimlaneLabels(
+          ticket,
+          targetSwimlane,
+          implicitSwimlaneLabelNames,
+          data.board.defaultLabel?.normalizedName,
+        ),
+      ]),
+    );
+    const nextTickets = visibleTickets.map((ticket) => {
+      const nextLabels = nextLabelsByTicketId.get(ticket.id);
+
+      return nextLabels
+        ? {
+            ...ticket,
+            labels: nextLabels,
+          }
+        : ticket;
+    });
+
+    void queryClient.cancelQueries({ queryKey: ["board", boardSlug] });
+    setVisibleTickets(nextTickets);
+
+    beginOptimisticReposition();
+    void Promise.all(
+      movingTickets.map((ticket) => {
+        const nextLabels = nextLabelsByTicketId.get(ticket.id) ?? ticket.labels;
+        return updateTicket(ticket.id, {
+          labels: nextLabels.map((label) => label.name),
+        });
+      }),
+    ).then(async () => {
+      await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
+      await queryClient.invalidateQueries({ queryKey: ["boards"] });
+      await queryClient.invalidateQueries({ queryKey: ["labels"] });
+    }).finally(() => {
+      endOptimisticReposition();
+    });
+
+    return true;
+  }
+
+  function handleKeyboardTagRange(direction: "up" | "down") {
+    if (!data) {
+      return;
+    }
+
+    const nextTicketId = getNextTicketId(
+      data.board.columns,
+      keyboardLanes,
+      selectedTicketId,
+      direction,
+    );
+
+    if (!nextTicketId) {
+      return;
+    }
+
+    setTaggedTicketIds((currentTaggedTicketIds) => {
+      const nextTaggedTicketIds = new Set(currentTaggedTicketIds);
+
+      if (
+        selectedTicketId &&
+        nextTaggedTicketIds.has(selectedTicketId) &&
+        nextTaggedTicketIds.has(nextTicketId)
+      ) {
+        nextTaggedTicketIds.delete(selectedTicketId);
+        return nextTaggedTicketIds;
+      }
+
+      if (selectedTicketId) {
+        nextTaggedTicketIds.add(selectedTicketId);
+      }
+
+      nextTaggedTicketIds.add(nextTicketId);
+      return nextTaggedTicketIds;
+    });
+    setSelectedTicketId(nextTicketId);
+  }
+
   function handleQuickMove(direction: TicketMoveDirection) {
     if (isOptimisticRepositionPending()) {
       return;
@@ -1411,8 +1534,20 @@ export function BoardPage() {
         event.preventDefault();
         const direction = event.key.replace("Arrow", "").toLowerCase() as TicketMoveDirection;
 
-        if (event.shiftKey) {
+        if (event.metaKey || event.altKey) {
+          if (
+            (direction === "up" || direction === "down") &&
+            handleQuickSwimlaneMove(direction)
+          ) {
+            return;
+          }
+
           handleQuickMove(direction);
+          return;
+        }
+
+        if (event.shiftKey && (direction === "up" || direction === "down")) {
+          handleKeyboardTagRange(direction);
           return;
         }
 
@@ -1460,6 +1595,12 @@ export function BoardPage() {
       if (event.shiftKey && event.key.toLowerCase() === "c") {
         event.preventDefault();
         setTicketViewMode((currentViewMode) => (currentViewMode === "compact" ? "full" : "compact"));
+        return;
+      }
+
+      if (event.shiftKey && event.key.toLowerCase() === "h") {
+        event.preventDefault();
+        setIsHeaderCollapsed((currentValue) => !currentValue);
         return;
       }
 
