@@ -373,6 +373,140 @@ button {
   padding: 32px;
 }
 
+.page-shell--home {
+  min-height: 100vh;
+}
+
+.home-finder-region {
+  min-height: calc(100vh - 220px);
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: 24px 0 48px;
+}
+
+.home-finder-region .board-finder {
+  margin-top: min(18vh, 160px);
+}
+
+.board-finder {
+  width: min(720px, 100%);
+}
+
+.board-finder__terminal {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 70px;
+  padding: 0 22px;
+  border: 1px solid rgba(138, 226, 52, 0.28);
+  border-radius: 8px;
+  background: #080b10;
+  color: #d3d7cf;
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  font-family:
+    Monaco,
+    Menlo,
+    Consolas,
+    "Liberation Mono",
+    monospace;
+}
+
+.board-finder__terminal:focus-within {
+  border-color: #8ae234;
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.2),
+    0 0 0 4px rgba(138, 226, 52, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.board-finder__prompt {
+  color: #8ae234;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.board-finder__input {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  caret-color: #8ae234;
+  font-size: 1.25rem;
+}
+
+.board-finder__input::placeholder {
+  color: rgba(211, 215, 207, 0.42);
+}
+
+.board-finder__results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  font-family:
+    Monaco,
+    Menlo,
+    Consolas,
+    "Liberation Mono",
+    monospace;
+}
+
+.board-finder__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: rgba(8, 11, 16, 0.72);
+  color: #d3d7cf;
+  text-align: left;
+}
+
+.board-finder__option--active,
+.board-finder__option:hover {
+  border-color: rgba(138, 226, 52, 0.34);
+  background: rgba(18, 27, 39, 0.92);
+  color: #ffffff;
+}
+
+.board-finder__option small {
+  color: #9aa6a8;
+}
+
+.board-finder__status {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+}
+
+.board-finder__status--error {
+  color: var(--error-text);
+}
+
+.board-finder-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  align-items: start;
+  justify-items: center;
+  padding: min(15vh, 120px) 24px 24px;
+  background: var(--modal-backdrop);
+  backdrop-filter: blur(12px);
+}
+
+.board-finder-overlay__panel {
+  width: min(760px, 100%);
+}
+
 .hero-panel,
 .filters-panel,
 .message-panel {

@@ -1,41 +1,38 @@
 import { useQuery } from "@tanstack/react-query";
-import { Navigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
+import { BoardFinder } from "../features/board/BoardFinder";
 import { fetchBoards } from "../features/board/api";
+import { AppHeader } from "../features/layout/AppHeader";
+import { useBoardTheme } from "../features/theme/useBoardTheme";
 
 export function HomePage() {
+  const { theme, setTheme } = useBoardTheme();
+  const navigate = useNavigate();
+
   const boardsQuery = useQuery({
     queryKey: ["boards"],
     queryFn: fetchBoards,
   });
 
-  const defaultBoard = boardsQuery.data?.find((board) => board.isDefault) ?? boardsQuery.data?.[0] ?? null;
+  return (
+    <main className="page-shell page-shell--home">
+      <AppHeader
+        activeNav="home"
+        description="Organize your tasks, notes and thoughts"
+        theme={theme}
+        title="GTD"
+        onThemeChange={setTheme}
+      />
 
-  if (defaultBoard) {
-    return <Navigate replace to={`/boards/${defaultBoard.slug}`} />;
-  }
-
-  if (boardsQuery.isError) {
-    return (
-      <main className="page-shell">
-        <section className="message-panel message-panel--error">
-          <h2>Home failed to load</h2>
-          <p>{boardsQuery.error instanceof Error ? boardsQuery.error.message : "Unknown error"}</p>
-        </section>
-      </main>
-    );
-  }
-
-  if (boardsQuery.isLoading) {
-    return (
-      <main className="page-shell">
-        <section className="message-panel">
-          <h2>Loading home board</h2>
-          <p>Resolving the current default board.</p>
-        </section>
-      </main>
-    );
-  }
-
-  return <Navigate replace to="/boards" />;
+      <section className="home-finder-region">
+        <BoardFinder
+          boards={boardsQuery.data ?? []}
+          error={boardsQuery.isError ? boardsQuery.error : null}
+          isLoading={boardsQuery.isLoading}
+          onOpenBoard={(board) => navigate(`/boards/${board.slug}`)}
+        />
+      </section>
+    </main>
+  );
 }
