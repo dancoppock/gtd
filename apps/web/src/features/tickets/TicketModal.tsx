@@ -90,6 +90,16 @@ export function TicketModal({
   const title = mode === "create" ? "Create Ticket" : "Edit Ticket";
   const isBusy = formState.isSubmitting || isDeleting;
 
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   const implicitLabelNames = implicitLabels.map((label) => label.name);
   const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
     const target = event.target;
@@ -119,14 +129,13 @@ export function TicketModal({
   };
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+    <div className="modal-backdrop" role="presentation">
       <div
         className="modal-card"
         data-testid="ticket-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="ticket-modal-title"
-        onClick={(event) => event.stopPropagation()}
       >
         <div className="modal-card__header">
           <div>
@@ -184,7 +193,7 @@ export function TicketModal({
             <textarea
               {...register("description")}
               data-testid="ticket-modal-description-input"
-              rows={5}
+              rows={10}
               placeholder="Add context, notes, or acceptance details"
             />
           </label>

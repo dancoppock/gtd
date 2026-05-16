@@ -327,7 +327,7 @@ describe("TicketModal", () => {
     expect(screen.queryByRole("button", { name: "Delete ticket" })).not.toBeInTheDocument();
   });
 
-  it("closes on backdrop and action button clicks", () => {
+  it("keeps the modal open on backdrop clicks and closes on action button clicks", () => {
     const onClose = vi.fn();
 
     render(
@@ -341,11 +341,48 @@ describe("TicketModal", () => {
       />,
     );
 
+    fireEvent.click(screen.getByRole("presentation"));
+    expect(onClose).not.toHaveBeenCalled();
+
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    fireEvent.click(screen.getByRole("presentation"));
 
-    expect(onClose).toHaveBeenCalledTimes(3);
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("locks background scrolling while the modal is mounted", () => {
+    const originalOverflow = document.body.style.overflow;
+    const { unmount } = render(
+      <TicketModal
+        mode="edit"
+        ticket={existingTicket}
+        columns={columns}
+        availableLabels={availableLabels}
+        onClose={vi.fn()}
+        onSubmit={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    expect(document.body.style.overflow).toBe("hidden");
+
+    unmount();
+
+    expect(document.body.style.overflow).toBe(originalOverflow);
+  });
+
+  it("uses a taller description field", () => {
+    render(
+      <TicketModal
+        mode="edit"
+        ticket={existingTicket}
+        columns={columns}
+        availableLabels={availableLabels}
+        onClose={vi.fn()}
+        onSubmit={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    expect(screen.getByLabelText("Description")).toHaveAttribute("rows", "10");
   });
 
   it("closes the edit modal on Escape only when the title field has focus", () => {
