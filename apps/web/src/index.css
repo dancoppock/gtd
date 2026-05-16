@@ -245,6 +245,50 @@
     0 4px 12px rgba(10, 5, 4, 0.24);
 }
 
+:root[data-theme="macchiato2"] {
+  color-scheme: dark;
+  --page-background:
+    radial-gradient(circle at top left, rgba(209, 109, 91, 0.08), transparent 32%),
+    radial-gradient(circle at top right, rgba(237, 135, 150, 0.06), transparent 28%),
+    linear-gradient(180deg, #080504 0%, #0d0908 100%);
+  --page-text: #f2d8d0;
+  --panel: rgba(26, 20, 18, 0.94);
+  --panel-strong: #231916;
+  --ticket-surface: rgba(26, 20, 18, 0.94);
+  --ticket-rail-surface: color-mix(in srgb, var(--ticket-surface) 72%, var(--button-surface) 28%);
+  --ticket-title-text: #f6dfd8;
+  --done-ticket-surface: #1a1412;
+  --border: rgba(201, 150, 132, 0.18);
+  --border-strong: rgba(237, 181, 166, 0.26);
+  --text-muted: #c4a095;
+  --done-ticket-text: #b08a7e;
+  --done-ticket-description: #947870;
+  --empty-column-text: color-mix(in srgb, var(--done-ticket-description) 68%, var(--column-surface) 32%);
+  --column-heading-text: #bc9488;
+  --accent: #d16d5b;
+  --accent-strong: #f0a08c;
+  --accent-secondary: #a44f44;
+  --button-surface: rgba(73, 48, 39, 0.96);
+  --button-text: #f2d8d0;
+  --chip-surface: rgba(73, 48, 39, 0.94);
+  --chip-selected-surface: rgba(209, 109, 91, 0.2);
+  --chip-selected-border: rgba(240, 160, 140, 0.3);
+  --column-surface: #0d0908;
+  --column-header-surface: rgba(13, 9, 8, 0.82);
+  --field-surface: rgba(35, 25, 22, 0.94);
+  --field-surface-strong: rgba(42, 29, 24, 0.98);
+  --focus-ring: rgba(209, 109, 91, 0.22);
+  --focus-border: rgba(240, 160, 140, 0.56);
+  --drag-over-surface: rgba(209, 109, 91, 0.14);
+  --ticket-border: rgba(163, 112, 94, 0.28);
+  --error-text: #ff8f8f;
+  --modal-backdrop: rgba(15, 8, 7, 0.56);
+  --modal-surface: #231916;
+  --shadow:
+    0 20px 50px rgba(10, 5, 4, 0.38),
+    0 4px 12px rgba(10, 5, 4, 0.28);
+}
+
 * {
   box-sizing: border-box;
 }
