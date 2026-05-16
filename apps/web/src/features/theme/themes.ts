@@ -11,7 +11,7 @@ export const themeOptions = [
 
 export type BoardTheme = (typeof themeOptions)[number]["value"];
 
-export const defaultTheme: BoardTheme = "macchiato2";
+export const defaultTheme: BoardTheme = "console";
 export const themeStorageKey = "gtd-board-theme";
 
 export function isBoardTheme(value: string): value is BoardTheme {
