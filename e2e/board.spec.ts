@@ -140,6 +140,7 @@ test("creates a filtered board from the boards page", async ({ page }) => {
   await expect(page.getByTestId("board-pinned-input")).not.toBeChecked();
   await expect(page.getByTestId("board-priority-colors-input")).toBeChecked();
   await page.getByRole("checkbox", { name: "frontend" }).click({ force: true });
+  await page.getByTestId("board-default-label-input").selectOption("label_frontend");
   await page.getByRole("button", { name: "Create Board" }).click();
 
   await expect(page).toHaveURL(/\/boards\/frontend-work$/);
