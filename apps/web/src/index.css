@@ -300,9 +300,10 @@ button {
 
 .hero-panel__header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
+  margin-bottom: 10px;
 }
 
 .hero-panel__body {
@@ -318,21 +319,36 @@ button {
   gap: 16px;
 }
 
+.hero-panel__title-row {
+  display: flex;
+  align-items: baseline;
+  flex: 1 1 auto;
+  gap: 16px;
+  min-width: 0;
+}
+
 .hero-panel h1 {
   font-family:
-    "Iowan Old Style",
-    "Palatino Linotype",
-    serif;
-  font-size: 2.2rem;
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-  margin: 8px 0 12px;
+    "IBM Plex Sans",
+    "Avenir Next",
+    sans-serif;
+  flex: 0 0 auto;
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  margin: 4px 0 10px;
+  text-transform: uppercase;
 }
 
 .hero-panel p {
-  max-width: 720px;
+  max-width: none;
   margin: 0;
   color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.hero-panel__title-row p {
+  flex: 1 1 auto;
 }
 
 .hero-panel__actions {
@@ -449,6 +465,30 @@ button {
 
 .hero-panel__toggle-icon--collapsed {
   transform: rotate(180deg);
+}
+
+.hero-panel__actions .primary-button,
+.hero-panel__actions .ghost-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.hero-panel__actions .theme-select select {
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.hero-panel__actions .view-toggle {
+  gap: 4px;
+  padding: 3px;
+}
+
+.hero-panel__actions .icon-toggle-button {
+  width: 30px;
+  height: 30px;
 }
 
 .primary-button,
@@ -732,15 +772,15 @@ button {
 }
 
 .chip-toggle input:checked + span {
-  background: var(--chip-selected-surface);
-  border-color: var(--chip-selected-border);
-  color: var(--accent-strong);
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  border-color: transparent;
+  color: #fff;
 }
 
 .chip-toggle--implicit span {
-  background: color-mix(in srgb, var(--chip-selected-surface) 72%, var(--chip-surface));
-  border-color: color-mix(in srgb, var(--chip-selected-border) 78%, var(--border));
-  color: var(--accent-strong);
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  border-color: transparent;
+  color: #fff;
 }
 
 .chip-toggle--implicit input + span::before {
@@ -1066,8 +1106,8 @@ button {
 .board-column__body {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px;
+  gap: 12px;
+  padding: 12px;
   min-height: 240px;
   transition: background-color 160ms ease;
 }
@@ -1230,6 +1270,22 @@ button {
   font-weight: 500;
 }
 
+.board-default-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  vertical-align: 0.08em;
+}
+
 .label-row__actions {
   position: relative;
   z-index: 2;
@@ -1310,17 +1366,17 @@ button {
 .ticket-card h3 {
   margin: 0;
   font-size: medium;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .ticket-card__content {
   min-width: 0;
-  padding: 16px 8px 16px 16px;
+  padding: 12px 8px 12px 12px;
 }
 
 .ticket-card__content--priority-color {
   border-left: 3px solid var(--ticket-priority-color);
-  padding-left: 13px;
+  padding-left: 9px;
 }
 
 .ticket-card__content--priority-highest {
@@ -1614,6 +1670,16 @@ button {
   .hero-panel__body {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .hero-panel__title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .hero-panel h1 {
+    margin-bottom: 0;
   }
 
   .label-row__actions {

@@ -40,6 +40,10 @@ function CollapseIcon({ direction }: { direction: "left" | "right" }) {
   );
 }
 
+function formatTicketCount(count: number) {
+  return `${count} ${count === 1 ? "ticket" : "tickets"}`;
+}
+
 export function BoardColumn({
   column,
   collapsed = false,
@@ -84,7 +88,7 @@ export function BoardColumn({
                 <CollapseIcon direction="right" />
               </button>
               <div className="board-column__collapsed-label">
-                <h2>{column.name}</h2>
+                <h2 title={formatTicketCount(tickets.length)}>{column.name}</h2>
               </div>
             </div>
           </header>
@@ -115,8 +119,7 @@ export function BoardColumn({
                 <CollapseIcon direction="left" />
               </button>
               <div>
-              <h2>{column.name}</h2>
-              <p>{tickets.length} tickets</p>
+                <h2 title={formatTicketCount(tickets.length)}>{column.name}</h2>
               </div>
             </div>
             <div className="board-column__header-actions">

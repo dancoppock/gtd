@@ -103,11 +103,11 @@ test("archives done tickets and keeps them hidden after reload", async ({ page }
   await archiveResponse;
 
   await expect(page.getByTestId(`column-${systemDoneStatusKey}`)).not.toContainText("Seed default board");
-  await expect(page.getByTestId(`column-${systemDoneStatusKey}`)).toContainText("0 tickets");
+  await expect(page.getByTestId(`column-${systemDoneStatusKey}`).getByRole("heading", { name: "Done" })).toHaveAttribute("title", "0 tickets");
 
   await page.reload();
   await expect(page.getByTestId(`column-${systemDoneStatusKey}`)).not.toContainText("Seed default board");
-  await expect(page.getByTestId(`column-${systemDoneStatusKey}`)).toContainText("0 tickets");
+  await expect(page.getByTestId(`column-${systemDoneStatusKey}`).getByRole("heading", { name: "Done" })).toHaveAttribute("title", "0 tickets");
 });
 
 test("navigates to labels and manages them globally", async ({ page }) => {

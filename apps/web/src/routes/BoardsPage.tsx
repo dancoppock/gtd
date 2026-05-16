@@ -68,7 +68,7 @@ export function BoardsPage() {
                   <div className="label-row__main">
                     <div>
                       <strong>{board.name}</strong>
-                      {board.isDefault ? <span className="muted-text"> default</span> : null}
+                      {board.isDefault ? <span className="board-default-badge">Default</span> : null}
                     </div>
                     {board.description ? <span className="muted-text">{board.description}</span> : null}
                   </div>

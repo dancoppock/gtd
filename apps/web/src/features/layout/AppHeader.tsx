@@ -42,8 +42,9 @@ export function AppHeader({
   return (
     <section className={`hero-panel ${isCollapsed ? "hero-panel--collapsed" : ""}`}>
       <div className="hero-panel__header">
-        <div>
+        <div className="hero-panel__title-row">
           <h1>{title}</h1>
+          <p>{description}</p>
         </div>
         <button
           aria-label={isCollapsed ? "Expand header panel" : "Collapse header panel"}
@@ -66,8 +67,6 @@ export function AppHeader({
       {!isCollapsed ? (
         <div className="hero-panel__body">
           <div className="hero-panel__content">
-            <p>{description}</p>
-
             <nav aria-label="Primary navigation" className="app-nav">
               <Link className={navClass(activeNav, "home")} to="/">
                 Home
