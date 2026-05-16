@@ -5,6 +5,7 @@ import {
   SYSTEM_BOARD_DONE_STATUS_KEY,
   type BoardFilters,
   type Ticket,
+  type TicketPriority,
   type UpdateTicketInput,
 } from "@gtd/contracts";
 import {
@@ -20,7 +21,8 @@ import {
 } from "@dnd-kit/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CSSProperties } from "react";
-import { useEffect, useMemo, useState } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import {
@@ -40,6 +42,12 @@ import {
   haveSameTicketLayout,
   moveTicket,
 } from "../features/board/drag";
+import {
+  getNextTicketId,
+  getTicketMoveTarget,
+  type BoardTicketLane,
+  type TicketMoveDirection,
+} from "../features/board/keyboard";
 import { SwimlaneToggle } from "../features/board/SwimlaneToggle";
 import {
   buildSwimlaneRepositionInput,
@@ -191,6 +199,13 @@ const COLLAPSED_COLUMN_WIDTH_PX = 48;
 const EXPANDED_COLUMN_WIDTH_PX = 450;
 const IN_PROGRESS_COLUMN_WIDTH_PX = 500;
 const APP_TITLE = "GTD";
+const SELECTED_TICKET_VIEWPORT_BUFFER_PX = 300;
+const QUICK_PRIORITY_BY_KEY: Record<string, TicketPriority> = {
+  "1": "highest",
+  "2": "high",
+  "3": "medium",
+  "4": "low",
+};
 
 type CreateTicketIntent = {
   statusKey: Ticket["statusKey"];
@@ -206,11 +221,17 @@ export function BoardPage() {
   const [collapsedStatusKeys, setCollapsedStatusKeys] = useState<Set<string>>(() => new Set());
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [expandedTicketIds, setExpandedTicketIds] = useState<Set<string>>(() => new Set());
+  const [inlineEditingKey, setInlineEditingKey] = useState(0);
+  const [inlineEditingTicketId, setInlineEditingTicketId] = useState<string | null>(null);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [showSwimlanes, setShowSwimlanes] = useState(false);
+  const [taggedTicketIds, setTaggedTicketIds] = useState<Set<string>>(() => new Set());
   const [ticketViewMode, setTicketViewMode] = useState<TicketViewMode>("compact");
   const { theme, setTheme } = useBoardTheme();
   const [visibleTickets, setVisibleTickets] = useState<Ticket[]>([]);
+  const pendingOptimisticRepositionCountRef = useRef(0);
+  const [pendingOptimisticRepositionCount, setPendingOptimisticRepositionCount] = useState(0);
   const queryClient = useQueryClient();
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -221,6 +242,19 @@ export function BoardPage() {
   );
 
   const filters = useMemo(() => readFilters(searchParams), [searchParams]);
+
+  function beginOptimisticReposition() {
+    pendingOptimisticRepositionCountRef.current += 1;
+    setPendingOptimisticRepositionCount(pendingOptimisticRepositionCountRef.current);
+  }
+
+  function endOptimisticReposition() {
+    pendingOptimisticRepositionCountRef.current = Math.max(
+      pendingOptimisticRepositionCountRef.current - 1,
+      0,
+    );
+    setPendingOptimisticRepositionCount(pendingOptimisticRepositionCountRef.current);
+  }
 
   const boardQuery = useQuery({
     queryKey: ["board", boardSlug, filters],
@@ -306,9 +340,13 @@ export function BoardPage() {
         nextVisibleTicketId: string | null;
       };
     }) => repositionTicket(args.ticketId, args.input),
+    onMutate: () => {
+      beginOptimisticReposition();
+    },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
       await queryClient.invalidateQueries({ queryKey: ["boards"] });
+      endOptimisticReposition();
     },
   });
 
@@ -372,6 +410,21 @@ export function BoardPage() {
       }) as CSSProperties,
     [collapsedStatusKeys, data?.board.columns],
   );
+  const keyboardLanes = useMemo<BoardTicketLane[]>(
+    () =>
+      showSwimlanes
+        ? swimlanes.map((swimlane) => ({
+            key: swimlane.key,
+            tickets: swimlane.tickets,
+          }))
+        : [
+            {
+              key: "board",
+              tickets: visibleTickets,
+            },
+          ],
+    [showSwimlanes, swimlanes, visibleTickets],
+  );
   const activeTicket = activeTicketId
     ? visibleTickets.find((ticket) => ticket.id === activeTicketId) ?? null
     : null;
@@ -386,14 +439,17 @@ export function BoardPage() {
   }, [data?.board.name]);
 
   useEffect(() => {
-    if (data) {
+    if (data && pendingOptimisticRepositionCount === 0) {
       setVisibleTickets(displayedDataTickets);
     }
-  }, [data, displayedDataTickets]);
+  }, [data, displayedDataTickets, pendingOptimisticRepositionCount]);
 
   useEffect(() => {
     if (boardId) {
       setShowSwimlanes(boardSwimlaneDefault);
+      setSelectedTicketId(null);
+      setTaggedTicketIds(new Set());
+      setInlineEditingTicketId(null);
     }
   }, [boardId, boardSwimlaneDefault]);
 
@@ -402,6 +458,64 @@ export function BoardPage() {
       setIsHeaderCollapsed(Boolean(data?.board.collapseMenusByDefault));
     }
   }, [boardId, data?.board.collapseMenusByDefault]);
+
+  useEffect(() => {
+    const visibleTicketIds = new Set(visibleTickets.map((ticket) => ticket.id));
+
+    setSelectedTicketId((currentSelectedTicketId) =>
+      currentSelectedTicketId && visibleTicketIds.has(currentSelectedTicketId)
+        ? currentSelectedTicketId
+        : null,
+    );
+    setTaggedTicketIds((currentTaggedTicketIds) => {
+      const nextTaggedTicketIds = new Set(
+        Array.from(currentTaggedTicketIds).filter((ticketId) => visibleTicketIds.has(ticketId)),
+      );
+
+      return nextTaggedTicketIds.size === currentTaggedTicketIds.size
+        ? currentTaggedTicketIds
+        : nextTaggedTicketIds;
+    });
+  }, [visibleTickets]);
+
+  useEffect(() => {
+    if (!selectedTicketId) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const selectedTicketElement = document.querySelector<HTMLElement>(
+        `[data-ticket-id="${CSS.escape(selectedTicketId)}"]`,
+      );
+
+      if (!selectedTicketElement) {
+        return;
+      }
+
+      selectedTicketElement.scrollIntoView({
+        block: "nearest",
+        inline: "nearest",
+      });
+
+      const rect = selectedTicketElement.getBoundingClientRect();
+      const bottomLimit = window.innerHeight - SELECTED_TICKET_VIEWPORT_BUFFER_PX;
+
+      if (rect.bottom > bottomLimit) {
+        window.scrollBy({
+          top: rect.bottom - bottomLimit,
+          behavior: "smooth",
+        });
+        return;
+      }
+
+      if (rect.top < SELECTED_TICKET_VIEWPORT_BUFFER_PX) {
+        window.scrollBy({
+          top: rect.top - SELECTED_TICKET_VIEWPORT_BUFFER_PX,
+          behavior: "smooth",
+        });
+      }
+    });
+  }, [selectedTicketId, visibleTickets]);
 
   function handleDragStart(event: DragStartEvent) {
     setActiveTicketId(String(event.active.id));
@@ -672,6 +786,12 @@ export function BoardPage() {
     });
   }
 
+  function handleInlineTitleEditEnd(ticket: Ticket) {
+    setInlineEditingTicketId((currentTicketId) =>
+      currentTicketId === ticket.id ? null : currentTicketId,
+    );
+  }
+
   function handleToggleCollapsed(statusKey: string) {
     setCollapsedStatusKeys((currentCollapsedStatusKeys) => {
       const nextCollapsedStatusKeys = new Set(currentCollapsedStatusKeys);
@@ -706,6 +826,551 @@ export function BoardPage() {
     });
   }
 
+  function requestInlineTitleEdit(ticketId: string) {
+    setSelectedTicketId(ticketId);
+    setInlineEditingTicketId(ticketId);
+    setInlineEditingKey((currentKey) => currentKey + 1);
+  }
+
+  function handleTicketClick(ticket: Ticket, event: ReactMouseEvent) {
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      target.closest("button, input, textarea, select, a, [data-no-card-toggle='true']")
+    ) {
+      return;
+    }
+
+    if (event.shiftKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      setTaggedTicketIds((currentTaggedTicketIds) => {
+        const nextTaggedTicketIds = new Set(currentTaggedTicketIds);
+
+        if (nextTaggedTicketIds.has(ticket.id)) {
+          nextTaggedTicketIds.delete(ticket.id);
+        } else {
+          nextTaggedTicketIds.add(ticket.id);
+        }
+
+        return nextTaggedTicketIds;
+      });
+      return;
+    }
+
+    setSelectedTicketId(ticket.id);
+  }
+
+  function persistReposition(ticketId: string, nextTickets: Ticket[]) {
+    if (!data) {
+      return;
+    }
+
+    const repositionInput = buildResolvedRepositionInput(ticketId, nextTickets);
+
+    if (!repositionInput) {
+      return;
+    }
+
+    repositionTicketMutation.mutate({
+      ticketId,
+      input: repositionInput,
+    });
+  }
+
+  function isOptimisticRepositionPending() {
+    return pendingOptimisticRepositionCountRef.current > 0;
+  }
+
+  function buildResolvedRepositionInput(ticketId: string, nextTickets: Ticket[]) {
+    if (!data) {
+      return null;
+    }
+
+    const repositionInput = showSwimlanes
+      ? buildSwimlaneRepositionInput(
+          data.board.columns,
+          nextTickets,
+          ticketId,
+          implicitSwimlaneLabelNames,
+        )
+      : buildRepositionInput(data.board.columns, nextTickets, ticketId);
+
+    if (!repositionInput) {
+      return null;
+    }
+
+    return {
+      ...repositionInput,
+      statusKey: resolveMutationStatusKey(
+        data.board.isSystem,
+        repositionInput.statusKey,
+        actualTicketsById.get(ticketId) ?? null,
+      ),
+    };
+  }
+
+  function getTaggedTicketsInSingleColumn() {
+    if (taggedTicketIds.size === 0) {
+      return null;
+    }
+
+    const taggedTickets = visibleTickets.filter((ticket) => taggedTicketIds.has(ticket.id));
+    const firstTaggedTicket = taggedTickets[0];
+
+    if (!firstTaggedTicket || taggedTickets.length !== taggedTicketIds.size) {
+      return null;
+    }
+
+    const statusKey = firstTaggedTicket.statusKey;
+    if (taggedTickets.some((ticket) => ticket.statusKey !== statusKey)) {
+      return null;
+    }
+
+    return {
+      statusKey,
+      tickets: taggedTickets,
+    };
+  }
+
+  function flattenTicketsByColumn(nextGroups: Map<Ticket["statusKey"], Ticket[]>) {
+    if (!data) {
+      return visibleTickets;
+    }
+
+    return data.board.columns.flatMap((column) => nextGroups.get(column.statusKey) ?? []);
+  }
+
+  function moveTaggedTicketsVertically(direction: "up" | "down") {
+    if (!data) {
+      return null;
+    }
+
+    const taggedContext = getTaggedTicketsInSingleColumn();
+    if (!taggedContext) {
+      return null;
+    }
+
+    const taggedIds = new Set(taggedContext.tickets.map((ticket) => ticket.id));
+    const sourceTickets = visibleTickets.filter((ticket) => ticket.statusKey === taggedContext.statusKey);
+    const firstTaggedIndex = sourceTickets.findIndex((ticket) => taggedIds.has(ticket.id));
+    const lastTaggedIndex = sourceTickets.reduce(
+      (lastIndex, ticket, index) => (taggedIds.has(ticket.id) ? index : lastIndex),
+      -1,
+    );
+
+    if (firstTaggedIndex < 0 || lastTaggedIndex < 0) {
+      return null;
+    }
+
+    const nextGroups = new Map(
+      data.board.columns.map((column) => [
+        column.statusKey,
+        visibleTickets.filter((ticket) => ticket.statusKey === column.statusKey),
+      ]),
+    );
+    const movingTickets = sourceTickets.filter((ticket) => taggedIds.has(ticket.id));
+    const remainingTickets = sourceTickets.filter((ticket) => !taggedIds.has(ticket.id));
+
+    if (direction === "up") {
+      const previousTicket = sourceTickets
+        .slice(0, firstTaggedIndex)
+        .reverse()
+        .find((ticket) => !taggedIds.has(ticket.id));
+
+      if (!previousTicket) {
+        return null;
+      }
+
+      const insertIndex = remainingTickets.findIndex((ticket) => ticket.id === previousTicket.id);
+      remainingTickets.splice(insertIndex, 0, ...movingTickets);
+    } else {
+      const nextTicket = sourceTickets
+        .slice(lastTaggedIndex + 1)
+        .find((ticket) => !taggedIds.has(ticket.id));
+
+      if (!nextTicket) {
+        return null;
+      }
+
+      const insertIndex = remainingTickets.findIndex((ticket) => ticket.id === nextTicket.id);
+      remainingTickets.splice(insertIndex + 1, 0, ...movingTickets);
+    }
+
+    nextGroups.set(taggedContext.statusKey, remainingTickets);
+    return flattenTicketsByColumn(nextGroups);
+  }
+
+  function moveTaggedTicketsHorizontally(direction: "left" | "right") {
+    if (!data) {
+      return null;
+    }
+
+    const taggedContext = getTaggedTicketsInSingleColumn();
+    if (!taggedContext) {
+      return null;
+    }
+
+    const sourceColumnIndex = data.board.columns.findIndex(
+      (column) => column.statusKey === taggedContext.statusKey,
+    );
+    const destinationColumn = data.board.columns[sourceColumnIndex + (direction === "left" ? -1 : 1)];
+
+    if (!destinationColumn) {
+      return null;
+    }
+
+    const taggedIds = new Set(taggedContext.tickets.map((ticket) => ticket.id));
+    const sourceTickets = visibleTickets.filter((ticket) => ticket.statusKey === taggedContext.statusKey);
+    const destinationTickets = visibleTickets.filter(
+      (ticket) => ticket.statusKey === destinationColumn.statusKey,
+    );
+    const firstTaggedIndex = sourceTickets.findIndex((ticket) => taggedIds.has(ticket.id));
+    const movingTickets = sourceTickets
+      .filter((ticket) => taggedIds.has(ticket.id))
+      .map((ticket) => ({
+        ...ticket,
+        statusKey: destinationColumn.statusKey,
+      }));
+    const nextDestinationTickets = [...destinationTickets];
+    const insertIndex = Math.min(Math.max(firstTaggedIndex, 0), nextDestinationTickets.length);
+    const nextGroups = new Map(
+      data.board.columns.map((column) => [
+        column.statusKey,
+        visibleTickets.filter((ticket) => ticket.statusKey === column.statusKey),
+      ]),
+    );
+
+    nextDestinationTickets.splice(insertIndex, 0, ...movingTickets);
+    nextGroups.set(
+      taggedContext.statusKey,
+      sourceTickets.filter((ticket) => !taggedIds.has(ticket.id)),
+    );
+    nextGroups.set(destinationColumn.statusKey, nextDestinationTickets);
+
+    return flattenTicketsByColumn(nextGroups);
+  }
+
+  async function persistTaggedVerticalMove(
+    direction: "up" | "down",
+    taggedTickets: Ticket[],
+    nextTickets: Ticket[],
+  ) {
+    if (!data) {
+      return;
+    }
+
+    const statusKey = taggedTickets[0]?.statusKey;
+    if (!statusKey) {
+      return;
+    }
+
+    const sourceTickets = visibleTickets.filter((ticket) => ticket.statusKey === statusKey);
+    const taggedIds = new Set(taggedTickets.map((ticket) => ticket.id));
+    const firstTaggedIndex = sourceTickets.findIndex((ticket) => taggedIds.has(ticket.id));
+    const lastTaggedIndex = sourceTickets.reduce(
+      (lastIndex, ticket, index) => (taggedIds.has(ticket.id) ? index : lastIndex),
+      -1,
+    );
+    const orderedTaggedTickets =
+      direction === "up"
+        ? [...taggedTickets].reverse()
+        : taggedTickets;
+    const previousAnchorTicket =
+      direction === "up"
+        ? sourceTickets
+            .slice(0, firstTaggedIndex)
+            .reverse()
+            .find((ticket) => !taggedIds.has(ticket.id)) ?? null
+        : null;
+    const nextAnchorTicket =
+      direction === "down"
+        ? sourceTickets
+            .slice(lastTaggedIndex + 1)
+            .find((ticket) => !taggedIds.has(ticket.id)) ?? null
+        : null;
+    const anchorTicket =
+      direction === "up"
+        ? previousAnchorTicket
+        : nextAnchorTicket;
+
+    if (!anchorTicket) {
+      return;
+    }
+
+    let previousMovedTicketId: string | null = null;
+
+    beginOptimisticReposition();
+    try {
+      for (const movingTicket of orderedTaggedTickets) {
+        const prevVisibleTicketId =
+          direction === "up"
+            ? (previousAnchorTicket ? sourceTickets[sourceTickets.indexOf(previousAnchorTicket) - 1]?.id ?? null : null)
+            : (previousMovedTicketId ?? anchorTicket.id);
+        const nextVisibleTicketId =
+          direction === "up"
+            ? (previousMovedTicketId ?? anchorTicket.id)
+            : (nextAnchorTicket ? sourceTickets[sourceTickets.indexOf(nextAnchorTicket) + 1]?.id ?? null : null);
+
+        await repositionTicket(movingTicket.id, {
+          statusKey: resolveMutationStatusKey(
+            data.board.isSystem,
+            statusKey,
+            actualTicketsById.get(movingTicket.id) ?? movingTicket,
+          ),
+          prevVisibleTicketId,
+          nextVisibleTicketId,
+        });
+        previousMovedTicketId = movingTicket.id;
+      }
+
+      setVisibleTickets(nextTickets);
+      await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
+      await queryClient.invalidateQueries({ queryKey: ["boards"] });
+    } finally {
+      endOptimisticReposition();
+    }
+  }
+
+  async function persistTaggedHorizontalMove(
+    direction: "left" | "right",
+    taggedTickets: Ticket[],
+    nextTickets: Ticket[],
+  ) {
+    if (!data) {
+      return;
+    }
+
+    const sourceStatusKey = taggedTickets[0]?.statusKey;
+    const sourceColumnIndex = data.board.columns.findIndex((column) => column.statusKey === sourceStatusKey);
+    const destinationColumn = data.board.columns[sourceColumnIndex + (direction === "left" ? -1 : 1)];
+
+    if (!sourceStatusKey || !destinationColumn) {
+      return;
+    }
+
+    const sourceTickets = visibleTickets.filter((ticket) => ticket.statusKey === sourceStatusKey);
+    const destinationTickets = visibleTickets.filter(
+      (ticket) => ticket.statusKey === destinationColumn.statusKey,
+    );
+    const taggedIds = new Set(taggedTickets.map((ticket) => ticket.id));
+    const firstTaggedIndex = sourceTickets.findIndex((ticket) => taggedIds.has(ticket.id));
+    const insertIndex = Math.min(Math.max(firstTaggedIndex, 0), destinationTickets.length);
+    const nextVisibleTicketId = destinationTickets[insertIndex]?.id ?? null;
+    let prevVisibleTicketId = destinationTickets[insertIndex - 1]?.id ?? null;
+
+    beginOptimisticReposition();
+    try {
+      for (const movingTicket of taggedTickets) {
+        await repositionTicket(movingTicket.id, {
+          statusKey: resolveMutationStatusKey(
+            data.board.isSystem,
+            destinationColumn.statusKey,
+            actualTicketsById.get(movingTicket.id) ?? movingTicket,
+          ),
+          prevVisibleTicketId,
+          nextVisibleTicketId,
+        });
+        prevVisibleTicketId = movingTicket.id;
+      }
+
+      setVisibleTickets(nextTickets);
+      await queryClient.invalidateQueries({ queryKey: ["board", boardSlug] });
+      await queryClient.invalidateQueries({ queryKey: ["boards"] });
+    } finally {
+      endOptimisticReposition();
+    }
+  }
+
+  function handleTaggedQuickMove(direction: TicketMoveDirection) {
+    const taggedContext = getTaggedTicketsInSingleColumn();
+    if (!taggedContext) {
+      return;
+    }
+
+    const nextTickets =
+      direction === "up" || direction === "down"
+        ? moveTaggedTicketsVertically(direction)
+        : moveTaggedTicketsHorizontally(direction);
+
+    if (!nextTickets || haveSameTicketLayout(visibleTickets, nextTickets)) {
+      return;
+    }
+
+    void queryClient.cancelQueries({ queryKey: ["board", boardSlug] });
+    setVisibleTickets(nextTickets);
+
+    if (direction === "up" || direction === "down") {
+      void persistTaggedVerticalMove(direction, taggedContext.tickets, nextTickets);
+    } else {
+      void persistTaggedHorizontalMove(direction, taggedContext.tickets, nextTickets);
+    }
+  }
+
+  function handleQuickMove(direction: TicketMoveDirection) {
+    if (isOptimisticRepositionPending()) {
+      return;
+    }
+
+    if (taggedTicketIds.size > 0) {
+      handleTaggedQuickMove(direction);
+      return;
+    }
+
+    if (!data || !selectedTicketId) {
+      return;
+    }
+
+    const overId = getTicketMoveTarget(data.board.columns, keyboardLanes, selectedTicketId, direction);
+    const columnIds = new Set(data.board.columns.map((column) => column.id));
+
+    if (!overId || (showSwimlanes && columnIds.has(overId) && (direction === "up" || direction === "down"))) {
+      return;
+    }
+
+    const originalTicket = visibleTickets.find((ticket) => ticket.id === selectedTicketId) ?? null;
+    const nextTickets = moveTicket(data.board.columns, visibleTickets, selectedTicketId, overId);
+    const nextTicket = nextTickets.find((ticket) => ticket.id === selectedTicketId) ?? null;
+
+    if (haveSameTicketLayout(visibleTickets, nextTickets)) {
+      return;
+    }
+
+    void queryClient.cancelQueries({ queryKey: ["board", boardSlug] });
+    setVisibleTickets(nextTickets);
+    persistReposition(selectedTicketId, nextTickets);
+
+    if (originalTicket && nextTicket) {
+      collapseExpandedTicketAfterColumnMove(
+        selectedTicketId,
+        originalTicket.statusKey,
+        nextTicket.statusKey,
+      );
+    }
+  }
+
+  async function handleQuickPriority(priority: TicketPriority) {
+    if (taggedTicketIds.size > 0) {
+      const taggedTickets = visibleTickets.filter((ticket) => taggedTicketIds.has(ticket.id));
+      if (taggedTickets.length === 0) {
+        return;
+      }
+
+      setVisibleTickets((currentTickets) =>
+        currentTickets.map((ticket) =>
+          taggedTicketIds.has(ticket.id)
+            ? {
+                ...ticket,
+                priority,
+              }
+            : ticket,
+        ),
+      );
+
+      await Promise.all(
+        taggedTickets
+          .filter((ticket) => ticket.priority !== priority)
+          .map((ticket) =>
+            updateTicketMutation.mutateAsync({
+              ticketId: ticket.id,
+              input: { priority },
+            }),
+          ),
+      );
+      return;
+    }
+
+    if (!selectedTicketId) {
+      return;
+    }
+
+    const selectedTicket = visibleTickets.find((ticket) => ticket.id === selectedTicketId);
+    if (!selectedTicket || selectedTicket.priority === priority) {
+      return;
+    }
+
+    setVisibleTickets((currentTickets) =>
+      currentTickets.map((ticket) =>
+        ticket.id === selectedTicketId
+          ? {
+              ...ticket,
+              priority,
+            }
+          : ticket,
+      ),
+    );
+
+    await updateTicketMutation.mutateAsync({
+      ticketId: selectedTicketId,
+      input: { priority },
+    });
+  }
+
+  function findLaneLabelsForTicket(ticket: Ticket) {
+    if (!showSwimlanes) {
+      return [];
+    }
+
+    const lane = swimlanes.find((candidate) =>
+      candidate.tickets.some((candidateTicket) => candidateTicket.id === ticket.id),
+    );
+
+    return lane && lane.key !== UNLABELED_SWIMLANE_KEY ? [lane.name] : [];
+  }
+
+  async function handleQuickCreate(position: "above" | "below") {
+    if (!data || !selectedTicketId) {
+      return;
+    }
+
+    const selectedTicket = visibleTickets.find((ticket) => ticket.id === selectedTicketId);
+    if (!selectedTicket) {
+      return;
+    }
+
+    const laneLabels = findLaneLabelsForTicket(selectedTicket);
+    const nextTicket = await createTicketMutation.mutateAsync({
+      statusKey: resolveMutationStatusKey(
+        data.board.isSystem,
+        selectedTicket.statusKey,
+        actualTicketsById.get(selectedTicket.id) ?? selectedTicket,
+      ),
+      title: "New ticket",
+      description: "",
+      priority: selectedTicket.priority,
+      labels: buildCreateTicketLabels([], laneLabels, data.board.filterLabels, data.board.defaultLabel),
+      position: position === "above" ? "top" : "bottom",
+    });
+    const sameLaneTickets = showSwimlanes
+      ? (swimlanes
+          .find((swimlane) => swimlane.tickets.some((ticket) => ticket.id === selectedTicket.id))
+          ?.tickets.filter((ticket) => ticket.statusKey === selectedTicket.statusKey) ?? [])
+      : visibleTickets.filter((ticket) => ticket.statusKey === selectedTicket.statusKey);
+    const selectedIndex = sameLaneTickets.findIndex((ticket) => ticket.id === selectedTicket.id);
+    const prevVisibleTicketId =
+      position === "above"
+        ? (sameLaneTickets[selectedIndex - 1]?.id ?? null)
+        : selectedTicket.id;
+    const nextVisibleTicketId =
+      position === "above"
+        ? selectedTicket.id
+        : (sameLaneTickets[selectedIndex + 1]?.id ?? null);
+
+    await repositionTicketMutation.mutateAsync({
+      ticketId: nextTicket.id,
+      input: {
+        statusKey: resolveMutationStatusKey(
+          data.board.isSystem,
+          selectedTicket.statusKey,
+          actualTicketsById.get(selectedTicket.id) ?? selectedTicket,
+        ),
+        prevVisibleTicketId,
+        nextVisibleTicketId,
+      },
+    });
+    requestInlineTitleEdit(nextTicket.id);
+  }
+
   function openCreateTicket(
     statusKey: Ticket["statusKey"],
     position: CreateTicketPosition,
@@ -713,6 +1378,123 @@ export function BoardPage() {
   ) {
     setCreateTicketIntent({ statusKey, position, labels });
   }
+
+  useEffect(() => {
+    function shouldIgnoreShortcut(event: KeyboardEvent) {
+      if (createTicketIntent || editingTicket) {
+        return true;
+      }
+
+      const target = event.target;
+      return (
+        target instanceof Element &&
+        Boolean(target.closest("button, input, textarea, select, a, [contenteditable='true']"))
+      );
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (shouldIgnoreShortcut(event) || !data) {
+        return;
+      }
+
+      if (event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        event.preventDefault();
+        const direction = event.key.replace("Arrow", "").toLowerCase() as TicketMoveDirection;
+
+        if (event.shiftKey) {
+          handleQuickMove(direction);
+          return;
+        }
+
+        const nextTicketId = getNextTicketId(
+          data.board.columns,
+          keyboardLanes,
+          selectedTicketId,
+          direction,
+        );
+
+        if (nextTicketId) {
+          setSelectedTicketId(nextTicketId);
+        }
+        return;
+      }
+
+      if (event.key === " " && selectedTicketId) {
+        event.preventDefault();
+        setTaggedTicketIds((currentTaggedTicketIds) => {
+          const nextTaggedTicketIds = new Set(currentTaggedTicketIds);
+
+          if (nextTaggedTicketIds.has(selectedTicketId)) {
+            nextTaggedTicketIds.delete(selectedTicketId);
+          } else {
+            nextTaggedTicketIds.add(selectedTicketId);
+          }
+
+          return nextTaggedTicketIds;
+        });
+        return;
+      }
+
+      if (event.shiftKey && event.key.toLowerCase() === "t") {
+        event.preventDefault();
+        setTaggedTicketIds(new Set());
+        return;
+      }
+
+      if (!event.shiftKey && event.key.toLowerCase() === "t" && selectedTicketId) {
+        event.preventDefault();
+        handleToggleTicketExpanded(selectedTicketId);
+        return;
+      }
+
+      if (event.shiftKey && event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        setTicketViewMode((currentViewMode) => (currentViewMode === "compact" ? "full" : "compact"));
+        return;
+      }
+
+      const quickPriority = QUICK_PRIORITY_BY_KEY[event.key];
+      if (quickPriority) {
+        event.preventDefault();
+        void handleQuickPriority(quickPriority);
+        return;
+      }
+
+      if (event.key.toLowerCase() === "o" || event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        void handleQuickCreate(event.shiftKey ? "above" : "below");
+        return;
+      }
+
+      if (event.key === "Enter" && selectedTicketId) {
+        event.preventDefault();
+        const selectedTicket = visibleTickets.find((ticket) => ticket.id === selectedTicketId);
+
+        if (!selectedTicket) {
+          return;
+        }
+
+        if (event.shiftKey) {
+          setEditingTicket(selectedTicket);
+        } else {
+          requestInlineTitleEdit(selectedTicketId);
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // The shortcut listener intentionally closes over the latest board state and rebinds as it changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    createTicketIntent,
+    data,
+    editingTicket,
+    keyboardLanes,
+    selectedTicketId,
+    taggedTicketIds,
+    visibleTickets,
+  ]);
 
   return (
     <main className="page-shell">
@@ -866,9 +1648,13 @@ export function BoardPage() {
                               droppableId={buildSwimlaneDropTargetId(swimlane.key, column.id)}
                               emptyMessage={null}
                               expandedTicketIds={expandedTicketIds}
+                              inlineEditingKey={inlineEditingKey}
+                              inlineEditingTicketId={inlineEditingTicketId}
+                              selectedTicketId={selectedTicketId}
                               showHeader={false}
                               showPriorityColors={data.board.showPriorityColors}
                               variant="swimlane"
+                              taggedTicketIds={taggedTicketIds}
                               tickets={laneTickets}
                               onEditTicket={setEditingTicket}
                               onCreateTicket={(statusKey, position) =>
@@ -878,7 +1664,9 @@ export function BoardPage() {
                                   swimlane.key === UNLABELED_SWIMLANE_KEY ? [] : [swimlane.name],
                                 )
                               }
+                              onInlineTitleEditEnd={handleInlineTitleEditEnd}
                               onInlineTitleUpdate={handleInlineTitleUpdate}
+                              onTicketClick={handleTicketClick}
                               onToggleTicketExpanded={handleToggleTicketExpanded}
                               viewMode={ticketViewMode}
                             />
@@ -901,17 +1689,23 @@ export function BoardPage() {
                       collapsed={collapsedStatusKeys.has(column.statusKey)}
                       column={column}
                       expandedTicketIds={expandedTicketIds}
+                      inlineEditingKey={inlineEditingKey}
+                      inlineEditingTicketId={inlineEditingTicketId}
                       isArchiving={
                         archiveDoneTicketsMutation.isPending && column.statusCategory === "completed"
                       }
+                      selectedTicketId={selectedTicketId}
                       showPriorityColors={data.board.showPriorityColors}
+                      taggedTicketIds={taggedTicketIds}
                       tickets={tickets}
                       onArchiveDoneTickets={() => {
                         void archiveDoneTicketsMutation.mutateAsync(data.board.id);
                       }}
                       onEditTicket={setEditingTicket}
                       onCreateTicket={openCreateTicket}
+                      onInlineTitleEditEnd={handleInlineTitleEditEnd}
                       onInlineTitleUpdate={handleInlineTitleUpdate}
+                      onTicketClick={handleTicketClick}
                       onToggleCollapsed={() => handleToggleCollapsed(column.statusKey)}
                       onToggleTicketExpanded={handleToggleTicketExpanded}
                       viewMode={ticketViewMode}
@@ -925,6 +1719,8 @@ export function BoardPage() {
               {activeTicket ? (
                 <TicketCard
                   isExpanded={expandedTicketIds.has(activeTicket.id)}
+                  isSelected={selectedTicketId === activeTicket.id}
+                  isTagged={taggedTicketIds.has(activeTicket.id)}
                   ticket={activeTicket}
                   tone={resolveTicketTone(data.board.columns, activeTicket)}
                   onEdit={() => undefined}

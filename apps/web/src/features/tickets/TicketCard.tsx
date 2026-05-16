@@ -12,11 +12,15 @@ type TicketCardProps = {
     attributes: ReturnType<typeof useSortable>["attributes"];
     listeners: ReturnType<typeof useSortable>["listeners"];
   };
+  beginEditingKey?: number;
   isDragging?: boolean;
   isExpanded?: boolean;
+  isSelected?: boolean;
+  isTagged?: boolean;
   ticket: Ticket;
   tone?: TicketCardTone;
   onEdit: () => void;
+  onTitleEditEnd?: () => void;
   onToggleExpanded?: () => void;
   onTitleUpdate?: (nextTitle: string) => Promise<void>;
   showPriorityColor?: boolean;
@@ -24,12 +28,16 @@ type TicketCardProps = {
 };
 
 export function TicketCard({
+  beginEditingKey,
   dragHandleProps,
   isDragging = false,
   isExpanded = false,
+  isSelected = false,
+  isTagged = false,
   ticket,
   tone = "default",
   onEdit,
+  onTitleEditEnd,
   onToggleExpanded,
   onTitleUpdate,
   showPriorityColor = false,
@@ -47,6 +55,7 @@ export function TicketCard({
   const [isDescriptionTruncated, setIsDescriptionTruncated] = useState(false);
   const [titleError, setTitleError] = useState<string | null>(null);
   const descriptionRef = useRef<HTMLParagraphElement | null>(null);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
   const titleClickTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -82,6 +91,23 @@ export function TicketCard({
     };
   }, []);
 
+  useEffect(() => {
+    if (beginEditingKey !== undefined) {
+      setDraftTitle(ticket.title);
+      setTitleError(null);
+      setIsEditingTitle(true);
+    }
+  }, [beginEditingKey, ticket.title]);
+
+  useEffect(() => {
+    if (!isEditingTitle) {
+      return;
+    }
+
+    const titleInput = titleInputRef.current;
+    titleInput?.setSelectionRange(titleInput.value.length, titleInput.value.length);
+  }, [isEditingTitle]);
+
   function beginTitleEdit() {
     setDraftTitle(ticket.title);
     setTitleError(null);
@@ -92,6 +118,7 @@ export function TicketCard({
     setDraftTitle(ticket.title);
     setTitleError(null);
     setIsEditingTitle(false);
+    onTitleEditEnd?.();
   }
 
   async function commitTitleEdit() {
@@ -105,6 +132,7 @@ export function TicketCard({
     if (trimmedTitle === ticket.title) {
       setIsEditingTitle(false);
       setTitleError(null);
+      onTitleEditEnd?.();
       return;
     }
 
@@ -118,6 +146,7 @@ export function TicketCard({
     try {
       await onTitleUpdate(trimmedTitle);
       setIsEditingTitle(false);
+      onTitleEditEnd?.();
     } catch (error) {
       setTitleError(error instanceof Error ? error.message : "Title update failed");
     } finally {
@@ -206,6 +235,9 @@ export function TicketCard({
     <article
       className={`ticket-card ${dragHandleProps ? "ticket-card--with-drag-rail" : ""} ${isDragging ? "ticket-card--dragging" : ""} ${isCompact ? "ticket-card--compact" : ""} ${showExpandedContent ? "ticket-card--expanded" : ""} ${tone === "done" ? "ticket-card--done" : ""}`}
       data-testid={`ticket-${ticket.id}`}
+      data-ticket-id={ticket.id}
+      data-ticket-selected={isSelected ? "true" : undefined}
+      data-ticket-tagged={isTagged ? "true" : undefined}
     >
       <div
         className={`ticket-card__content ${isCompact || isDescriptionTruncated ? "ticket-card__content--toggleable" : ""} ${showPriorityColor ? `ticket-card__content--priority-color ticket-card__content--priority-${ticket.priority}` : ""}`}
@@ -218,6 +250,7 @@ export function TicketCard({
               {isEditingTitle ? (
                 <div className="ticket-card__title-editor">
                   <input
+                    ref={titleInputRef}
                     aria-label={`Edit title for ${ticket.title}`}
                     className="ticket-card__title-input"
                     data-testid={`ticket-title-input-${ticket.id}`}

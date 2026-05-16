@@ -1638,6 +1638,27 @@ button {
   opacity: 0.72;
 }
 
+.ticket-card[data-ticket-selected="true"] {
+  border-color: #238636;
+  box-shadow:
+    0 12px 24px rgba(76, 65, 36, 0.06),
+    0 0 0 3px rgba(35, 134, 54, 0.22);
+}
+
+.ticket-card[data-ticket-tagged="true"] {
+  border-color: #d97706;
+  box-shadow:
+    0 12px 24px rgba(76, 65, 36, 0.06),
+    0 0 0 3px rgba(217, 119, 6, 0.22);
+}
+
+.ticket-card[data-ticket-selected="true"][data-ticket-tagged="true"] {
+  box-shadow:
+    0 12px 24px rgba(76, 65, 36, 0.06),
+    0 0 0 3px rgba(35, 134, 54, 0.24),
+    0 0 0 6px rgba(217, 119, 6, 0.18);
+}
+
 .ticket-card h3 {
   margin: 0;
   font-size: medium;

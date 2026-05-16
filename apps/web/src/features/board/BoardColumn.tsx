@@ -1,6 +1,7 @@
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Column, Ticket } from "@gtd/contracts";
 import { useDroppable } from "@dnd-kit/core";
+import type { MouseEvent } from "react";
 
 import type { TicketViewMode } from "./TicketViewToggle";
 import { SortableTicketCard } from "../tickets/SortableTicketCard";
@@ -13,15 +14,21 @@ type BoardColumnProps = {
   droppableId?: string;
   emptyMessage?: string | null;
   expandedTicketIds: ReadonlySet<string>;
+  inlineEditingKey?: number;
+  inlineEditingTicketId?: string | null;
   showHeader?: boolean;
   showPriorityColors: boolean;
   showTail?: boolean;
+  selectedTicketId?: string | null;
+  taggedTicketIds?: ReadonlySet<string>;
   tickets: Ticket[];
   isArchiving?: boolean;
   onEditTicket: (ticket: Ticket) => void;
   onCreateTicket: (statusKey: Column["statusKey"], position: CreateTicketPosition) => void;
   onArchiveDoneTickets?: () => void;
+  onInlineTitleEditEnd?: (ticket: Ticket) => void;
   onInlineTitleUpdate: (ticket: Ticket, nextTitle: string) => Promise<void>;
+  onTicketClick?: (ticket: Ticket, event: MouseEvent) => void;
   onToggleCollapsed?: () => void;
   onToggleTicketExpanded: (ticketId: string) => void;
   variant?: "default" | "swimlane";
@@ -50,15 +57,21 @@ export function BoardColumn({
   droppableId,
   emptyMessage = "No tickets match the current filters.",
   expandedTicketIds,
+  inlineEditingKey,
+  inlineEditingTicketId = null,
   showHeader = true,
   showPriorityColors,
   showTail = true,
+  selectedTicketId = null,
+  taggedTicketIds = new Set(),
   tickets,
   isArchiving = false,
   onEditTicket,
   onCreateTicket,
   onArchiveDoneTickets,
+  onInlineTitleEditEnd,
   onInlineTitleUpdate,
+  onTicketClick,
   onToggleCollapsed,
   onToggleTicketExpanded,
   variant = "default",
@@ -168,12 +181,17 @@ export function BoardColumn({
             tickets.map((ticket) => (
               <SortableTicketCard
                 key={ticket.id}
+                beginEditingKey={inlineEditingTicketId === ticket.id ? inlineEditingKey : undefined}
                 isExpanded={expandedTicketIds.has(ticket.id)}
+                isSelected={selectedTicketId === ticket.id}
+                isTagged={taggedTicketIds.has(ticket.id)}
                 ticket={ticket}
                 tone={column.statusCategory === "completed" ? "done" : "default"}
                 onEdit={() => onEditTicket(ticket)}
+                onTitleEditEnd={() => onInlineTitleEditEnd?.(ticket)}
                 onToggleExpanded={() => onToggleTicketExpanded(ticket.id)}
                 onTitleUpdate={(nextTitle) => onInlineTitleUpdate(ticket, nextTitle)}
+                onTicketClick={(event) => onTicketClick?.(ticket, event)}
                 showPriorityColor={showPriorityColors && column.statusCategory !== "completed"}
                 viewMode={viewMode}
               />
