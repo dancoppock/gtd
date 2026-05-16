@@ -11,7 +11,7 @@ import {
 } from "../theme/themes";
 
 type AppHeaderProps = {
-  activeNav: "home" | "boards" | "labels" | "insights";
+  activeNav: "home" | "boards" | "labels" | "insights" | "help";
   title: string;
   description: string;
   theme: BoardTheme;
@@ -109,6 +109,9 @@ export function AppHeader({
             </Link>
             <Link className={navClass(activeNav, "insights")} to="/insights">
               Insights
+            </Link>
+            <Link className={navClass(activeNav, "help")} to="/help">
+              Help
             </Link>
           </nav>
 
