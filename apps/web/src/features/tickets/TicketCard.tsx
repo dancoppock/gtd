@@ -13,6 +13,7 @@ type TicketCardProps = {
     listeners: ReturnType<typeof useSortable>["listeners"];
   };
   beginEditingKey?: number;
+  beginEditingTitle?: string;
   isDragging?: boolean;
   isExpanded?: boolean;
   isSelected?: boolean;
@@ -20,6 +21,7 @@ type TicketCardProps = {
   ticket: Ticket;
   tone?: TicketCardTone;
   onEdit: () => void;
+  onTitleEditStart?: () => void;
   onTitleEditEnd?: () => void;
   onToggleExpanded?: () => void;
   onTitleUpdate?: (nextTitle: string) => Promise<void>;
@@ -29,6 +31,7 @@ type TicketCardProps = {
 
 export function TicketCard({
   beginEditingKey,
+  beginEditingTitle,
   dragHandleProps,
   isDragging = false,
   isExpanded = false,
@@ -37,6 +40,7 @@ export function TicketCard({
   ticket,
   tone = "default",
   onEdit,
+  onTitleEditStart,
   onTitleEditEnd,
   onToggleExpanded,
   onTitleUpdate,
@@ -93,11 +97,11 @@ export function TicketCard({
 
   useEffect(() => {
     if (beginEditingKey !== undefined) {
-      setDraftTitle(ticket.title);
+      setDraftTitle(beginEditingTitle ?? ticket.title);
       setTitleError(null);
       setIsEditingTitle(true);
     }
-  }, [beginEditingKey, ticket.title]);
+  }, [beginEditingKey, beginEditingTitle, ticket.title]);
 
   useEffect(() => {
     if (!isEditingTitle) {
@@ -112,6 +116,7 @@ export function TicketCard({
     setDraftTitle(ticket.title);
     setTitleError(null);
     setIsEditingTitle(true);
+    onTitleEditStart?.();
   }
 
   function cancelTitleEdit() {

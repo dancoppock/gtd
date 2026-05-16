@@ -12,7 +12,9 @@ type SortableTicketCardProps = {
   ticket: Ticket;
   tone: TicketCardTone;
   beginEditingKey?: number;
+  beginEditingTitle?: string;
   onEdit: () => void;
+  onTitleEditStart?: () => void;
   onTitleEditEnd?: () => void;
   onTitleUpdate: (nextTitle: string) => Promise<void>;
   onTicketClick?: (event: MouseEvent) => void;
@@ -26,9 +28,11 @@ type SortableTicketCardProps = {
 
 export function SortableTicketCard({
   beginEditingKey,
+  beginEditingTitle,
   ticket,
   tone,
   onEdit,
+  onTitleEditStart,
   onTitleEditEnd,
   onTitleUpdate,
   onTicketClick,
@@ -62,6 +66,7 @@ export function SortableTicketCard({
     >
       <TicketCard
         beginEditingKey={beginEditingKey}
+        beginEditingTitle={beginEditingTitle}
         dragHandleProps={{
           attributes,
           listeners,
@@ -72,6 +77,7 @@ export function SortableTicketCard({
         ticket={ticket}
         tone={tone}
         onEdit={onEdit}
+        onTitleEditStart={onTitleEditStart}
         onTitleEditEnd={onTitleEditEnd}
         onToggleExpanded={onToggleExpanded}
         onTitleUpdate={onTitleUpdate}

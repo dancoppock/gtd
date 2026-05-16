@@ -223,6 +223,7 @@ export function BoardPage() {
   const [expandedTicketIds, setExpandedTicketIds] = useState<Set<string>>(() => new Set());
   const [inlineEditingKey, setInlineEditingKey] = useState(0);
   const [inlineEditingTicketId, setInlineEditingTicketId] = useState<string | null>(null);
+  const [inlineEditingTitle, setInlineEditingTitle] = useState<string | undefined>(undefined);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [showSwimlanes, setShowSwimlanes] = useState(false);
@@ -450,6 +451,7 @@ export function BoardPage() {
       setSelectedTicketId(null);
       setTaggedTicketIds(new Set());
       setInlineEditingTicketId(null);
+      setInlineEditingTitle(undefined);
     }
   }, [boardId, boardSwimlaneDefault]);
 
@@ -790,6 +792,13 @@ export function BoardPage() {
     setInlineEditingTicketId((currentTicketId) =>
       currentTicketId === ticket.id ? null : currentTicketId,
     );
+    setInlineEditingTitle(undefined);
+  }
+
+  function handleInlineTitleEditStart(ticket: Ticket) {
+    setSelectedTicketId(ticket.id);
+    setInlineEditingTicketId(ticket.id);
+    setInlineEditingTitle(undefined);
   }
 
   function handleToggleCollapsed(statusKey: string) {
@@ -826,9 +835,10 @@ export function BoardPage() {
     });
   }
 
-  function requestInlineTitleEdit(ticketId: string) {
+  function requestInlineTitleEdit(ticketId: string, initialTitle?: string) {
     setSelectedTicketId(ticketId);
     setInlineEditingTicketId(ticketId);
+    setInlineEditingTitle(initialTitle);
     setInlineEditingKey((currentKey) => currentKey + 1);
   }
 
@@ -1368,7 +1378,7 @@ export function BoardPage() {
         nextVisibleTicketId,
       },
     });
-    requestInlineTitleEdit(nextTicket.id);
+    requestInlineTitleEdit(nextTicket.id, "");
   }
 
   function openCreateTicket(
@@ -1650,6 +1660,7 @@ export function BoardPage() {
                               expandedTicketIds={expandedTicketIds}
                               inlineEditingKey={inlineEditingKey}
                               inlineEditingTicketId={inlineEditingTicketId}
+                              inlineEditingTitle={inlineEditingTitle}
                               selectedTicketId={selectedTicketId}
                               showHeader={false}
                               showPriorityColors={data.board.showPriorityColors}
@@ -1665,6 +1676,7 @@ export function BoardPage() {
                                 )
                               }
                               onInlineTitleEditEnd={handleInlineTitleEditEnd}
+                              onInlineTitleEditStart={handleInlineTitleEditStart}
                               onInlineTitleUpdate={handleInlineTitleUpdate}
                               onTicketClick={handleTicketClick}
                               onToggleTicketExpanded={handleToggleTicketExpanded}
@@ -1691,6 +1703,7 @@ export function BoardPage() {
                       expandedTicketIds={expandedTicketIds}
                       inlineEditingKey={inlineEditingKey}
                       inlineEditingTicketId={inlineEditingTicketId}
+                      inlineEditingTitle={inlineEditingTitle}
                       isArchiving={
                         archiveDoneTicketsMutation.isPending && column.statusCategory === "completed"
                       }
@@ -1704,6 +1717,7 @@ export function BoardPage() {
                       onEditTicket={setEditingTicket}
                       onCreateTicket={openCreateTicket}
                       onInlineTitleEditEnd={handleInlineTitleEditEnd}
+                      onInlineTitleEditStart={handleInlineTitleEditStart}
                       onInlineTitleUpdate={handleInlineTitleUpdate}
                       onTicketClick={handleTicketClick}
                       onToggleCollapsed={() => handleToggleCollapsed(column.statusKey)}

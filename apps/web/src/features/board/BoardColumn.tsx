@@ -16,6 +16,7 @@ type BoardColumnProps = {
   expandedTicketIds: ReadonlySet<string>;
   inlineEditingKey?: number;
   inlineEditingTicketId?: string | null;
+  inlineEditingTitle?: string;
   showHeader?: boolean;
   showPriorityColors: boolean;
   showTail?: boolean;
@@ -27,6 +28,7 @@ type BoardColumnProps = {
   onCreateTicket: (statusKey: Column["statusKey"], position: CreateTicketPosition) => void;
   onArchiveDoneTickets?: () => void;
   onInlineTitleEditEnd?: (ticket: Ticket) => void;
+  onInlineTitleEditStart?: (ticket: Ticket) => void;
   onInlineTitleUpdate: (ticket: Ticket, nextTitle: string) => Promise<void>;
   onTicketClick?: (ticket: Ticket, event: MouseEvent) => void;
   onToggleCollapsed?: () => void;
@@ -59,6 +61,7 @@ export function BoardColumn({
   expandedTicketIds,
   inlineEditingKey,
   inlineEditingTicketId = null,
+  inlineEditingTitle,
   showHeader = true,
   showPriorityColors,
   showTail = true,
@@ -70,6 +73,7 @@ export function BoardColumn({
   onCreateTicket,
   onArchiveDoneTickets,
   onInlineTitleEditEnd,
+  onInlineTitleEditStart,
   onInlineTitleUpdate,
   onTicketClick,
   onToggleCollapsed,
@@ -182,12 +186,14 @@ export function BoardColumn({
               <SortableTicketCard
                 key={ticket.id}
                 beginEditingKey={inlineEditingTicketId === ticket.id ? inlineEditingKey : undefined}
+                beginEditingTitle={inlineEditingTicketId === ticket.id ? inlineEditingTitle : undefined}
                 isExpanded={expandedTicketIds.has(ticket.id)}
                 isSelected={selectedTicketId === ticket.id}
                 isTagged={taggedTicketIds.has(ticket.id)}
                 ticket={ticket}
                 tone={column.statusCategory === "completed" ? "done" : "default"}
                 onEdit={() => onEditTicket(ticket)}
+                onTitleEditStart={() => onInlineTitleEditStart?.(ticket)}
                 onTitleEditEnd={() => onInlineTitleEditEnd?.(ticket)}
                 onToggleExpanded={() => onToggleTicketExpanded(ticket.id)}
                 onTitleUpdate={(nextTitle) => onInlineTitleUpdate(ticket, nextTitle)}
