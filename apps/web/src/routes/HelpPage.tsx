@@ -14,16 +14,24 @@ const shortcutGroups: ShortcutGroup[] = [
     title: "Navigate",
     shortcuts: [
       {
-        keys: "Arrow keys",
+        keys: "Arrow keys or h/j/k/l",
         description: "Select tickets. If nothing is selected, the first matching ticket is selected.",
       },
       {
-        keys: "Left / Right",
+        keys: "Left / Right or h / l",
         description: "Jump to the nearest available ticket in another column, wrapping across columns when needed.",
       },
       {
-        keys: "Up / Down",
+        keys: "Up / Down or k / j",
         description: "Move through the visible stack in the current column, wrapping from end to start.",
+      },
+      {
+        keys: "0 / $",
+        description: "Move the selected ticket title cursor to the first or last character.",
+      },
+      {
+        keys: "w/W / b/B",
+        description: "Move the selected ticket title cursor to the next or previous word.",
       },
     ],
   },
@@ -39,7 +47,7 @@ const shortcutGroups: ShortcutGroup[] = [
         description: "Toggle tag state on any ticket.",
       },
       {
-        keys: "Shift + Up / Down",
+        keys: "Shift + Up / Down or Shift + k / j",
         description: "Expand or contract the tagged range above or below, then move the highlight.",
       },
       {
@@ -52,11 +60,11 @@ const shortcutGroups: ShortcutGroup[] = [
     title: "Move and Prioritise",
     shortcuts: [
       {
-        keys: "Cmd + Arrow",
+        keys: "Cmd + Arrow or Cmd + h/j/k/l",
         description: "Move tagged tickets as a group, or the selected ticket when nothing is tagged. In swimlane view, Up/Down can move tickets between swimlanes.",
       },
       {
-        keys: "Option + Arrow",
+        keys: "Option + Arrow or Option + h/j/k/l",
         description: "Alternative shortcut for the same quick move behavior, including between swimlanes.",
       },
       {
@@ -78,7 +86,15 @@ const shortcutGroups: ShortcutGroup[] = [
       },
       {
         keys: "Enter",
-        description: "Edit the selected ticket title inline.",
+        description: "Edit the selected ticket title inline at the end of the title.",
+      },
+      {
+        keys: "i",
+        description: "Edit the selected ticket title inline at the current title cursor.",
+      },
+      {
+        keys: "a",
+        description: "Edit the selected ticket title inline after the current title cursor.",
       },
       {
         keys: "Shift + Enter",

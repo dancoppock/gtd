@@ -3,6 +3,7 @@ import type { useSortable } from "@dnd-kit/sortable";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { clampTitleCursorIndex, clampTitleInsertionIndex } from "../board/titleCursor";
 import type { TicketViewMode } from "../board/TicketViewToggle";
 
 type TicketCardTone = "default" | "done";
@@ -13,11 +14,13 @@ type TicketCardProps = {
     listeners: ReturnType<typeof useSortable>["listeners"];
   };
   beginEditingKey?: number;
+  beginEditingCursorIndex?: number;
   beginEditingTitle?: string;
   isDragging?: boolean;
   isExpanded?: boolean;
   isSelected?: boolean;
   isTagged?: boolean;
+  titleCursorIndex?: number;
   ticket: Ticket;
   tone?: TicketCardTone;
   onEdit: () => void;
@@ -30,6 +33,7 @@ type TicketCardProps = {
 };
 
 export function TicketCard({
+  beginEditingCursorIndex,
   beginEditingKey,
   beginEditingTitle,
   dragHandleProps,
@@ -37,6 +41,7 @@ export function TicketCard({
   isExpanded = false,
   isSelected = false,
   isTagged = false,
+  titleCursorIndex = 0,
   ticket,
   tone = "default",
   onEdit,
@@ -53,6 +58,7 @@ export function TicketCard({
   const canClampDescription = viewMode === "full";
   const showToggleHint = isCompact && !isExpanded && hasDescription;
   const [draftTitle, setDraftTitle] = useState(ticket.title);
+  const [editingCursorIndex, setEditingCursorIndex] = useState<number | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const [isDescriptionFullyExpanded, setIsDescriptionFullyExpanded] = useState(false);
@@ -97,11 +103,13 @@ export function TicketCard({
 
   useEffect(() => {
     if (beginEditingKey !== undefined) {
-      setDraftTitle(beginEditingTitle ?? ticket.title);
+      const nextDraftTitle = beginEditingTitle ?? ticket.title;
+      setDraftTitle(nextDraftTitle);
+      setEditingCursorIndex(clampTitleInsertionIndex(nextDraftTitle, beginEditingCursorIndex ?? nextDraftTitle.length));
       setTitleError(null);
       setIsEditingTitle(true);
     }
-  }, [beginEditingKey, beginEditingTitle, ticket.title]);
+  }, [beginEditingCursorIndex, beginEditingKey, beginEditingTitle, ticket.title]);
 
   useEffect(() => {
     if (!isEditingTitle) {
@@ -109,11 +117,16 @@ export function TicketCard({
     }
 
     const titleInput = titleInputRef.current;
-    titleInput?.setSelectionRange(titleInput.value.length, titleInput.value.length);
-  }, [isEditingTitle]);
+    const nextCursorIndex = clampTitleInsertionIndex(
+      titleInput?.value ?? "",
+      editingCursorIndex ?? titleInput?.value.length ?? 0,
+    );
+    titleInput?.setSelectionRange(nextCursorIndex, nextCursorIndex);
+  }, [editingCursorIndex, isEditingTitle]);
 
-  function beginTitleEdit() {
+  function beginTitleEdit(cursorIndex = ticket.title.length) {
     setDraftTitle(ticket.title);
+    setEditingCursorIndex(clampTitleInsertionIndex(ticket.title, cursorIndex));
     setTitleError(null);
     setIsEditingTitle(true);
     onTitleEditStart?.();
@@ -121,6 +134,7 @@ export function TicketCard({
 
   function cancelTitleEdit() {
     setDraftTitle(ticket.title);
+    setEditingCursorIndex(null);
     setTitleError(null);
     setIsEditingTitle(false);
     onTitleEditEnd?.();
@@ -135,6 +149,7 @@ export function TicketCard({
     }
 
     if (trimmedTitle === ticket.title) {
+      setEditingCursorIndex(null);
       setIsEditingTitle(false);
       setTitleError(null);
       onTitleEditEnd?.();
@@ -150,6 +165,7 @@ export function TicketCard({
 
     try {
       await onTitleUpdate(trimmedTitle);
+      setEditingCursorIndex(null);
       setIsEditingTitle(false);
       onTitleEditEnd?.();
     } catch (error) {
@@ -239,6 +255,25 @@ export function TicketCard({
     beginTitleEdit();
   }
 
+  function renderTitleText() {
+    if (!isSelected || ticket.title.length === 0) {
+      return ticket.title;
+    }
+
+    const clampedCursorIndex = clampTitleCursorIndex(ticket.title, titleCursorIndex);
+    const titleBeforeCursor = ticket.title.slice(0, clampedCursorIndex);
+    const cursorCharacter = ticket.title[clampedCursorIndex];
+    const titleAfterCursor = ticket.title.slice(clampedCursorIndex + 1);
+
+    return (
+      <>
+        {titleBeforeCursor}
+        <span className="ticket-card__title-cursor">{cursorCharacter}</span>
+        {titleAfterCursor}
+      </>
+    );
+  }
+
   return (
     <article
       className={`ticket-card ${dragHandleProps ? "ticket-card--with-drag-rail" : ""} ${isDragging ? "ticket-card--dragging" : ""} ${isCompact ? "ticket-card--compact" : ""} ${showExpandedContent ? "ticket-card--expanded" : ""} ${tone === "done" ? "ticket-card--done" : ""}`}
@@ -281,7 +316,7 @@ export function TicketCard({
                   onClick={handleTitleClick}
                   onDoubleClick={handleTitleDoubleClick}
                 >
-                  <span className="ticket-card__title-text">{ticket.title}</span>
+                  <span className="ticket-card__title-text">{renderTitleText()}</span>
                   {showToggleHint ? <span className="ticket-card__toggle-hint">[...]</span> : null}
                 </h3>
               )}

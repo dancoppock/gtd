@@ -235,7 +235,7 @@ Notable board-view behaviors:
 - columns can be temporarily collapsed in the UI
 - compact cards can be expanded individually
 - compact and full ticket views can be toggled globally per board session
-- board shortcuts support arrow-key selection, tagging, quick moves, quick priority changes, quick ticket creation, inline title editing, and modal editing
+- board shortcuts support arrow-key selection, Vim-style title cursor movement, tagging, quick moves, quick priority changes, quick ticket creation, inline title editing, and modal editing
 - hashtags in ticket titles are converted to labels on create/edit while the saved title is stripped of the hashtags
 - the system board maps its `Active` / `Done` UI back to real ticket statuses when creating, editing, or dragging tickets
 

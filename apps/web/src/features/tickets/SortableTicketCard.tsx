@@ -11,6 +11,7 @@ type TicketCardTone = "default" | "done";
 type SortableTicketCardProps = {
   ticket: Ticket;
   tone: TicketCardTone;
+  beginEditingCursorIndex?: number;
   beginEditingKey?: number;
   beginEditingTitle?: string;
   onEdit: () => void;
@@ -21,12 +22,14 @@ type SortableTicketCardProps = {
   isExpanded?: boolean;
   isSelected?: boolean;
   isTagged?: boolean;
+  titleCursorIndex?: number;
   onToggleExpanded?: () => void;
   showPriorityColor: boolean;
   viewMode: TicketViewMode;
 };
 
 export function SortableTicketCard({
+  beginEditingCursorIndex,
   beginEditingKey,
   beginEditingTitle,
   ticket,
@@ -40,6 +43,7 @@ export function SortableTicketCard({
   isExpanded = false,
   isSelected = false,
   isTagged = false,
+  titleCursorIndex,
   onToggleExpanded,
   viewMode,
 }: SortableTicketCardProps) {
@@ -65,6 +69,7 @@ export function SortableTicketCard({
       onClick={onTicketClick}
     >
       <TicketCard
+        beginEditingCursorIndex={beginEditingCursorIndex}
         beginEditingKey={beginEditingKey}
         beginEditingTitle={beginEditingTitle}
         dragHandleProps={{
@@ -74,6 +79,7 @@ export function SortableTicketCard({
         isExpanded={isExpanded}
         isSelected={isSelected}
         isTagged={isTagged}
+        titleCursorIndex={titleCursorIndex}
         ticket={ticket}
         tone={tone}
         onEdit={onEdit}

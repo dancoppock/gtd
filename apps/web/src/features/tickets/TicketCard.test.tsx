@@ -290,6 +290,37 @@ describe("TicketCard", () => {
     expect(screen.getByTestId("ticket-ticket_1")).toHaveClass("ticket-card--done");
   });
 
+  it("shows a block cursor on the selected title character", () => {
+    const { container } = render(
+      <TicketCard
+        ticket={ticket}
+        isSelected
+        titleCursorIndex={2}
+        onEdit={vi.fn()}
+        viewMode="full"
+      />,
+    );
+
+    expect(screen.getByTestId("ticket-title-ticket_1")).toHaveTextContent(ticket.title);
+    expect(container.querySelector(".ticket-card__title-cursor")).toHaveTextContent("f");
+  });
+
+  it("starts inline title editing at the requested cursor position", async () => {
+    render(
+      <TicketCard
+        ticket={ticket}
+        beginEditingKey={1}
+        beginEditingCursorIndex={3}
+        onEdit={vi.fn()}
+        viewMode="full"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId<HTMLInputElement>("ticket-title-input-ticket_1").selectionStart).toBe(3);
+    });
+  });
+
   it("starts inline title editing on double click and saves on Enter", async () => {
     const onTitleUpdate = vi.fn().mockResolvedValue(undefined);
 

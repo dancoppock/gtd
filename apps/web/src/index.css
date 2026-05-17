@@ -1844,6 +1844,16 @@ button {
   overflow-wrap: anywhere;
 }
 
+.ticket-card__title-cursor {
+  display: inline-block;
+  min-width: 0.65ch;
+  border-radius: 2px;
+  background: #238636;
+  color: #ffffff;
+  line-height: 1.1;
+  text-align: center;
+}
+
 .ticket-card__toggle-hint {
   color: var(--text-muted);
   font-weight: 400;

@@ -16,7 +16,7 @@ This package contains the React frontend for the kanban app.
 - persist swimlane label order from the board view
 - render ticket descriptions with paragraph breaks and optional priority colour stripes
 - support compact/full ticket card view modes and per-ticket expansion
-- support board keyboard navigation, tagging, quick moves, quick priority changes, and quick ticket creation
+- support board keyboard navigation, Vim-style title cursor movement, tagging, quick moves, quick priority changes, and quick ticket creation
 - support temporary column collapse/expand
 - support per-board default collapse of the header and search panels
 - create and edit tickets in modal dialogs

@@ -48,6 +48,14 @@ import {
   type BoardTicketLane,
   type TicketMoveDirection,
 } from "../features/board/keyboard";
+import {
+  clampTitleCursorIndex,
+  clampTitleInsertionIndex,
+  getLastTitleCursorIndex,
+  moveTitleCursorToNextWord,
+  moveTitleCursorToPreviousWord,
+  resolveNavigationTitleCursorIndex,
+} from "../features/board/titleCursor";
 import { SwimlaneToggle } from "../features/board/SwimlaneToggle";
 import {
   buildSwimlaneRepositionInput,
@@ -221,6 +229,7 @@ export function BoardPage() {
   const [collapsedStatusKeys, setCollapsedStatusKeys] = useState<Set<string>>(() => new Set());
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [expandedTicketIds, setExpandedTicketIds] = useState<Set<string>>(() => new Set());
+  const [inlineEditingCursorIndex, setInlineEditingCursorIndex] = useState<number | undefined>(undefined);
   const [inlineEditingKey, setInlineEditingKey] = useState(0);
   const [inlineEditingTicketId, setInlineEditingTicketId] = useState<string | null>(null);
   const [inlineEditingTitle, setInlineEditingTitle] = useState<string | undefined>(undefined);
@@ -228,6 +237,7 @@ export function BoardPage() {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [showSwimlanes, setShowSwimlanes] = useState(false);
   const [taggedTicketIds, setTaggedTicketIds] = useState<Set<string>>(() => new Set());
+  const [titleCursorIndex, setTitleCursorIndex] = useState(0);
   const [ticketViewMode, setTicketViewMode] = useState<TicketViewMode>("compact");
   const { theme, setTheme } = useBoardTheme();
   const [visibleTickets, setVisibleTickets] = useState<Ticket[]>([]);
@@ -450,8 +460,10 @@ export function BoardPage() {
       setShowSwimlanes(boardSwimlaneDefault);
       setSelectedTicketId(null);
       setTaggedTicketIds(new Set());
+      setInlineEditingCursorIndex(undefined);
       setInlineEditingTicketId(null);
       setInlineEditingTitle(undefined);
+      setTitleCursorIndex(0);
     }
   }, [boardId, boardSwimlaneDefault]);
 
@@ -479,6 +491,16 @@ export function BoardPage() {
         : nextTaggedTicketIds;
     });
   }, [visibleTickets]);
+
+  useEffect(() => {
+    const selectedTicket = selectedTicketId
+      ? visibleTickets.find((ticket) => ticket.id === selectedTicketId) ?? null
+      : null;
+
+    setTitleCursorIndex((currentCursorIndex) =>
+      selectedTicket ? clampTitleCursorIndex(selectedTicket.title, currentCursorIndex) : 0,
+    );
+  }, [selectedTicketId, visibleTickets]);
 
   useEffect(() => {
     if (!selectedTicketId) {
@@ -777,14 +799,39 @@ export function BoardPage() {
     }
   }
 
-  function selectOnlyTicket(ticketId: string) {
+  function findVisibleTicket(ticketId: string | null) {
+    return ticketId ? (visibleTickets.find((ticket) => ticket.id === ticketId) ?? null) : null;
+  }
+
+  function selectOnlyTicket(ticketId: string, options: { resetTitleCursor?: boolean } = {}) {
     setSelectedTicketId(ticketId);
     setTaggedTicketIds(new Set());
+
+    if (options.resetTitleCursor) {
+      setTitleCursorIndex(0);
+    }
+  }
+
+  function selectTicketWithKeyboard(ticketId: string) {
+    if (ticketId === selectedTicketId) {
+      setSelectedTicketId(ticketId);
+      return;
+    }
+
+    const currentTicket = findVisibleTicket(selectedTicketId);
+    const nextTicket = findVisibleTicket(ticketId);
+
+    setSelectedTicketId(ticketId);
+    setTitleCursorIndex(
+      currentTicket && nextTicket
+        ? resolveNavigationTitleCursorIndex(currentTicket.title, titleCursorIndex, nextTicket.title)
+        : 0,
+    );
   }
 
   function handleToggleTicketExpanded(ticketId: string, options?: { selectTicket?: boolean }) {
     if (options?.selectTicket) {
-      selectOnlyTicket(ticketId);
+      selectOnlyTicket(ticketId, { resetTitleCursor: true });
     }
 
     setExpandedTicketIds((currentExpandedTicketIds) => {
@@ -804,12 +851,14 @@ export function BoardPage() {
     setInlineEditingTicketId((currentTicketId) =>
       currentTicketId === ticket.id ? null : currentTicketId,
     );
+    setInlineEditingCursorIndex(undefined);
     setInlineEditingTitle(undefined);
   }
 
   function handleInlineTitleEditStart(ticket: Ticket) {
     setSelectedTicketId(ticket.id);
     setInlineEditingTicketId(ticket.id);
+    setInlineEditingCursorIndex(undefined);
     setInlineEditingTitle(undefined);
   }
 
@@ -847,8 +896,14 @@ export function BoardPage() {
     });
   }
 
-  function requestInlineTitleEdit(ticketId: string, initialTitle?: string) {
+  function requestInlineTitleEdit(ticketId: string, initialTitle?: string, cursorIndex?: number) {
+    const ticket = findVisibleTicket(ticketId);
+    const nextTitle = initialTitle ?? ticket?.title ?? "";
+    const nextCursorIndex = clampTitleInsertionIndex(nextTitle, cursorIndex ?? nextTitle.length);
+
     setSelectedTicketId(ticketId);
+    setTitleCursorIndex(clampTitleCursorIndex(nextTitle, nextCursorIndex));
+    setInlineEditingCursorIndex(nextCursorIndex);
     setInlineEditingTicketId(ticketId);
     setInlineEditingTitle(initialTitle);
     setInlineEditingKey((currentKey) => currentKey + 1);
@@ -880,7 +935,7 @@ export function BoardPage() {
       return;
     }
 
-    selectOnlyTicket(ticket.id);
+    selectOnlyTicket(ticket.id, { resetTitleCursor: true });
   }
 
   function persistReposition(ticketId: string, nextTickets: Ticket[]) {
@@ -1409,7 +1464,7 @@ export function BoardPage() {
       nextTaggedTicketIds.add(nextTicketId);
       return nextTaggedTicketIds;
     });
-    setSelectedTicketId(nextTicketId);
+    selectTicketWithKeyboard(nextTicketId);
   }
 
   function handleQuickMove(direction: TicketMoveDirection) {
@@ -1603,9 +1658,36 @@ export function BoardPage() {
         return;
       }
 
-      if (event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      if (event.shiftKey && !event.metaKey && !event.altKey && !event.ctrlKey && event.key.toLowerCase() === "h") {
         event.preventDefault();
-        const direction = event.key.replace("Arrow", "").toLowerCase() as TicketMoveDirection;
+        setIsHeaderCollapsed((currentValue) => !currentValue);
+        return;
+      }
+
+      const vimDirectionByKey: Partial<Record<string, TicketMoveDirection>> = {
+        h: "left",
+        j: "down",
+        k: "up",
+        l: "right",
+      };
+      const vimKey =
+        event.code === "KeyH"
+          ? "h"
+          : event.code === "KeyJ"
+            ? "j"
+            : event.code === "KeyK"
+              ? "k"
+              : event.code === "KeyL"
+                ? "l"
+                : event.key.toLowerCase();
+      const vimDirection = vimDirectionByKey[vimKey] ?? null;
+      const arrowDirection = event.key.startsWith("Arrow")
+        ? event.key.replace("Arrow", "").toLowerCase()
+        : null;
+      const direction = (vimDirection ?? arrowDirection) as TicketMoveDirection | null;
+
+      if (direction) {
+        event.preventDefault();
 
         if (event.metaKey || event.altKey) {
           if (showSwimlanes && (direction === "up" || direction === "down")) {
@@ -1633,7 +1715,7 @@ export function BoardPage() {
         );
 
         if (nextTicketId) {
-          setSelectedTicketId(nextTicketId);
+          selectTicketWithKeyboard(nextTicketId);
         }
         return;
       }
@@ -1672,12 +1754,6 @@ export function BoardPage() {
         return;
       }
 
-      if (event.shiftKey && event.key.toLowerCase() === "h") {
-        event.preventDefault();
-        setIsHeaderCollapsed((currentValue) => !currentValue);
-        return;
-      }
-
       const quickPriority = QUICK_PRIORITY_BY_KEY[event.key];
       if (quickPriority) {
         event.preventDefault();
@@ -1691,18 +1767,81 @@ export function BoardPage() {
         return;
       }
 
-      if (event.key === "Enter" && selectedTicketId) {
-        event.preventDefault();
-        const selectedTicket = visibleTickets.find((ticket) => ticket.id === selectedTicketId);
+      const selectedTicket = findVisibleTicket(selectedTicketId);
 
-        if (!selectedTicket) {
+      if (
+        selectedTicket &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.ctrlKey
+      ) {
+        if (event.key === "0") {
+          event.preventDefault();
+          setTitleCursorIndex(0);
           return;
         }
 
+        if (event.key === "$") {
+          event.preventDefault();
+          setTitleCursorIndex(getLastTitleCursorIndex(selectedTicket.title));
+          return;
+        }
+
+        if (event.key === "w" || event.key === "W") {
+          event.preventDefault();
+          setTitleCursorIndex((currentCursorIndex) =>
+            moveTitleCursorToNextWord(selectedTicket.title, currentCursorIndex, event.key === "W"),
+          );
+          return;
+        }
+
+        if (event.key === "b" || event.key === "B") {
+          event.preventDefault();
+          setTitleCursorIndex((currentCursorIndex) =>
+            moveTitleCursorToPreviousWord(selectedTicket.title, currentCursorIndex, event.key === "B"),
+          );
+          return;
+        }
+
+        if (event.key === "Enter") {
+          event.preventDefault();
+
+          if (event.shiftKey) {
+            setEditingTicket(selectedTicket);
+          } else {
+            requestInlineTitleEdit(selectedTicket.id);
+          }
+
+          return;
+        }
+
+        if (event.key === "i") {
+          event.preventDefault();
+          requestInlineTitleEdit(
+            selectedTicket.id,
+            undefined,
+            clampTitleCursorIndex(selectedTicket.title, titleCursorIndex),
+          );
+          return;
+        }
+
+        if (event.key === "a") {
+          event.preventDefault();
+          requestInlineTitleEdit(
+            selectedTicket.id,
+            undefined,
+            clampTitleCursorIndex(selectedTicket.title, titleCursorIndex) + 1,
+          );
+          return;
+        }
+      } else if (event.key === "Enter" && selectedTicketId) {
+        event.preventDefault();
         if (event.shiftKey) {
-          setEditingTicket(selectedTicket);
-        } else {
-          requestInlineTitleEdit(selectedTicketId);
+          const ticket = findVisibleTicket(selectedTicketId);
+
+          if (ticket) {
+            setEditingTicket(ticket);
+          }
         }
       }
     }
@@ -1718,6 +1857,7 @@ export function BoardPage() {
     keyboardLanes,
     selectedTicketId,
     taggedTicketIds,
+    titleCursorIndex,
     visibleTickets,
   ]);
 
@@ -1873,6 +2013,7 @@ export function BoardPage() {
                               droppableId={buildSwimlaneDropTargetId(swimlane.key, column.id)}
                               emptyMessage={null}
                               expandedTicketIds={expandedTicketIds}
+                              inlineEditingCursorIndex={inlineEditingCursorIndex}
                               inlineEditingKey={inlineEditingKey}
                               inlineEditingTicketId={inlineEditingTicketId}
                               inlineEditingTitle={inlineEditingTitle}
@@ -1881,6 +2022,7 @@ export function BoardPage() {
                               showPriorityColors={data.board.showPriorityColors}
                               variant="swimlane"
                               taggedTicketIds={taggedTicketIds}
+                              titleCursorIndex={titleCursorIndex}
                               tickets={laneTickets}
                               onEditTicket={setEditingTicket}
                               onCreateTicket={(statusKey, position) =>
@@ -1916,6 +2058,7 @@ export function BoardPage() {
                       collapsed={collapsedStatusKeys.has(column.statusKey)}
                       column={column}
                       expandedTicketIds={expandedTicketIds}
+                      inlineEditingCursorIndex={inlineEditingCursorIndex}
                       inlineEditingKey={inlineEditingKey}
                       inlineEditingTicketId={inlineEditingTicketId}
                       inlineEditingTitle={inlineEditingTitle}
@@ -1925,6 +2068,7 @@ export function BoardPage() {
                       selectedTicketId={selectedTicketId}
                       showPriorityColors={data.board.showPriorityColors}
                       taggedTicketIds={taggedTicketIds}
+                      titleCursorIndex={titleCursorIndex}
                       tickets={tickets}
                       onArchiveDoneTickets={() => {
                         void archiveDoneTicketsMutation.mutateAsync(data.board.id);
@@ -1950,6 +2094,7 @@ export function BoardPage() {
                   isExpanded={expandedTicketIds.has(activeTicket.id)}
                   isSelected={selectedTicketId === activeTicket.id}
                   isTagged={taggedTicketIds.has(activeTicket.id)}
+                  titleCursorIndex={titleCursorIndex}
                   ticket={activeTicket}
                   tone={resolveTicketTone(data.board.columns, activeTicket)}
                   onEdit={() => undefined}

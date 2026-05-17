@@ -14,6 +14,7 @@ type BoardColumnProps = {
   droppableId?: string;
   emptyMessage?: string | null;
   expandedTicketIds: ReadonlySet<string>;
+  inlineEditingCursorIndex?: number;
   inlineEditingKey?: number;
   inlineEditingTicketId?: string | null;
   inlineEditingTitle?: string;
@@ -22,6 +23,7 @@ type BoardColumnProps = {
   showTail?: boolean;
   selectedTicketId?: string | null;
   taggedTicketIds?: ReadonlySet<string>;
+  titleCursorIndex?: number;
   tickets: Ticket[];
   isArchiving?: boolean;
   onEditTicket: (ticket: Ticket) => void;
@@ -59,6 +61,7 @@ export function BoardColumn({
   droppableId,
   emptyMessage = "No tickets match the current filters.",
   expandedTicketIds,
+  inlineEditingCursorIndex,
   inlineEditingKey,
   inlineEditingTicketId = null,
   inlineEditingTitle,
@@ -67,6 +70,7 @@ export function BoardColumn({
   showTail = true,
   selectedTicketId = null,
   taggedTicketIds = new Set(),
+  titleCursorIndex = 0,
   tickets,
   isArchiving = false,
   onEditTicket,
@@ -185,11 +189,13 @@ export function BoardColumn({
             tickets.map((ticket) => (
               <SortableTicketCard
                 key={ticket.id}
+                beginEditingCursorIndex={inlineEditingTicketId === ticket.id ? inlineEditingCursorIndex : undefined}
                 beginEditingKey={inlineEditingTicketId === ticket.id ? inlineEditingKey : undefined}
                 beginEditingTitle={inlineEditingTicketId === ticket.id ? inlineEditingTitle : undefined}
                 isExpanded={expandedTicketIds.has(ticket.id)}
                 isSelected={selectedTicketId === ticket.id}
                 isTagged={taggedTicketIds.has(ticket.id)}
+                titleCursorIndex={selectedTicketId === ticket.id ? titleCursorIndex : undefined}
                 ticket={ticket}
                 tone={column.statusCategory === "completed" ? "done" : "default"}
                 onEdit={() => onEditTicket(ticket)}
