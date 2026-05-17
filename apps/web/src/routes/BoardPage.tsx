@@ -581,99 +581,58 @@ export function BoardPage() {
     const activeId = String(event.active.id);
     const overId = String(event.over.id);
 
-    setVisibleTickets((currentTickets) => {
-      if (showSwimlanes) {
-        const activeTicket = currentTickets.find((ticket) => ticket.id === activeId);
-        const originalActiveTicket =
-          displayedDataTickets.find((ticket) => ticket.id === activeId) ?? activeTicket;
-        const overTicket = currentTickets.find((ticket) => ticket.id === overId);
-        const activeLaneKey = originalActiveTicket
-          ? resolveTicketSwimlane(originalActiveTicket, implicitSwimlaneLabelNames).key
-          : null;
-        const overLaneKey = overTicket
-          ? resolveTicketSwimlane(overTicket, implicitSwimlaneLabelNames).key
-          : (swimlaneDropTargets.get(overId)?.laneKey ?? null);
+    if (showSwimlanes) {
+      const activeTicket = visibleTickets.find((ticket) => ticket.id === activeId);
+      const originalActiveTicket =
+        displayedDataTickets.find((ticket) => ticket.id === activeId) ?? activeTicket;
+      const overTicket = visibleTickets.find((ticket) => ticket.id === overId);
+      const activeLaneKey = originalActiveTicket
+        ? resolveTicketSwimlane(originalActiveTicket, implicitSwimlaneLabelNames).key
+        : null;
+      const overLaneKey = overTicket
+        ? resolveTicketSwimlane(overTicket, implicitSwimlaneLabelNames).key
+        : (swimlaneDropTargets.get(overId)?.laneKey ?? null);
 
-        if (!activeTicket || !originalActiveTicket || !activeLaneKey || !overLaneKey) {
-          return displayedDataTickets;
-        }
-
-        const overLaneName = overTicket
-          ? resolveTicketSwimlane(overTicket, implicitSwimlaneLabelNames).name
-          : (swimlaneDropTargets.get(overId)?.laneName ?? overLaneKey);
-        const mappedOverId = swimlaneDropTargets.get(overId)?.columnId ?? overId;
-        const nextLabels = updateTicketSwimlaneLabels(
-          originalActiveTicket,
-          { key: overLaneKey, name: overLaneName },
-          implicitSwimlaneLabelNames,
-          data.board.defaultLabel?.normalizedName,
-        );
-        const ticketsWithTargetLane =
-          activeLaneKey === overLaneKey
-            ? currentTickets
-            : currentTickets.map((ticket) =>
-                ticket.id === activeId
-                  ? {
-                      ...ticket,
-                      labels: nextLabels,
-                    }
-                  : ticket,
-              );
-        const nextTickets = moveTicket(data.board.columns, ticketsWithTargetLane, activeId, mappedOverId);
-        const didChange = !haveSameTicketLayout(displayedDataTickets, nextTickets);
-        const didChangeLane = activeLaneKey !== overLaneKey;
-        const nextActiveTicket = nextTickets.find((ticket) => ticket.id === activeId);
-
-        if (didChange) {
-          const repositionInput = buildSwimlaneRepositionInput(
-            data.board.columns,
-            nextTickets,
-            activeId,
-            implicitSwimlaneLabelNames,
-          );
-
-          if (repositionInput) {
-            repositionTicketMutation.mutate({
-              ticketId: activeId,
-              input: {
-                ...repositionInput,
-                statusKey: resolveMutationStatusKey(
-                  data.board.isSystem,
-                  repositionInput.statusKey,
-                  actualTicketsById.get(activeId) ?? null,
-                ),
-              },
-            });
-          }
-        }
-
-        if (didChangeLane) {
-          updateTicketMutation.mutate({
-            ticketId: activeId,
-            input: {
-              labels: nextLabels.map((label) => label.name),
-            },
-          });
-        }
-
-        if (nextActiveTicket) {
-          collapseExpandedTicketAfterColumnMove(
-            activeId,
-            originalActiveTicket.statusKey,
-            nextActiveTicket.statusKey,
-          );
-        }
-
-        return nextTickets;
+      if (!activeTicket || !originalActiveTicket || !activeLaneKey || !overLaneKey) {
+        setVisibleTickets(displayedDataTickets);
+        return;
       }
 
-      const originalActiveTicket = displayedDataTickets.find((ticket) => ticket.id === activeId) ?? null;
-      const nextTickets = moveTicket(data.board.columns, currentTickets, activeId, overId);
+      const overLaneName = overTicket
+        ? resolveTicketSwimlane(overTicket, implicitSwimlaneLabelNames).name
+        : (swimlaneDropTargets.get(overId)?.laneName ?? overLaneKey);
+      const mappedOverId = swimlaneDropTargets.get(overId)?.columnId ?? overId;
+      const nextLabels = updateTicketSwimlaneLabels(
+        originalActiveTicket,
+        { key: overLaneKey, name: overLaneName },
+        implicitSwimlaneLabelNames,
+        data.board.defaultLabel?.normalizedName,
+      );
+      const ticketsWithTargetLane =
+        activeLaneKey === overLaneKey
+          ? visibleTickets
+          : visibleTickets.map((ticket) =>
+              ticket.id === activeId
+                ? {
+                    ...ticket,
+                    labels: nextLabels,
+                  }
+                : ticket,
+            );
+      const nextTickets = moveTicket(data.board.columns, ticketsWithTargetLane, activeId, mappedOverId);
       const didChange = !haveSameTicketLayout(displayedDataTickets, nextTickets);
+      const didChangeLane = activeLaneKey !== overLaneKey;
       const nextActiveTicket = nextTickets.find((ticket) => ticket.id === activeId);
 
+      setVisibleTickets(nextTickets);
+
       if (didChange) {
-        const repositionInput = buildRepositionInput(data.board.columns, nextTickets, activeId);
+        const repositionInput = buildSwimlaneRepositionInput(
+          data.board.columns,
+          nextTickets,
+          activeId,
+          implicitSwimlaneLabelNames,
+        );
 
         if (repositionInput) {
           repositionTicketMutation.mutate({
@@ -690,7 +649,16 @@ export function BoardPage() {
         }
       }
 
-      if (originalActiveTicket && nextActiveTicket) {
+      if (didChangeLane) {
+        updateTicketMutation.mutate({
+          ticketId: activeId,
+          input: {
+            labels: nextLabels.map((label) => label.name),
+          },
+        });
+      }
+
+      if (nextActiveTicket) {
         collapseExpandedTicketAfterColumnMove(
           activeId,
           originalActiveTicket.statusKey,
@@ -698,8 +666,41 @@ export function BoardPage() {
         );
       }
 
-      return nextTickets;
-    });
+      return;
+    }
+
+    const originalActiveTicket = displayedDataTickets.find((ticket) => ticket.id === activeId) ?? null;
+    const nextTickets = moveTicket(data.board.columns, visibleTickets, activeId, overId);
+    const didChange = !haveSameTicketLayout(displayedDataTickets, nextTickets);
+    const nextActiveTicket = nextTickets.find((ticket) => ticket.id === activeId);
+
+    setVisibleTickets(nextTickets);
+
+    if (didChange) {
+      const repositionInput = buildRepositionInput(data.board.columns, nextTickets, activeId);
+
+      if (repositionInput) {
+        repositionTicketMutation.mutate({
+          ticketId: activeId,
+          input: {
+            ...repositionInput,
+            statusKey: resolveMutationStatusKey(
+              data.board.isSystem,
+              repositionInput.statusKey,
+              actualTicketsById.get(activeId) ?? null,
+            ),
+          },
+        });
+      }
+    }
+
+    if (originalActiveTicket && nextActiveTicket) {
+      collapseExpandedTicketAfterColumnMove(
+        activeId,
+        originalActiveTicket.statusKey,
+        nextActiveTicket.statusKey,
+      );
+    }
   }
 
   function handleDragCancel() {

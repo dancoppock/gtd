@@ -58,6 +58,10 @@ function BoardFinderOverlay({ onClose }: { onClose: () => void }) {
             onClose();
             void router.navigate(`/boards/${board.slug}`);
           }}
+          onOpenPage={(path) => {
+            onClose();
+            void router.navigate(path);
+          }}
         />
       </div>
     </div>

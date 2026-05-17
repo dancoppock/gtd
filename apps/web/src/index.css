@@ -471,6 +471,23 @@ button {
   text-align: left;
 }
 
+.board-finder__option-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.board-finder__option-label {
+  flex: 0 0 auto;
+  min-width: 46px;
+  color: #8ae234;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
 .board-finder__option--active,
 .board-finder__option:hover {
   border-color: rgba(138, 226, 52, 0.34);

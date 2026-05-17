@@ -31,6 +31,7 @@ export function HomePage() {
           error={boardsQuery.isError ? boardsQuery.error : null}
           isLoading={boardsQuery.isLoading}
           onOpenBoard={(board) => navigate(`/boards/${board.slug}`)}
+          onOpenPage={(path) => navigate(path)}
         />
       </section>
     </main>

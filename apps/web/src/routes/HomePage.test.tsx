@@ -65,6 +65,10 @@ function renderHomePage(boards: Board[]) {
         <Routes>
           <Route element={<HomePage />} path="/" />
           <Route element={<LocationDisplay />} path="/boards/:boardSlug" />
+          <Route element={<LocationDisplay />} path="/boards" />
+          <Route element={<LocationDisplay />} path="/labels" />
+          <Route element={<LocationDisplay />} path="/insights" />
+          <Route element={<LocationDisplay />} path="/help" />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -94,12 +98,26 @@ describe("HomePage", () => {
 
     fireEvent.change(finder, { target: { value: "wo" } });
 
-    expect(await screen.findByRole("option", { name: "Work /work" })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: "Personal /personal" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: "BOARD Work /work" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "BOARD Personal /personal" })).not.toBeInTheDocument();
 
     fireEvent.keyDown(finder, { key: "Enter" });
 
     await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("/boards/work"));
+  });
+
+  it("includes page shortcuts in finder results", async () => {
+    renderHomePage([board({ id: "work", name: "Work", slug: "work" })]);
+
+    const finder = await screen.findByRole("combobox", { name: "Find a board" });
+
+    fireEvent.change(finder, { target: { value: "lab" } });
+
+    expect(await screen.findByRole("option", { name: "PAGE Labels /labels" })).toBeInTheDocument();
+
+    fireEvent.keyDown(finder, { key: "Enter" });
+
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("/labels"));
   });
 
   it("uses arrow keys to select a matching board before Enter", async () => {
@@ -111,10 +129,10 @@ describe("HomePage", () => {
     const finder = await screen.findByRole("combobox", { name: "Find a board" });
 
     fireEvent.change(finder, { target: { value: "a" } });
-    expect(await screen.findByRole("option", { name: "Admin /admin" })).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByRole("option", { name: "BOARD Admin /admin" })).toHaveAttribute("aria-selected", "true");
 
     fireEvent.keyDown(finder, { key: "ArrowDown" });
-    expect(screen.getByRole("option", { name: "Archive /archive" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("option", { name: "BOARD Archive /archive" })).toHaveAttribute("aria-selected", "true");
 
     fireEvent.keyDown(finder, { key: "Enter" });
 

@@ -6,48 +6,105 @@ type BoardFinderProps = {
   error: unknown;
   isLoading: boolean;
   onOpenBoard: (board: Board) => void;
+  onOpenPage: (path: string) => void;
 };
 
-function boardMatchesQuery(board: Board, query: string) {
+type PageShortcut = {
+  id: string;
+  name: string;
+  path: string;
+};
+
+type FinderItem =
+  | {
+      type: "board";
+      board: Board;
+      id: string;
+      name: string;
+      path: string;
+    }
+  | {
+      type: "page";
+      page: PageShortcut;
+      id: string;
+      name: string;
+      path: string;
+    };
+
+const pageShortcuts: PageShortcut[] = [
+  { id: "home", name: "Home", path: "/" },
+  { id: "boards", name: "Boards", path: "/boards" },
+  { id: "labels", name: "Labels", path: "/labels" },
+  { id: "insights", name: "Insights", path: "/insights" },
+  { id: "help", name: "Help", path: "/help" },
+];
+
+function itemMatchesQuery(item: FinderItem, query: string) {
   const normalizedQuery = query.trim().toLowerCase();
 
   if (!normalizedQuery) {
     return true;
   }
 
-  return board.name.toLowerCase().includes(normalizedQuery) || board.slug.toLowerCase().includes(normalizedQuery);
+  return item.name.toLowerCase().includes(normalizedQuery) || item.path.toLowerCase().includes(normalizedQuery);
 }
 
-function scoreBoardMatch(board: Board, query: string) {
+function scoreItemMatch(item: FinderItem, query: string) {
   const normalizedQuery = query.trim().toLowerCase();
-  const name = board.name.toLowerCase();
-  const slug = board.slug.toLowerCase();
+  const name = item.name.toLowerCase();
+  const path = item.path.toLowerCase();
 
   if (!normalizedQuery) {
     return 0;
   }
 
-  if (name === normalizedQuery || slug === normalizedQuery) {
+  if (name === normalizedQuery || path === normalizedQuery) {
     return 0;
   }
 
-  if (name.startsWith(normalizedQuery) || slug.startsWith(normalizedQuery)) {
+  if (name.startsWith(normalizedQuery) || path.startsWith(normalizedQuery)) {
     return 1;
   }
 
   return 2;
 }
 
-export function BoardFinder({ boards, isLoading, error, onOpenBoard }: BoardFinderProps) {
+function toBoardItem(board: Board): FinderItem {
+  return {
+    type: "board",
+    board,
+    id: board.id,
+    name: board.name,
+    path: `/${board.slug}`,
+  };
+}
+
+function toPageItem(page: PageShortcut): FinderItem {
+  return {
+    type: "page",
+    page,
+    id: page.id,
+    name: page.name,
+    path: page.path,
+  };
+}
+
+function getOptionId(item: FinderItem) {
+  return `board-finder-option-${item.type}-${item.id}`;
+}
+
+export function BoardFinder({ boards, isLoading, error, onOpenBoard, onOpenPage }: BoardFinderProps) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const matches = useMemo(() => {
-    return boards
-      .filter((board) => boardMatchesQuery(board, query))
+    const items = [...boards.map(toBoardItem), ...pageShortcuts.map(toPageItem)];
+
+    return items
+      .filter((item) => itemMatchesQuery(item, query))
       .sort((left, right) => {
-        const scoreDifference = scoreBoardMatch(left, query) - scoreBoardMatch(right, query);
+        const scoreDifference = scoreItemMatch(left, query) - scoreItemMatch(right, query);
 
         if (scoreDifference !== 0) {
           return scoreDifference;
@@ -81,12 +138,17 @@ export function BoardFinder({ boards, isLoading, error, onOpenBoard }: BoardFind
     }
   }, [activeIndex, matches.length]);
 
-  function openBoard(board: Board | undefined) {
-    if (!board) {
+  function openItem(item: FinderItem | undefined) {
+    if (!item) {
       return;
     }
 
-    onOpenBoard(board);
+    if (item.type === "board") {
+      onOpenBoard(item.board);
+      return;
+    }
+
+    onOpenPage(item.page.path);
   }
 
   return (
@@ -95,7 +157,7 @@ export function BoardFinder({ boards, isLoading, error, onOpenBoard }: BoardFind
         <span className="board-finder__prompt" aria-hidden="true">$</span>
         <input
           ref={inputRef}
-          aria-activedescendant={matches[activeIndex] ? `board-finder-option-${matches[activeIndex].id}` : undefined}
+          aria-activedescendant={matches[activeIndex] ? getOptionId(matches[activeIndex]) : undefined}
           aria-autocomplete="list"
           aria-controls="board-finder-results"
           aria-expanded={matches.length > 0}
@@ -103,7 +165,7 @@ export function BoardFinder({ boards, isLoading, error, onOpenBoard }: BoardFind
           autoCapitalize="none"
           autoComplete="off"
           className="board-finder__input"
-          placeholder={isLoading ? "loading boards" : "find board"}
+          placeholder={isLoading ? "loading boards" : "find board or page"}
           role="combobox"
           spellCheck={false}
           value={query}
@@ -125,31 +187,34 @@ export function BoardFinder({ boards, isLoading, error, onOpenBoard }: BoardFind
 
             if (event.key === "Enter") {
               event.preventDefault();
-              openBoard(matches[activeIndex] ?? matches[0]);
+              openItem(matches[activeIndex] ?? matches[0]);
             }
           }}
         />
       </label>
 
       <div className="board-finder__results" id="board-finder-results" role="listbox">
-        {matches.map((board, index) => (
+        {matches.map((item, index) => (
           <button
-            key={board.id}
+            key={`${item.type}:${item.id}`}
             className={`board-finder__option ${index === activeIndex ? "board-finder__option--active" : ""}`}
-            id={`board-finder-option-${board.id}`}
+            id={getOptionId(item)}
             role="option"
             type="button"
             aria-selected={index === activeIndex}
             onMouseDown={(event) => event.preventDefault()}
-            onClick={() => openBoard(board)}
+            onClick={() => openItem(item)}
           >
-            <span>{board.name}</span>
-            <small>/{board.slug}</small>
+            <span className="board-finder__option-main">
+              <span className="board-finder__option-label">{item.type === "board" ? "BOARD" : "PAGE"}</span>
+              <span>{item.name}</span>
+            </span>
+            <small>{item.path}</small>
           </button>
         ))}
 
         {!isLoading && query.trim() && matches.length === 0 ? (
-          <p className="board-finder__status">No boards match "{query}".</p>
+          <p className="board-finder__status">No boards or pages match "{query}".</p>
         ) : null}
 
         {error ? (
