@@ -28,6 +28,8 @@ export type SeedData = {
   tickets: SeedTicketRecord[];
 };
 
+const seedTimestamp = "2026-01-01T00:00:00.000Z";
+
 function makeTicket(args: {
   id: string;
   statusKey: TicketStatus;
@@ -37,19 +39,16 @@ function makeTicket(args: {
   uiOrder: number;
   labelIds: string[];
 }): SeedTicketRecord {
-  const timestamp = new Date().toISOString();
-
   return {
     ...args,
-    completedAt: args.statusKey === "done" ? timestamp : null,
+    completedAt: args.statusKey === "done" ? seedTimestamp : null,
     archivedAt: null,
-    createdAt: timestamp,
-    updatedAt: timestamp,
+    createdAt: seedTimestamp,
+    updatedAt: seedTimestamp,
   };
 }
 
 export function createSeedData(): SeedData {
-  const now = new Date().toISOString();
   const boardId = "board_default";
 
   const boards: Board[] = [
@@ -65,8 +64,8 @@ export function createSeedData(): SeedData {
       swimlaneLayout: "none",
       swimlaneLabelOrder: [],
       isSystem: true,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: seedTimestamp,
+      updatedAt: seedTimestamp,
     },
   ];
 

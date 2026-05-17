@@ -16,7 +16,7 @@ async function resetBoardState() {
 
 test.beforeEach(async ({ page }) => {
   await resetBoardState();
-  await page.goto("/");
+  await page.goto("/boards/default");
   await expect(page.getByRole("heading", { name: "System Board" })).toBeVisible();
 });
 
@@ -124,7 +124,7 @@ test("navigates to labels and manages them globally", async ({ page }) => {
   await page.getByTestId("label-delete-backend").click();
   await expect(page.getByTestId("label-row-backend")).toHaveCount(0);
 
-  await page.getByRole("link", { name: "Home" }).click();
+  await page.getByRole("navigation", { name: "Pinned boards" }).getByRole("link", { name: "System Board" }).click();
   await page.getByRole("button", { name: "Expand filters panel" }).click();
   await expect(page.getByTestId("label-filter-ux")).toBeVisible();
   await expect(page.getByTestId("label-filter-backend")).toHaveCount(0);
@@ -200,20 +200,20 @@ test("opens a board by clicking its row on the boards page", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "System Board" })).toBeVisible();
 });
 
-test("uses the selected default board for Home navigation", async ({ page }) => {
+test("opens boards from the Home finder", async ({ page }) => {
   await page.getByRole("link", { name: "Boards" }).click();
   await page.getByRole("link", { name: "Create Board" }).click();
 
   await page.getByTestId("board-name-input").fill("Operations");
   await page.getByTestId("board-description-input").fill("Ops queue");
-  await page.getByRole("checkbox", { name: "Make this the default board" }).check({ force: true });
   await page.getByRole("button", { name: "Create Board" }).click();
 
   await expect(page).toHaveURL(/\/boards\/operations$/);
   await expect(page.getByRole("heading", { name: "Operations" })).toBeVisible();
 
-  await page.getByRole("link", { name: "Boards" }).click();
   await page.getByRole("link", { name: "Home" }).click();
+  await page.getByRole("combobox", { name: "Find a board" }).fill("operations");
+  await page.getByRole("option", { name: "BOARD Operations /operations" }).click();
 
   await expect(page).toHaveURL(/\/boards\/operations$/);
   await expect(page.getByRole("heading", { name: "Operations" })).toBeVisible();
