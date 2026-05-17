@@ -1836,7 +1836,7 @@ export function BoardPage() {
         }
       } else if (event.key === "Enter" && selectedTicketId) {
         event.preventDefault();
-        if (event.shiftKey) {
+        if (event.shiftKey || event.metaKey) {
           const ticket = findVisibleTicket(selectedTicketId);
 
           if (ticket) {

@@ -28,6 +28,16 @@ test("loads the seeded kanban board", async ({ page }) => {
   await expect(page.getByTestId(`column-${systemDoneStatusKey}`)).toContainText("Seed default board");
 });
 
+test("opens the highlighted ticket edit modal with Command+Enter", async ({ page }) => {
+  await page.getByTestId("ticket-content-ticket_1").click();
+  await expect(page.getByTestId("ticket-ticket_1")).toHaveAttribute("data-ticket-selected", "true");
+
+  await page.keyboard.press("Meta+Enter");
+
+  await expect(page.getByRole("dialog", { name: "Edit Ticket" })).toBeVisible();
+  await expect(page.getByTestId("ticket-modal-title-input")).toHaveValue("Design ticket modal");
+});
+
 test("filters tickets by priority, label, and search text", async ({ page }) => {
   await page.getByRole("button", { name: "Expand filters panel" }).click();
   await page.getByTestId("priority-filter-highest").click({ force: true });

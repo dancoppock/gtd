@@ -97,11 +97,11 @@ const shortcutGroups: ShortcutGroup[] = [
         description: "Edit the selected ticket title inline after the current title cursor.",
       },
       {
-        keys: "Shift + Enter",
+        keys: "Shift + Enter / Cmd + Enter",
         description: "Open the selected ticket in the edit modal.",
       },
       {
-        keys: "Cmd + Enter",
+        keys: "Cmd + Enter in a modal",
         description: "Save and close the create or edit modal from any form field.",
       },
       {

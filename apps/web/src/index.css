@@ -1798,7 +1798,7 @@ button {
 }
 
 .ticket-card__content--priority-medium {
-  --ticket-priority-color: #3f8f4a;
+  --ticket-priority-color: #f2c94c;
 }
 
 .ticket-card__content--priority-low {
@@ -2005,8 +2005,8 @@ button {
 }
 
 .priority-badge--medium {
-  background: rgba(68, 131, 78, 0.14);
-  color: #2c6936;
+  background: rgba(242, 201, 76, 0.2);
+  color: #7a5600;
 }
 
 .priority-badge--low {
