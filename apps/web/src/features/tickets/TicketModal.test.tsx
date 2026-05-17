@@ -385,13 +385,13 @@ describe("TicketModal", () => {
     expect(screen.getByLabelText("Description")).toHaveAttribute("rows", "10");
   });
 
-  it("closes the edit modal on Escape only when the title field has focus", () => {
+  it("closes the create modal on Escape only when the title field has focus", () => {
     const onClose = vi.fn();
 
     render(
       <TicketModal
-        mode="edit"
-        ticket={existingTicket}
+        mode="create"
+        ticket={null}
         columns={columns}
         availableLabels={availableLabels}
         onClose={onClose}

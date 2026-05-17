@@ -105,7 +105,6 @@ export function TicketModal({
     const target = event.target;
 
     if (
-      mode === "edit" &&
       event.key === "Escape" &&
       target instanceof HTMLInputElement &&
       target.name === "title"
