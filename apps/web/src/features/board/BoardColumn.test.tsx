@@ -142,4 +142,87 @@ describe("BoardColumn", () => {
       "ticket-card__content--priority-high",
     );
   });
+
+  it("selects an unselected ticket without toggling compact expansion", () => {
+    const onTicketClick = vi.fn();
+    const onToggleTicketExpanded = vi.fn();
+
+    render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          expandedTicketIds={new Set()}
+          showPriorityColors
+          tickets={[ticket]}
+          onCreateTicket={vi.fn()}
+          onEditTicket={vi.fn()}
+          onInlineTitleUpdate={vi.fn().mockResolvedValue(undefined)}
+          onTicketClick={onTicketClick}
+          onToggleTicketExpanded={onToggleTicketExpanded}
+          viewMode="compact"
+        />
+      </DndContext>,
+    );
+
+    fireEvent.click(screen.getByTestId("ticket-content-ticket_1"));
+
+    expect(onTicketClick).toHaveBeenCalledTimes(1);
+    expect(onTicketClick.mock.calls[0]?.[0]).toMatchObject({ id: "ticket_1" });
+    expect(onToggleTicketExpanded).not.toHaveBeenCalled();
+  });
+
+  it("toggles compact expansion when an already selected ticket is clicked", () => {
+    const onTicketClick = vi.fn();
+    const onToggleTicketExpanded = vi.fn();
+
+    render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          expandedTicketIds={new Set()}
+          selectedTicketId="ticket_1"
+          showPriorityColors
+          tickets={[ticket]}
+          onCreateTicket={vi.fn()}
+          onEditTicket={vi.fn()}
+          onInlineTitleUpdate={vi.fn().mockResolvedValue(undefined)}
+          onTicketClick={onTicketClick}
+          onToggleTicketExpanded={onToggleTicketExpanded}
+          viewMode="compact"
+        />
+      </DndContext>,
+    );
+
+    fireEvent.click(screen.getByTestId("ticket-content-ticket_1"));
+
+    expect(onToggleTicketExpanded).toHaveBeenCalledWith("ticket_1", { selectTicket: true });
+    expect(onTicketClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("selects an unselected ticket when the compact title is clicked", () => {
+    const onTicketClick = vi.fn();
+    const onToggleTicketExpanded = vi.fn();
+
+    render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          expandedTicketIds={new Set()}
+          showPriorityColors
+          tickets={[ticket]}
+          onCreateTicket={vi.fn()}
+          onEditTicket={vi.fn()}
+          onInlineTitleUpdate={vi.fn().mockResolvedValue(undefined)}
+          onTicketClick={onTicketClick}
+          onToggleTicketExpanded={onToggleTicketExpanded}
+          viewMode="compact"
+        />
+      </DndContext>,
+    );
+
+    fireEvent.click(screen.getByTestId("ticket-title-ticket_1"));
+
+    expect(onTicketClick).toHaveBeenCalledTimes(1);
+    expect(onToggleTicketExpanded).not.toHaveBeenCalled();
+  });
 });

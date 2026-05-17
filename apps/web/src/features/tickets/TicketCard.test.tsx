@@ -82,7 +82,7 @@ describe("TicketCard", () => {
     );
   });
 
-  it("toggles a long expanded description between clamped and full text", () => {
+  it("does not expand a long full-mode description when the card is unselected", () => {
     Object.defineProperty(HTMLParagraphElement.prototype, "clientHeight", {
       configurable: true,
       value: 150,
@@ -93,6 +93,26 @@ describe("TicketCard", () => {
     });
 
     render(<TicketCard ticket={ticket} onEdit={vi.fn()} viewMode="full" />);
+
+    fireEvent.click(screen.getByTestId("ticket-content-ticket_1"));
+
+    expect(screen.getByText("[...]")).toBeInTheDocument();
+    expect(screen.getByTestId("ticket-description-ticket_1")).not.toHaveClass(
+      "ticket-card__description--full",
+    );
+  });
+
+  it("toggles a long selected full-mode description between clamped and full text", () => {
+    Object.defineProperty(HTMLParagraphElement.prototype, "clientHeight", {
+      configurable: true,
+      value: 150,
+    });
+    Object.defineProperty(HTMLParagraphElement.prototype, "scrollHeight", {
+      configurable: true,
+      value: 320,
+    });
+
+    render(<TicketCard ticket={ticket} isSelected onEdit={vi.fn()} viewMode="full" />);
 
     expect(screen.getByText("[...]")).toBeInTheDocument();
     expect(screen.getByTestId("ticket-description-ticket_1")).not.toHaveClass(
@@ -161,7 +181,7 @@ describe("TicketCard", () => {
     );
   });
 
-  it("toggles expanded state when compact card content is clicked", () => {
+  it("does not toggle expanded state when unselected compact card content is clicked", () => {
     const onToggleExpanded = vi.fn();
 
     render(
@@ -179,16 +199,58 @@ describe("TicketCard", () => {
 
     fireEvent.click(screen.getByTestId("ticket-content-ticket_1"));
 
+    expect(onToggleExpanded).not.toHaveBeenCalled();
+  });
+
+  it("toggles expanded state when selected compact card content is clicked", () => {
+    const onToggleExpanded = vi.fn();
+
+    render(
+      <TicketCard
+        dragHandleProps={{
+          attributes: dragHandleAttributes,
+          listeners: undefined,
+        }}
+        ticket={ticket}
+        isSelected
+        onEdit={vi.fn()}
+        onToggleExpanded={onToggleExpanded}
+        viewMode="compact"
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("ticket-content-ticket_1"));
+
     expect(onToggleExpanded).toHaveBeenCalledTimes(1);
   });
 
-  it("toggles expanded state when the compact card title is single clicked", () => {
+  it("does not toggle expanded state when an unselected compact card title is single clicked", () => {
     vi.useFakeTimers();
     const onToggleExpanded = vi.fn();
 
     render(
       <TicketCard
         ticket={ticket}
+        onEdit={vi.fn()}
+        onToggleExpanded={onToggleExpanded}
+        viewMode="compact"
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("ticket-title-ticket_1"));
+    vi.advanceTimersByTime(250);
+
+    expect(onToggleExpanded).not.toHaveBeenCalled();
+  });
+
+  it("toggles expanded state when the selected compact card title is single clicked", () => {
+    vi.useFakeTimers();
+    const onToggleExpanded = vi.fn();
+
+    render(
+      <TicketCard
+        ticket={ticket}
+        isSelected
         onEdit={vi.fn()}
         onToggleExpanded={onToggleExpanded}
         viewMode="compact"

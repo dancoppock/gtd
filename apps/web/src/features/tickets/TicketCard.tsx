@@ -193,12 +193,12 @@ export function TicketCard({
       }
     }
 
-    if (isCompact && onToggleExpanded) {
+    if (isCompact && isSelected && onToggleExpanded && !event.shiftKey) {
       onToggleExpanded();
       return;
     }
 
-    if (canClampDescription && (isDescriptionTruncated || isDescriptionFullyExpanded)) {
+    if (isSelected && canClampDescription && (isDescriptionTruncated || isDescriptionFullyExpanded)) {
       setIsDescriptionFullyExpanded((currentValue) => !currentValue);
     }
   }
@@ -208,8 +208,11 @@ export function TicketCard({
       return;
     }
 
-    event.stopPropagation();
+    if (!isSelected || event.shiftKey) {
+      return;
+    }
 
+    event.stopPropagation();
     if (titleClickTimeoutRef.current !== null) {
       window.clearTimeout(titleClickTimeoutRef.current);
     }
