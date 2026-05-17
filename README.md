@@ -29,19 +29,28 @@ Quick setup help lives in `docs/onboarding.md`.
 
 The UI currently supports:
 
+- home board finder
 - board view by slug
 - boards list and board edit/create pages
+- configurable default board
 - pinned board links in the header navigation
 - global labels page
 - insights dashboard
+- help page with board keyboard shortcuts
 - theme switching
 - swimlane grouping by label
+- persisted swimlane label ordering per board
 - filtering by priority, labels, and text search
 - collapsible filter panel and header panel
+- per-board default collapse setting for header and search panels
 - collapsible board columns
 - create/edit ticket modals
 - inline title editing
+- compact/full ticket card view toggle and per-ticket expansion
+- keyboard navigation, tagging, quick priority changes, and quick ticket creation
+- title hashtags that become ticket labels
 - drag/drop reorder within and across columns
+- drag/drop between swimlanes to update the lane label
 - archive of visible done tickets
 - optional per-board priority colour stripes on tickets
 
@@ -68,8 +77,12 @@ On first run, the API seeds:
 - Tickets are global and carry a global `statusKey` plus a global `uiOrder`
 - Labels are global and reusable across all tickets and boards
 - Boards are views over tickets
+- Exactly one board is marked as the default board
 - Boards can be pinned to appear in the header navigation
 - Boards can enable or disable ticket priority colour stripes
+- Boards can default the header and search panels to collapsed
+- Boards can default to no swimlanes or label swimlanes
+- Boards can persist a custom order for visible label swimlanes
 - Regular boards own a set of columns
 - Each regular board column maps to exactly one status
 - Statuses are global and can be extended beyond the seeded defaults
@@ -84,6 +97,7 @@ On first run, the API seeds:
 - `POST /api/boards`
 - `GET /api/boards/:boardId`
 - `PATCH /api/boards/:boardId`
+- `PATCH /api/boards/:boardId/swimlane-order`
 - `DELETE /api/boards/:boardId`
 - `GET /api/boards/:boardId/tickets`
 - `GET /api/boards/slug/:boardSlug`
@@ -231,7 +245,8 @@ pnpm test:e2e
 Current automated coverage includes:
 
 - frontend drag/reorder helpers
+- frontend swimlane and keyboard helpers
 - React component behavior for filters and ticket modals
 - SQLite-backed repository behavior
 - Fastify route behavior via `app.inject()`
-- Playwright smoke coverage for board load/filter/create/drag plus labels and boards flows
+- Playwright smoke coverage for board load/filter/create/drag/archive, labels, boards, pinned navigation, custom statuses, priority colour settings, and the Home board finder

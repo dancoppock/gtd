@@ -206,10 +206,15 @@ curl http://127.0.0.1:3001/api/labels
 - regular boards are saved views over tickets
 - regular board columns map to statuses
 - one built-in system board always exists and shows `Active` plus `Done`
+- exactly one board is marked as the default board
 - board filters optionally limit tickets by label
 - board default labels are separate from filters and optionally apply one label to new tickets
+- boards can be pinned in navigation
+- boards can default the header and search panels to collapsed
+- boards can enable or disable priority colour stripes on tickets
 - board swimlane layout defaults to no swimlanes and can be configured to group by label
-- board swimlane label priority is stored per board; unprioritized lanes sort by name and unlabelled tickets render last
+- board swimlane label order is stored per board; unordered lanes sort by name and unlabelled tickets render last
+- title hashtags become labels when tickets are saved from the modal
 - ticket ordering is global and persisted through `uiOrder`
 - drag/drop on filtered boards reorders against the visible subset only
 

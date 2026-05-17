@@ -71,6 +71,7 @@ The app is a small monorepo with a browser frontend, a local API, and a shared c
 - `docker/api.Dockerfile` runs the Fastify API with Node `20.20.0`.
 - `docker/web.Dockerfile` builds the Vite app and serves static assets from Nginx.
 - `docker/web/nginx.conf` proxies `/api` from the web container to the API service on the internal Compose network.
+- Nginx basic auth protects both the React app and proxied `/api` routes.
 - Compose reads `.env` by default for host port and data-root settings.
 
 ## Core Domain Model
@@ -95,9 +96,13 @@ Statuses are global rather than board-scoped. The seeded defaults are `todo`, `i
 ### Board
 
 - a saved view over global tickets
-- has metadata: name, description, slug, `isPinned`, `showPriorityColors`, `isSystem`
+- has metadata: name, description, slug, `isDefault`, `isPinned`, `showPriorityColors`, `collapseMenusByDefault`, `swimlaneLayout`, `swimlaneLabelOrder`, `isSystem`
+- exactly one board is the default board
 - pinned boards appear as shortcuts under the primary header navigation
 - boards can opt in or out of priority colour stripes on ticket cards
+- boards can default the header and search panels to collapsed
+- boards can default to no swimlanes or label swimlanes
+- boards store custom label swimlane ordering
 - regular boards own columns
 - regular boards can optionally filter visible tickets by one or more labels
 - regular boards can optionally define one default label for newly created tickets; this is separate from the visibility filter
@@ -126,6 +131,7 @@ The SQLite schema currently stores:
 - `columns`
 - `labels`
 - `board_label_filters`
+- `statuses`
 - `tickets`
 - `ticket_labels`
 
@@ -135,6 +141,7 @@ Important implementation detail:
 - legacy `tickets.board_id` / `tickets.column_id` data is converted into global `tickets.status_key`
 - legacy board-scoped labels are merged into global labels by normalized name
 - legacy boards with exactly one label filter use that label as their default label after migration
+- older databases are backfilled with board defaults such as `isDefault`, pinned/default system-board flags, priority-colour settings, collapsed-menu settings, swimlane settings, and status metadata
 
 Runtime database locations:
 
@@ -150,6 +157,7 @@ Runtime database locations:
 - `POST /api/boards`
 - `GET /api/boards/:boardId`
 - `PATCH /api/boards/:boardId`
+- `PATCH /api/boards/:boardId/swimlane-order`
 - `DELETE /api/boards/:boardId`
 - `GET /api/boards/:boardId/tickets`
 - `GET /api/boards/slug/:boardSlug`
@@ -205,14 +213,16 @@ Current implementation strategy:
 ### Routes
 
 - `BoardPage.tsx`: board view, filters, ticket modal state, drag/drop
+- `HomePage.tsx`: board finder and page shortcuts
 - `BoardsPage.tsx`: board list
 - `BoardEditPage.tsx`: board create/edit form
 - `LabelsPage.tsx`: global label management
 - `InsightsPage.tsx`: completion metrics dashboard
+- `HelpPage.tsx`: keyboard shortcuts and board interaction notes
 
 ### Feature Areas
 
-- `features/board`: API client, DnD helpers, board column rendering
+- `features/board`: API client, DnD helpers, board finder, keyboard helpers, swimlane helpers, board column rendering
 - `features/filters`: collapsible search/filter panel
 - `features/layout`: shared header/navigation/theme picker
 - `features/tickets`: ticket card, sortable wrapper, modal form
@@ -220,9 +230,13 @@ Current implementation strategy:
 Notable board-view behaviors:
 
 - board-configured swimlanes can group tickets by first non-implicit label
-- swimlane label priority is stored per board; lanes without explicit priority sort by name, and `Unlabeled` renders last
+- swimlane label order is stored per board; lanes without explicit order sort by name, and `Unlabeled` renders last
+- swimlane order can be adjusted from the board view and is persisted through `PATCH /api/boards/:boardId/swimlane-order`
 - columns can be temporarily collapsed in the UI
 - compact cards can be expanded individually
+- compact and full ticket views can be toggled globally per board session
+- board shortcuts support arrow-key selection, tagging, quick moves, quick priority changes, quick ticket creation, inline title editing, and modal editing
+- hashtags in ticket titles are converted to labels on create/edit while the saved title is stripped of the hashtags
 - the system board maps its `Active` / `Done` UI back to real ticket statuses when creating, editing, or dragging tickets
 
 ## Current Runtime Notes

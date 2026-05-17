@@ -15,15 +15,15 @@ const shortcutGroups: ShortcutGroup[] = [
     shortcuts: [
       {
         keys: "Arrow keys",
-        description: "Select tickets. Navigation wraps at column and list edges.",
+        description: "Select tickets. If nothing is selected, the first matching ticket is selected.",
       },
       {
         keys: "Left / Right",
-        description: "Jump to the next available ticket in the adjacent column.",
+        description: "Jump to the nearest available ticket in another column, wrapping across columns when needed.",
       },
       {
         keys: "Up / Down",
-        description: "Move through the visible stack in the current column.",
+        description: "Move through the visible stack in the current column, wrapping from end to start.",
       },
     ],
   },
@@ -53,11 +53,11 @@ const shortcutGroups: ShortcutGroup[] = [
     shortcuts: [
       {
         keys: "Cmd + Arrow",
-        description: "Move tagged tickets as a group; in swimlane view, Up/Down moves them between swimlanes.",
+        description: "Move tagged tickets as a group, or the selected ticket when nothing is tagged. In swimlane view, Up/Down can move tickets between swimlanes.",
       },
       {
         keys: "Option + Arrow",
-        description: "Alternative shortcut for moving tagged tickets as a group, including between swimlanes.",
+        description: "Alternative shortcut for the same quick move behavior, including between swimlanes.",
       },
       {
         keys: "1 / 2 / 3 / 4",
@@ -120,6 +120,7 @@ const featureSections = [
       "Boards are configurable views over the shared ticket pool.",
       "Filters can narrow a board by priority, labels, and search text.",
       "The built-in system board groups all active tickets and completed tickets into its special Active and Done columns.",
+      "Hashtags in ticket titles become labels when a ticket is saved from the modal.",
     ],
   },
   {
@@ -136,12 +137,13 @@ const featureSections = [
       "Swimlane view groups visible tickets by label while preserving the board columns.",
       "Drag tickets within a swimlane to reorder or move them across columns.",
       "Drag a ticket to another swimlane to update the label that determines its lane.",
+      "Use the swimlane arrow controls to persist a custom lane order.",
     ],
   },
   {
     title: "Ticket Cards",
     items: [
-      "Single click a compact ticket card to expand or collapse its details.",
+      "Single click a compact ticket card to select it; click it again to expand or collapse its details.",
       "Double click a ticket title to edit the title inline.",
       "Use the edit button on the ticket rail to open the full edit modal.",
     ],
