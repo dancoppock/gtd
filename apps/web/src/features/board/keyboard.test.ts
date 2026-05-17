@@ -123,4 +123,28 @@ describe("keyboard ticket navigation", () => {
     expect(getTicketMoveTarget(columns, lanes, "todo_2", "down")).toBe("column_todo");
     expect(getTicketMoveTarget(columns, lanes, "todo_2", "right")).toBe("doing_1");
   });
+
+  it("prefers same-swimlane vertical move targets before column-edge targets", () => {
+    const swimlaneLanes: BoardTicketLane[] = [
+      {
+        key: "frontend",
+        tickets: [
+          ticket("frontend_todo_1", "todo"),
+          ticket("frontend_todo_2", "todo"),
+        ],
+      },
+      {
+        key: "backend",
+        tickets: [
+          ticket("backend_todo_1", "todo"),
+          ticket("backend_todo_2", "todo"),
+        ],
+      },
+    ];
+
+    expect(getTicketMoveTarget(columns, swimlaneLanes, "frontend_todo_1", "down")).toBe("frontend_todo_2");
+    expect(getTicketMoveTarget(columns, swimlaneLanes, "frontend_todo_2", "down")).toBe("column_todo");
+    expect(getTicketMoveTarget(columns, swimlaneLanes, "backend_todo_2", "up")).toBe("backend_todo_1");
+    expect(getTicketMoveTarget(columns, swimlaneLanes, "backend_todo_1", "up")).toBeNull();
+  });
 });

@@ -974,7 +974,26 @@ export function BoardPage() {
     }
 
     const taggedIds = new Set(taggedContext.tickets.map((ticket) => ticket.id));
-    const sourceTickets = visibleTickets.filter((ticket) => ticket.statusKey === taggedContext.statusKey);
+    const sourceSwimlaneKey = showSwimlanes
+      ? resolveTicketSwimlane(taggedContext.tickets[0]!, implicitSwimlaneLabelNames).key
+      : null;
+    if (
+      sourceSwimlaneKey
+      && taggedContext.tickets.some(
+        (ticket) => resolveTicketSwimlane(ticket, implicitSwimlaneLabelNames).key !== sourceSwimlaneKey,
+      )
+    ) {
+      return null;
+    }
+
+    const sourceTickets = visibleTickets.filter(
+      (ticket) =>
+        ticket.statusKey === taggedContext.statusKey
+        && (
+          !sourceSwimlaneKey
+          || resolveTicketSwimlane(ticket, implicitSwimlaneLabelNames).key === sourceSwimlaneKey
+        ),
+    );
     const firstTaggedIndex = sourceTickets.findIndex((ticket) => taggedIds.has(ticket.id));
     const lastTaggedIndex = sourceTickets.reduce(
       (lastIndex, ticket, index) => (taggedIds.has(ticket.id) ? index : lastIndex),
@@ -1019,7 +1038,26 @@ export function BoardPage() {
       remainingTickets.splice(insertIndex + 1, 0, ...movingTickets);
     }
 
-    nextGroups.set(taggedContext.statusKey, remainingTickets);
+    if (sourceSwimlaneKey) {
+      let nextSourceTicketIndex = 0;
+      nextGroups.set(
+        taggedContext.statusKey,
+        visibleTickets
+          .filter((ticket) => ticket.statusKey === taggedContext.statusKey)
+          .map((ticket) => {
+            if (resolveTicketSwimlane(ticket, implicitSwimlaneLabelNames).key !== sourceSwimlaneKey) {
+              return ticket;
+            }
+
+            const nextSourceTicket = remainingTickets[nextSourceTicketIndex];
+            nextSourceTicketIndex += 1;
+            return nextSourceTicket ?? ticket;
+          }),
+      );
+    } else {
+      nextGroups.set(taggedContext.statusKey, remainingTickets);
+    }
+
     return flattenTicketsByColumn(nextGroups);
   }
 
@@ -1087,8 +1125,28 @@ export function BoardPage() {
       return;
     }
 
-    const sourceTickets = visibleTickets.filter((ticket) => ticket.statusKey === statusKey);
     const taggedIds = new Set(taggedTickets.map((ticket) => ticket.id));
+    const sourceSwimlaneKey = showSwimlanes
+      ? resolveTicketSwimlane(taggedTickets[0]!, implicitSwimlaneLabelNames).key
+      : null;
+
+    if (
+      sourceSwimlaneKey
+      && taggedTickets.some(
+        (ticket) => resolveTicketSwimlane(ticket, implicitSwimlaneLabelNames).key !== sourceSwimlaneKey,
+      )
+    ) {
+      return;
+    }
+
+    const sourceTickets = visibleTickets.filter(
+      (ticket) =>
+        ticket.statusKey === statusKey
+        && (
+          !sourceSwimlaneKey
+          || resolveTicketSwimlane(ticket, implicitSwimlaneLabelNames).key === sourceSwimlaneKey
+        ),
+    );
     const firstTaggedIndex = sourceTickets.findIndex((ticket) => taggedIds.has(ticket.id));
     const lastTaggedIndex = sourceTickets.reduce(
       (lastIndex, ticket, index) => (taggedIds.has(ticket.id) ? index : lastIndex),
@@ -1207,7 +1265,7 @@ export function BoardPage() {
   function handleTaggedQuickMove(direction: TicketMoveDirection) {
     const taggedContext = getTaggedTicketsInSingleColumn();
     if (!taggedContext) {
-      return;
+      return false;
     }
 
     const nextTickets =
@@ -1216,7 +1274,7 @@ export function BoardPage() {
         : moveTaggedTicketsHorizontally(direction);
 
     if (!nextTickets || haveSameTicketLayout(visibleTickets, nextTickets)) {
-      return;
+      return false;
     }
 
     void queryClient.cancelQueries({ queryKey: ["board", boardSlug] });
@@ -1227,6 +1285,8 @@ export function BoardPage() {
     } else {
       void persistTaggedHorizontalMove(direction, taggedContext.tickets, nextTickets);
     }
+
+    return true;
   }
 
   function getKeyboardMoveTickets() {
@@ -1354,23 +1414,22 @@ export function BoardPage() {
 
   function handleQuickMove(direction: TicketMoveDirection) {
     if (isOptimisticRepositionPending()) {
-      return;
+      return false;
     }
 
     if (taggedTicketIds.size > 0) {
-      handleTaggedQuickMove(direction);
-      return;
+      return handleTaggedQuickMove(direction);
     }
 
     if (!data || !selectedTicketId) {
-      return;
+      return false;
     }
 
     const overId = getTicketMoveTarget(data.board.columns, keyboardLanes, selectedTicketId, direction);
     const columnIds = new Set(data.board.columns.map((column) => column.id));
 
     if (!overId || (showSwimlanes && columnIds.has(overId) && (direction === "up" || direction === "down"))) {
-      return;
+      return false;
     }
 
     const originalTicket = visibleTickets.find((ticket) => ticket.id === selectedTicketId) ?? null;
@@ -1378,7 +1437,7 @@ export function BoardPage() {
     const nextTicket = nextTickets.find((ticket) => ticket.id === selectedTicketId) ?? null;
 
     if (haveSameTicketLayout(visibleTickets, nextTickets)) {
-      return;
+      return false;
     }
 
     void queryClient.cancelQueries({ queryKey: ["board", boardSlug] });
@@ -1392,6 +1451,8 @@ export function BoardPage() {
         nextTicket.statusKey,
       );
     }
+
+    return true;
   }
 
   async function handleQuickPriority(priority: TicketPriority) {
@@ -1547,10 +1608,11 @@ export function BoardPage() {
         const direction = event.key.replace("Arrow", "").toLowerCase() as TicketMoveDirection;
 
         if (event.metaKey || event.altKey) {
-          if (
-            (direction === "up" || direction === "down") &&
-            handleQuickSwimlaneMove(direction)
-          ) {
+          if (showSwimlanes && (direction === "up" || direction === "down")) {
+            if (handleQuickMove(direction) || handleQuickSwimlaneMove(direction)) {
+              return;
+            }
+
             return;
           }
 
