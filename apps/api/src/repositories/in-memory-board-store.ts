@@ -871,7 +871,7 @@ export class InMemoryBoardStore {
     }
 
     if (prevOrder === null && nextOrder !== null) {
-      const proposed = nextOrder - ORDER_STEP;
+      const proposed = Math.floor(nextOrder / 2);
       return proposed > 0 ? proposed : null;
     }
 

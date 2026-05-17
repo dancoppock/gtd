@@ -406,6 +406,27 @@ describe("SqliteBoardStore", () => {
     expect(movedTicket!.uiOrder).toBeLessThan(2_000_000);
   });
 
+  it("repositions a ticket before the first globally ordered ticket", () => {
+    const movedTicket = store.repositionTicket("ticket_2", {
+      statusKey: "todo",
+      prevVisibleTicketId: null,
+      nextVisibleTicketId: "ticket_1",
+    });
+
+    expect(movedTicket).not.toBeNull();
+    expect(movedTicket).toMatchObject({
+      id: "ticket_2",
+      statusKey: "todo",
+      uiOrder: 500_000,
+    });
+    expect(
+      store
+        .listTickets(boardId, emptyFilters())
+        .filter((ticket) => ticket.statusKey === "todo")
+        .map((ticket) => ticket.id),
+    ).toEqual(["ticket_2", "ticket_1"]);
+  });
+
   it("does not reseed duplicate demo records when the store is instantiated twice", () => {
     const ticketCountBefore = store.listTickets(boardId, emptyFilters()).length;
 

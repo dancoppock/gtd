@@ -230,6 +230,25 @@ describe("API routes", () => {
     ]);
   });
 
+  it("repositions a ticket before the first globally ordered ticket", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/tickets/ticket_2/reposition",
+      payload: {
+        statusKey: "todo",
+        prevVisibleTicketId: null,
+        nextVisibleTicketId: "ticket_1",
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      id: "ticket_2",
+      statusKey: "todo",
+      uiOrder: 500_000,
+    });
+  });
+
   it("creates and edits a board", async () => {
     const createResponse = await app.inject({
       method: "POST",
