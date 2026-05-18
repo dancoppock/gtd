@@ -123,7 +123,58 @@ Stop the stack with:
 pnpm docker:down
 ```
 
-## 7. Useful Checks
+## 7. SQLite Backups On Ubuntu
+
+The production SQLite database lives on the Docker host at:
+
+```bash
+/opt/docker/gtd/api/data/gtd.sqlite
+```
+
+Do not copy `gtd.sqlite`, `gtd.sqlite-wal`, and `gtd.sqlite-shm` directly while the container is running. SQLite may be writing through the WAL file, so a plain file copy can capture an inconsistent snapshot.
+
+Use SQLite's online backup API instead. The repo includes a host-side script that can run while the API container stays up:
+
+```bash
+sudo install -m 0755 scripts/backup-sqlite.sh /usr/local/bin/gtd-backup-sqlite
+sudo apt-get update
+sudo apt-get install sqlite3 gzip
+sudo /usr/local/bin/gtd-backup-sqlite
+```
+
+Defaults:
+
+- source database: `/opt/docker/gtd/api/data/gtd.sqlite`
+- backup directory: `/opt/docker/gtd/backups`
+- retention: `30` days
+- output format: `gtd-YYYYMMDDTHHMMSSZ.sqlite.gz`
+
+You can override the defaults with environment variables:
+
+```bash
+sudo GTD_DATABASE_PATH=/opt/docker/gtd/api/data/gtd.sqlite \
+  GTD_BACKUP_DIR=/opt/docker/gtd/backups \
+  GTD_BACKUP_RETENTION_DAYS=60 \
+  /usr/local/bin/gtd-backup-sqlite
+```
+
+Example nightly cron entry:
+
+```cron
+17 2 * * * GTD_BACKUP_DIR=/opt/docker/gtd/backups GTD_BACKUP_RETENTION_DAYS=30 /usr/local/bin/gtd-backup-sqlite >> /var/log/gtd-backup.log 2>&1
+```
+
+To restore, stop the stack first, keep a copy of the current data directory, decompress the chosen backup, and replace `gtd.sqlite`:
+
+```bash
+pnpm docker:down
+sudo cp -a /opt/docker/gtd/api/data /opt/docker/gtd/api/data.before-restore
+sudo rm -f /opt/docker/gtd/api/data/gtd.sqlite /opt/docker/gtd/api/data/gtd.sqlite-wal /opt/docker/gtd/api/data/gtd.sqlite-shm
+sudo gzip -dc /opt/docker/gtd/backups/gtd-YYYYMMDDTHHMMSSZ.sqlite.gz | sudo tee /opt/docker/gtd/api/data/gtd.sqlite >/dev/null
+pnpm docker:up
+```
+
+## 8. Useful Checks
 
 Typecheck:
 
@@ -198,7 +249,7 @@ Global labels:
 curl http://127.0.0.1:3001/api/labels
 ```
 
-## 8. Current Product Model
+## 9. Current Product Model
 
 - tickets are global
 - statuses are global and can be extended
